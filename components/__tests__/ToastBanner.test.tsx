@@ -135,6 +135,33 @@ describe("ToastBanner", () => {
     expect(getByText('A')).toBeTruthy();
   });
 
+  it('keeps gasp background and thumbnail previews permanently blurred', () => {
+    useNotificationStore.setState({ activeToast: makeToast({
+      imageUri: 'https://example.com/gasp.jpg',
+      blurhash: 'LKO2?U%2Tw=w',
+    }) });
+
+    const { getByTestId } = render(<ToastBanner />);
+
+    expect(getByTestId('notification-toast-background').props.blurRadius).toBe(60);
+    expect(getByTestId('notification-toast-visual').props.blurRadius).toBe(60);
+    expect(getByTestId('notification-toast-privacy-overlay')).toBeTruthy();
+  });
+
+  it('does not blur actor avatars on non-media notifications', () => {
+    useNotificationStore.setState({ activeToast: makeToast({
+      kind: 'friend.request',
+      imageUri: undefined,
+      blurhash: undefined,
+      actorAvatarUrl: 'https://example.com/alice.jpg',
+    }) });
+
+    const { getByTestId } = render(<ToastBanner />);
+
+    expect(getByTestId('notification-toast-visual').props.blurRadius).toBe(0);
+    expect(() => getByTestId('notification-toast-privacy-overlay')).toThrow();
+  });
+
   it("after dequeueToast runs, the store promotes the next queue item as the new activeToast", () => {
     const first = makeToast({
       id: "toast-1",

@@ -17,6 +17,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BANNER_HEIGHT = 76;
+const GASP_PREVIEW_BLUR_RADIUS = 60;
 
 export function ToastBanner() {
   const insets = useSafeAreaInsets();
@@ -95,6 +96,8 @@ export function ToastBanner() {
               placeholder={{ blurhash: activeToast.blurhash }}
               style={styles.bgImg}
               contentFit="cover"
+              blurRadius={GASP_PREVIEW_BLUR_RADIUS}
+              testID="notification-toast-background"
             />
           </BlurView>
         ) : (
@@ -103,11 +106,22 @@ export function ToastBanner() {
         <View style={styles.row}>
           <View style={[styles.thumbBox, !isMediaToast && styles.avatarBox]}>
             {visualUri ? (
-              <Image
-                source={visualUri}
-                style={[styles.thumbImg, !isMediaToast && styles.avatarImage]}
-                contentFit="cover"
-              />
+              <>
+                <Image
+                  source={visualUri}
+                  style={[styles.thumbImg, !isMediaToast && styles.avatarImage]}
+                  contentFit="cover"
+                  blurRadius={isMediaToast ? GASP_PREVIEW_BLUR_RADIUS : 0}
+                  testID="notification-toast-visual"
+                />
+                {isMediaToast && (
+                  <View
+                    pointerEvents="none"
+                    style={styles.mediaPrivacyOverlay}
+                    testID="notification-toast-privacy-overlay"
+                  />
+                )}
+              </>
             ) : (
               <Text variant="caption" weight="600" style={styles.fallbackInitial}>{fallbackInitial}</Text>
             )}
@@ -167,6 +181,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   thumbImg: { width: 48, height: 48 },
+  mediaPrivacyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,10,15,0.38)',
+  },
   avatarBox: {
     borderRadius: 24,
     alignItems: 'center',
