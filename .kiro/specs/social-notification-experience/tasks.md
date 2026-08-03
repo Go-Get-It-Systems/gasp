@@ -128,7 +128,7 @@ This plan upgrades the existing notification system from a technically correct d
 - [x] 7. Refine `ToastBanner` as a social card
   - [x] 7.1 Update `components/notifications/ToastBanner.tsx`
     - Actor-first layout
-    - Avatar or media thumbnail slot
+    - Avatar or permanently blurred media thumbnail slot
     - Stable fallback identity visual
     - Two-line text maximum
     - Safe-area compliant compact dimensions

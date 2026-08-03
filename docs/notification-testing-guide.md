@@ -296,7 +296,7 @@ Esperado:
 Esperado:
 
 - Exatamente um toast com nome da Conta A e `sent you a gasp`.
-- Thumbnail, blurhash ou fallback visual aparece; nunca um espaco vazio.
+- Thumbnail ou blurhash aparece permanentemente desfocado; nunca revela o Gasp antes do toque e nunca deixa um espaco vazio.
 - O toque abre `view-gasp` para o gasp correto.
 - O gasp recebido aparece no estado pendente/inbox.
 

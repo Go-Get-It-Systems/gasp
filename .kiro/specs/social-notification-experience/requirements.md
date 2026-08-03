@@ -122,7 +122,7 @@ Out of scope for this iteration: notification preferences screen, notification h
 
 1. THE Foreground_Toast SHALL use a compact card that fits within the safe area on all supported iPhone sizes.
 2. THE Foreground_Toast SHALL avoid large empty dark surfaces and SHALL use avatar/media/fallback visual treatment to create context.
-3. THE Foreground_Toast SHALL support optional media thumbnail for gasp events.
+3. THE Foreground_Toast SHALL support an optional media thumbnail for gasp events and SHALL keep that media permanently blurred until the user opens the gasp.
 4. THE Foreground_Toast SHALL support Actor avatar for message, reaction, and friend events.
 5. THE Foreground_Toast SHALL keep text to two short lines maximum.
 6. THE Foreground_Toast SHALL have accessible labels and button role for tap interaction.

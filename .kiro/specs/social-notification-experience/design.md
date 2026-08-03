@@ -164,6 +164,7 @@ The toast should become a compact social card:
 For gasps:
 
 - Prefer media thumbnail or blurhash preview when available.
+- Keep both the thumbnail and background media permanently blurred; only the gasp viewer may reveal the content.
 - Body: `sent you a gasp`
 
 For messages:
