@@ -1,36 +1,83 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LegendList } from '@legendapp/list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import { openChat } from '@/services/navigation';
 import { InboxHeader } from '@/components/inbox/InboxHeader';
-import { StatsRow } from '@/components/inbox/StatsRow';
 import { FriendListItem } from '@/components/inbox/FriendListItem';
 import { SendGaspToAllButton } from '@/components/inbox/SendGaspToAllButton';
+import { ChatViewToggle, type ChatView } from '@/components/chat/ChatViewToggle';
+import { ConversationListItem } from '@/components/chat/ConversationListItem';
 import { ConversationListSkeleton } from '@/components/chat/ConversationListSkeleton';
+import { filterConversations, getConversationParticipant } from '@/components/chat/conversationPreview';
 import { SearchBar } from '@/components/ui/SearchBar';
-import { useInboxStore, useFilteredFriends } from '@/stores/inboxStore';
+import { QueryState } from '@/components/ui/QueryState';
+import { useInboxStore, mapFriendToInbox, type InboxFriend } from '@/stores/inboxStore';
 import { useFriends } from '@/hooks/queries/useFriends';
-import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
-import type { InboxFriend } from '@/stores/inboxStore';
+import { useConversations, useGetOrCreateConversation } from '@/hooks/queries/useChat';
+import { useAuthStore } from '@/stores/authStore';
 import { colors } from '@/constants/colors';
+import { MessageCircle, Users } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
-  const searchQuery = useInboxStore((s) => s.searchQuery);
-  const setSearchQuery = useInboxStore((s) => s.setSearchQuery);
-  const friendCount = useInboxStore((s) => s.friendCount);
-  const newGaspCount = useInboxStore((s) => s.newGaspCount);
-  const onlineCount = useInboxStore((s) => s.onlineCount);
-  const filteredFriends = useFilteredFriends();
-  const { isLoading: isFriendsLoading } = useFriends();
-
-  useEffect(() => {
-    return () => useInboxStore.getState().setSearchQuery('');
-  }, []);
+  const { t } = useTranslation();
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const presenceFriends = useInboxStore((s) => s.friends);
+  const [selectedView, setSelectedView] = useState<ChatView>('chats');
+  const [searchQuery, setSearchQuery] = useState('');
+  const {
+    data: conversations,
+    isLoading: isConversationsLoading,
+    isError: isConversationsError,
+    refetch: refetchConversations,
+  } = useConversations();
+  const {
+    data: friends,
+    isLoading: isFriendsLoading,
+    isError: isFriendsError,
+    refetch: refetchFriends,
+  } = useFriends();
 
   const getOrCreateConversation = useGetOrCreateConversation();
+
+  const friendRows = useMemo(() => {
+    if (!friends) return undefined;
+    const presenceById = new Map(presenceFriends.map((friend) => [friend.id, friend.onlineStatus]));
+    return friends.map((friend) => ({
+      ...mapFriendToInbox(friend),
+      onlineStatus: presenceById.get(friend.id) ?? friend.onlineStatus,
+    }));
+  }, [friends, presenceFriends]);
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredConversations = useMemo(() => {
+    if (!conversations) return undefined;
+    return filterConversations(conversations, searchQuery, currentUserId);
+  }, [conversations, currentUserId, searchQuery]);
+
+  const filteredFriends = useMemo(() => {
+    if (!friendRows) return undefined;
+    if (!normalizedSearch) return friendRows;
+    return friendRows.filter(
+      (friend) =>
+        friend.name.toLowerCase().includes(normalizedSearch) ||
+        friend.username.toLowerCase().includes(normalizedSearch),
+    );
+  }, [friendRows, normalizedSearch]);
+
+  const onlineFriendIds = useMemo(
+    () => new Set(friendRows?.filter((friend) => friend.onlineStatus === 'online').map((friend) => friend.id)),
+    [friendRows],
+  );
+
+  const handleViewChange = useCallback((view: ChatView) => {
+    setSelectedView(view);
+    setSearchQuery('');
+  }, []);
 
   const handleFriendPress = useCallback(async (friend: InboxFriend) => {
     try {
@@ -41,9 +88,15 @@ export default function ChatScreen() {
         avatarUrl: friend.avatarUrl || undefined,
       });
     } catch (error) {
-      console.error('Failed to open chat:', error);
+      Sentry.captureException(error, {
+        extra: { context: 'chatInbox.getOrCreateConversation', friendId: friend.id },
+      });
     }
   }, [getOrCreateConversation]);
+
+  const handleConversationPress = useCallback((conversationId: string, name: string, avatarUrl: string | null) => {
+    openChat({ conversationId, name, avatarUrl: avatarUrl || undefined });
+  }, []);
 
   const handleSendGaspToAll = () => {
     router.push('/(tabs)/camera');
@@ -53,7 +106,7 @@ export default function ChatScreen() {
     router.push('/(tabs)/camera');
   };
 
-  const renderItem = useCallback(
+  const renderFriendItem = useCallback(
     ({ item }: { item: InboxFriend }) => (
       <FriendListItem
         id={item.id}
@@ -72,36 +125,88 @@ export default function ChatScreen() {
     [handleFriendPress]
   );
 
-  const keyExtractor = useCallback((item: InboxFriend) => item.id, []);
+  const renderConversationItem = useCallback(
+    ({ item }: { item: NonNullable<typeof filteredConversations>[number] }) => {
+      const participant = getConversationParticipant(item, currentUserId);
+      return (
+        <ConversationListItem
+          conversation={item}
+          participant={participant}
+          isOnline={participant.id ? onlineFriendIds.has(participant.id) : false}
+          onPress={() => handleConversationPress(item.id, participant.name, participant.avatarUrl)}
+        />
+      );
+    },
+    [currentUserId, handleConversationPress, onlineFriendIds],
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {isFriendsLoading && filteredFriends.length === 0 && <ConversationListSkeleton />}
-      <LegendList
-        data={filteredFriends}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={
-          <View>
-            <InboxHeader onCameraPress={handleCameraPress} />
-            <View style={styles.searchContainer}>
-              <SearchBar
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search friends..."
-              />
-            </View>
-            <StatsRow
-              friendCount={friendCount}
-              newGaspCount={newGaspCount}
-              onlineCount={onlineCount}
-            />
-          </View>
-        }
-        estimatedItemSize={80}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
-        recycleItems
+      <InboxHeader
+        title={t('chat.inbox.title')}
+        onCameraPress={handleCameraPress}
+        cameraAccessibilityLabel={t('chat.inbox.openCamera')}
       />
+      <ChatViewToggle value={selectedView} onChange={handleViewChange} />
+      <View style={styles.searchContainer}>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder={t(selectedView === 'chats' ? 'chat.inbox.searchChats' : 'chat.inbox.searchFriends')}
+        />
+      </View>
+
+      <View style={styles.listContainer}>
+        {selectedView === 'chats' ? (
+          <QueryState
+            data={filteredConversations}
+            isLoading={isConversationsLoading}
+            isError={isConversationsError}
+            refetch={refetchConversations}
+            skeleton={<ConversationListSkeleton />}
+            emptyIcon={<MessageCircle size={40} color={colors.textTertiary} />}
+            emptyTitle={t(normalizedSearch ? 'chat.inbox.noChatsFound' : 'chat.inbox.noChats')}
+            emptySubtitle={t(normalizedSearch ? 'chat.inbox.tryAnotherSearch' : 'chat.inbox.noChatsSubtitle')}
+            emptyCta={normalizedSearch ? undefined : {
+              label: t('chat.inbox.findFriends'),
+              onPress: () => handleViewChange('friends'),
+            }}
+          >
+            {(items) => (
+              <LegendList
+                data={items}
+                renderItem={renderConversationItem}
+                keyExtractor={(item) => item.id}
+                estimatedItemSize={80}
+                contentContainerStyle={styles.listContent}
+                recycleItems
+              />
+            )}
+          </QueryState>
+        ) : (
+          <QueryState
+            data={filteredFriends}
+            isLoading={isFriendsLoading}
+            isError={isFriendsError}
+            refetch={refetchFriends}
+            skeleton={<ConversationListSkeleton />}
+            emptyIcon={<Users size={40} color={colors.textTertiary} />}
+            emptyTitle={t(normalizedSearch ? 'chat.inbox.noFriendsFound' : 'chat.inbox.noFriends')}
+            emptySubtitle={t(normalizedSearch ? 'chat.inbox.tryAnotherSearch' : 'chat.inbox.noFriendsSubtitle')}
+          >
+            {(items) => (
+              <LegendList
+                data={items}
+                renderItem={renderFriendItem}
+                keyExtractor={(item) => item.id}
+                estimatedItemSize={80}
+                contentContainerStyle={styles.listContent}
+                recycleItems
+              />
+            )}
+          </QueryState>
+        )}
+      </View>
       <SendGaspToAllButton onPress={handleSendGaspToAll} />
     </View>
   );
@@ -114,6 +219,12 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 12,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 140,
   },
 });

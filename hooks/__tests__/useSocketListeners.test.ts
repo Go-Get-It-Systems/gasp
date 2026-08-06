@@ -344,6 +344,20 @@ describe('useSocketListeners', () => {
       expect(conversations[0].unreadCount).toBe(1);
     });
 
+    it('refreshes the conversation list when a first message belongs to an uncached conversation', () => {
+      queryCache[JSON.stringify(queryKeys.conversations.all)] = [];
+      renderHook(() => useSocketListeners());
+
+      capturedHandlers['chat:new_message']({
+        conversationId: 'new-conversation',
+        message: makeMessage({ id: 'first-message', conversationId: 'new-conversation', senderId: 'sender-2' }),
+        actorName: 'Alex',
+      });
+
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.conversations.all });
+      expect(mockSetChatHasUnread).toHaveBeenCalledWith(true);
+    });
+
     it.each(['gasp', 'reaction'])('does not enqueue a second toast for %s chat messages', (type) => {
       queryCache[JSON.stringify(queryKeys.conversations.all)] = [{
         id: 'conv-1',
