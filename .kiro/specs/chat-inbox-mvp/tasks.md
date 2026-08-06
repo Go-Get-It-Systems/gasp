@@ -121,17 +121,18 @@ history in this MVP.
 | Full test suite | Pass — 30 suites, 304 tests. |
 | `npx tsc --noEmit` | Pass. |
 | ESLint on feature source and tests | Pass. |
-| Manual device QA | Pending — needs two authenticated test users to exercise first-message and Gasp flows. |
+| Manual device QA | Partial pass — exercised with two authenticated test sessions; the fresh-conversation realtime path remains covered by automation because these accounts already contained conversations. |
 
 ### Manual Simulator QA — 2026-08-06
 
 | Scenario | Result | Evidence |
 |---|---|---|
-| Open Chat from a cold tab/deep link | Pass | iPhone 17 Pro Max Simulator loaded the current development bundle and opened Chats by default. |
+| Open Chat from a cold tab/deep link | Pass | Two independent iOS Simulator sessions loaded the current development bundle and opened Chats by default. |
 | Conversation-first hierarchy | Pass | Recent conversations rendered above the persistent Send Gasp to All CTA; the former aggregate stats row was absent. |
-| Gasp privacy and unread state | Pass | A received Gasp rendered as `Sent you a Gasp` with no media thumbnail; avatar, online dot, relative time, bold unread state, and count badge were visible. |
-| Open a conversation | Pass | Tapping the first Conversation_Row opened its existing chat thread. |
-| Friends switch, search, and first uncached incoming message | Pending | These cases need a second authenticated user/test dataset; automated coverage passes, but they are not being claimed as manual validation. |
+| Gasp privacy and unread state | Pass | A received Gasp rendered as `Sent you a Gasp` with no media thumbnail; avatar, online dot, relative time, bold unread state, and count badge were visible. Opening the row showed media only inside the conversation. |
+| Open a conversation | Pass | Tapping a Conversation_Row opened its existing chat thread. |
+| Friends switch and search | Automated pass | Screen tests verify the view switch, view-specific search placeholder, and Chats empty-state route to Friends. |
+| First uncached incoming message | Automated pass | Socket-listener regression test starts with an empty conversation cache and verifies exactly one authoritative conversations-query invalidation. The supplied test accounts already had conversation data, so this exact state was not fabricated for manual QA. |
 
 ## Notes
 
