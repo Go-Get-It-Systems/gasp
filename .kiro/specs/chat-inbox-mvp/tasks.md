@@ -123,6 +123,16 @@ history in this MVP.
 | ESLint on feature source and tests | Pass. |
 | Manual device QA | Pending — needs two authenticated test users to exercise first-message and Gasp flows. |
 
+### Manual Simulator QA — 2026-08-06
+
+| Scenario | Result | Evidence |
+|---|---|---|
+| Open Chat from a cold tab/deep link | Pass | iPhone 17 Pro Max Simulator loaded the current development bundle and opened Chats by default. |
+| Conversation-first hierarchy | Pass | Recent conversations rendered above the persistent Send Gasp to All CTA; the former aggregate stats row was absent. |
+| Gasp privacy and unread state | Pass | A received Gasp rendered as `Sent you a Gasp` with no media thumbnail; avatar, online dot, relative time, bold unread state, and count badge were visible. |
+| Open a conversation | Pass | Tapping the first Conversation_Row opened its existing chat thread. |
+| Friends switch, search, and first uncached incoming message | Pending | These cases need a second authenticated user/test dataset; automated coverage passes, but they are not being claimed as manual validation. |
+
 ## Notes
 
 - Automated test tasks are required. This resolves Requirement 6.6 and keeps
