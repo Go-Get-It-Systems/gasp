@@ -86,7 +86,30 @@
   },
   "chat": {
     "startConversation": "Start the conversation by sending a gasp!",
-    "searchFriends": "Search friends..."
+    "searchFriends": "Search friends...",
+    "inbox": {
+      "title": "CHAT",
+      "chats": "Chats",
+      "friends": "Friends",
+      "searchChats": "Search chats...",
+      "searchFriends": "Search friends...",
+      "openCamera": "Open camera",
+      "sentGasp": "Sent you a Gasp",
+      "reactedToGasp": "Reacted to your Gasp",
+      "sentPhoto": "Sent a photo",
+      "startConversation": "Start the conversation",
+      "now": "now",
+      "noChats": "No chats yet",
+      "noChatsSubtitle": "Start a conversation with a friend.",
+      "noChatsFound": "No chats found",
+      "noFriends": "No friends yet",
+      "noFriendsSubtitle": "Add friends to start chatting.",
+      "noFriendsFound": "No friends found",
+      "tryAnotherSearch": "Try a different search.",
+      "findFriends": "Find friends",
+      "conversationAccessibility": "{{name}}, {{preview}}",
+      "conversationUnreadAccessibility": "{{name}}, {{preview}}, {{count}} unread messages"
+    }
   },
   "discover": {
     "searchPlaceholder": "Search by username or name...",

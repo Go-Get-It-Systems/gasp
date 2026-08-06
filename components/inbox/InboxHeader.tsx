@@ -5,15 +5,26 @@ import { colors } from '@/constants/colors';
 
 interface InboxHeaderProps {
   onCameraPress?: () => void;
+  title?: string;
+  cameraAccessibilityLabel?: string;
 }
 
-export function InboxHeader({ onCameraPress }: InboxHeaderProps) {
+export function InboxHeader({
+  onCameraPress,
+  title = 'INBOX',
+  cameraAccessibilityLabel = 'Open camera',
+}: InboxHeaderProps) {
   return (
     <View style={styles.container}>
       <Text variant="title" style={styles.title}>
-        {'INBOX'}
+        {title}
       </Text>
-      <Pressable onPress={onCameraPress} style={styles.cameraButton}>
+      <Pressable
+        onPress={onCameraPress}
+        style={styles.cameraButton}
+        accessibilityRole="button"
+        accessibilityLabel={cameraAccessibilityLabel}
+      >
         <Camera size={24} color={colors.textPrimary} />
       </Pressable>
     </View>

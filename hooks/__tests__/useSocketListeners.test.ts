@@ -6,13 +6,14 @@
  */
 
 import { useSocketListeners } from '@/hooks/useSocketListeners';
+import type { Conversation, Message } from '@/services/api/schemas/chat.schema';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
 import { queryKeys } from '@/services/queryKeys';
 import { renderHook } from '@testing-library/react-native';
 
 // ── Capture maps for socket event handlers ─────────────────────────────────────
 
-type Handler = (data: any) => void;
+type Handler = (data: unknown) => void;
 const capturedHandlers: Record<string, Handler> = {};
 
 // ── Mock @/services/socket ──────────────────────────────────────────────────────
@@ -75,9 +76,12 @@ jest.mock('@/services/socket', () => ({
 
 // ── Mock @/lib/queryClient ──────────────────────────────────────────────────────
 
-const queryCache: Record<string, any> = {};
+const queryCache: Record<string, unknown> = {};
 
-const mockSetQueryData = jest.fn((key: readonly string[], updater: any) => {
+const mockSetQueryData = jest.fn((
+  key: readonly string[],
+  updater: unknown | ((current: unknown) => unknown),
+) => {
   const keyStr = JSON.stringify(key);
   const current = queryCache[keyStr];
   const newValue = typeof updater === 'function' ? updater(current) : updater;
@@ -92,9 +96,9 @@ const mockInvalidateQueries = jest.fn();
 
 jest.mock('@/lib/queryClient', () => ({
   queryClient: {
-    setQueryData: (key: any, updater: any) => mockSetQueryData(key, updater),
-    getQueryData: (key: any) => mockGetQueryData(key),
-    invalidateQueries: (options: any) => mockInvalidateQueries(options),
+    setQueryData: (key: readonly string[], updater: unknown) => mockSetQueryData(key, updater),
+    getQueryData: (key: readonly string[]) => mockGetQueryData(key),
+    invalidateQueries: (options: unknown) => mockInvalidateQueries(options),
   },
 }));
 
@@ -108,7 +112,7 @@ jest.mock('@/hooks/queries/useChat', () => ({
 
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: Object.assign(
-    (selector: (s: any) => any) =>
+    (selector: (s: { isAuthenticated: boolean; user: { id: string } }) => unknown) =>
       selector({ isAuthenticated: true, user: { id: 'user-123' } }),
     {
       getState: jest.fn(() => ({ user: { id: 'user-123' } })),
@@ -193,7 +197,7 @@ function makeGasp(overrides: Partial<Gasp> = {}): Gasp {
   };
 }
 
-function makeMessage(overrides: any = {}) {
+function makeMessage(overrides: Partial<Message> = {}): Message {
   return {
     id: 'msg-1',
     conversationId: 'conv-1',
@@ -297,7 +301,7 @@ describe('useSocketListeners', () => {
         message: makeMessage({ id: 'msg-2', senderId: 'sender-2', content: 'hi' }),
       });
 
-      const conversations = queryCache[JSON.stringify(queryKeys.conversations.all)] as any[];
+      const conversations = queryCache[JSON.stringify(queryKeys.conversations.all)] as Conversation[];
       expect(conversations[0].unreadCount).toBe(1);
       expect(mockEnqueueToast).toHaveBeenCalledWith(expect.objectContaining({
         id: 'msg-2',
@@ -323,7 +327,7 @@ describe('useSocketListeners', () => {
         message: makeMessage({ id: 'msg-2', senderId: 'sender-2' }),
       });
 
-      const conversations = queryCache[JSON.stringify(queryKeys.conversations.all)] as any[];
+      const conversations = queryCache[JSON.stringify(queryKeys.conversations.all)] as Conversation[];
       expect(conversations[0].unreadCount).toBe(0);
       expect(mockEnqueueToast).not.toHaveBeenCalled();
     });
@@ -341,11 +345,25 @@ describe('useSocketListeners', () => {
 
       capturedHandlers['chat:new_message']({ conversationId: 'conv-1', message });
 
-      const conversations = queryCache[JSON.stringify(queryKeys.conversations.all)] as any[];
+      const conversations = queryCache[JSON.stringify(queryKeys.conversations.all)] as Conversation[];
       expect(conversations[0].unreadCount).toBe(1);
     });
 
-    it.each(['gasp', 'reaction'])('does not enqueue a second toast for %s chat messages', (type) => {
+    it('refreshes the conversation list when a first message belongs to an uncached conversation', () => {
+      queryCache[JSON.stringify(queryKeys.conversations.all)] = [];
+      renderHook(() => useSocketListeners());
+
+      capturedHandlers['chat:new_message']({
+        conversationId: 'new-conversation',
+        message: makeMessage({ id: 'first-message', conversationId: 'new-conversation', senderId: 'sender-2' }),
+        actorName: 'Alex',
+      });
+
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.conversations.all });
+      expect(mockSetChatHasUnread).toHaveBeenCalledWith(true);
+    });
+
+    it.each(['gasp', 'reaction'] as const)('does not enqueue a second toast for %s chat messages', (type) => {
       queryCache[JSON.stringify(queryKeys.conversations.all)] = [{
         id: 'conv-1',
         unreadCount: 0,

@@ -77,7 +77,30 @@
   },
   "chat": {
     "startConversation": "Start the conversation by sending a gasp!",
-    "searchFriends": "Search friends..."
+    "searchFriends": "Buscar amigos...",
+    "inbox": {
+      "title": "CHAT",
+      "chats": "Conversas",
+      "friends": "Amigos",
+      "searchChats": "Buscar conversas...",
+      "searchFriends": "Buscar amigos...",
+      "openCamera": "Abrir câmera",
+      "sentGasp": "Enviou um Gasp",
+      "reactedToGasp": "Reagiu ao seu Gasp",
+      "sentPhoto": "Enviou uma foto",
+      "startConversation": "Comece a conversa",
+      "now": "agora",
+      "noChats": "Nenhuma conversa ainda",
+      "noChatsSubtitle": "Comece uma conversa com um amigo.",
+      "noChatsFound": "Nenhuma conversa encontrada",
+      "noFriends": "Nenhum amigo ainda",
+      "noFriendsSubtitle": "Adicione amigos para começar a conversar.",
+      "noFriendsFound": "Nenhum amigo encontrado",
+      "tryAnotherSearch": "Tente uma busca diferente.",
+      "findFriends": "Encontrar amigos",
+      "conversationAccessibility": "{{name}}, {{preview}}",
+      "conversationUnreadAccessibility": "{{name}}, {{preview}}, {{count}} mensagens não lidas"
+    }
   },
   "discover": {
     "searchPlaceholder": "Search by username or name...",

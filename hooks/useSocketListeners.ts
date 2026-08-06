@@ -187,9 +187,11 @@ export function useSocketListeners() {
         const isOwnMessage = currentUserId != null && message.senderId === currentUserId;
 
         let latestConversations: Conversation[] = [];
+        let hasConversationInCache = false;
         queryClient.setQueryData<Conversation[]>(queryKeys.conversations.all, (old) => {
           if (!old) return [];
           latestConversations = old;
+          hasConversationInCache = old.some((conversation) => conversation.id === conversationId);
           return old.map((c) => {
             if (c.id !== conversationId) return c;
             const isDuplicate = c.lastMessage?.id === message.id;
@@ -203,6 +205,13 @@ export function useSocketListeners() {
             };
           });
         });
+
+        // A first incoming message can belong to a conversation that has not
+        // reached the local list yet. Refetch its server-authoritative
+        // participant metadata instead of fabricating a partial cache entry.
+        if (!hasConversationInCache) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all });
+        }
 
         if (!isOwnMessage && conversationId !== activeId) {
           useNotificationStore.getState().setChatHasUnread(true);
