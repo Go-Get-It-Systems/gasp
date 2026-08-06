@@ -63,6 +63,7 @@ export function useSocketListeners() {
           gaspId: gasp.id,
           imageUri: gasp.imageUri,
           blurhash: gasp.blurhash,
+          mediaType: gasp.mediaType,
         });
         useNotificationStore.getState().setInboxUnreadType('gasp');
         useNotificationStore.getState().triggerTabPulse();
