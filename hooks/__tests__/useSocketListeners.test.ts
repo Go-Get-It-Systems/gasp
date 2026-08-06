@@ -382,6 +382,27 @@ describe('useSocketListeners', () => {
     });
   });
 
+  describe('notification:event fallback', () => {
+    it('marks Chat unread and refreshes conversations for an inactive message notification', () => {
+      renderHook(() => useSocketListeners());
+
+      capturedHandlers['notification:event']({
+        kind: 'message.new',
+        conversationId: 'uncached-conversation',
+        actorName: 'Alex',
+        actorId: 'sender-2',
+        recipientId: 'user-123',
+        title: 'Alex',
+        body: 'Hello',
+        route: '/chat/uncached-conversation',
+        eventId: 'message-1',
+      });
+
+      expect(mockSetChatHasUnread).toHaveBeenCalledWith(true);
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.conversations.all });
+    });
+  });
+
   describe('gasp:reaction_received event', () => {
     it('normalizes the socket reaction timestamp before adding it to the inbox', () => {
       const createdAt = '2026-07-21T03:49:00.000Z';

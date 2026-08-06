@@ -1,0 +1,4 @@
+{
+  "name": "chat-realtime-delivery",
+  "description": "Deliver chat activity to participants outside an open conversation and keep inbox indicators current."
+}

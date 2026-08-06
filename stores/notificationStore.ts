@@ -34,6 +34,7 @@ interface NotificationState {
   // Per-tab unread type for Content_Type_Indicator
   inboxUnreadType: 'gasp' | 'reaction' | null;
   chatHasUnread: boolean;
+  chatUnreadHintAt: number | null;
 
   // Actions
   enqueueToast: (item: ToastItem) => void;
@@ -51,6 +52,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   tabPulseTrigger: 0,
   inboxUnreadType: null,
   chatHasUnread: false,
+  chatUnreadHintAt: null,
 
   enqueueToast: (item) => {
     const { activeToast, toastQueue, recentToastIds } = get();
@@ -85,5 +87,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   setInboxUnreadType: (type) => set({ inboxUnreadType: type }),
 
-  setChatHasUnread: (has) => set({ chatHasUnread: has }),
+  setChatHasUnread: (has) => set({
+    chatHasUnread: has,
+    chatUnreadHintAt: has ? Date.now() : null,
+  }),
 }));
