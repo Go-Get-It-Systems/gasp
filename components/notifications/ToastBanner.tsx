@@ -1,9 +1,11 @@
+import {
+  NotificationToastBackdrop,
+  NotificationToastThumbnail,
+} from '@/components/notifications/NotificationToastArtwork';
 import { Text } from "@/components/ui/Text";
 import { colors } from "@/constants/colors";
 import { openNotificationRoute } from "@/services/notificationNavigation";
 import { useNotificationStore } from "@/stores/notificationStore";
-import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
@@ -17,8 +19,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BANNER_HEIGHT = 76;
-const GASP_PREVIEW_BLUR_RADIUS = 60;
-
 export function ToastBanner() {
   const insets = useSafeAreaInsets();
   const activeToast = useNotificationStore((s) => s.activeToast);
@@ -73,9 +73,6 @@ export function ToastBanner() {
   };
 
   if (!activeToast) return null;
-  const hasBlurhash = Boolean(activeToast.blurhash);
-  const visualUri = activeToast.imageUri ?? activeToast.actorAvatarUrl;
-  const isMediaToast = Boolean(activeToast.imageUri);
   const fallbackInitial = (activeToast.actorName ?? activeToast.title).trim().charAt(0).toUpperCase() || '?';
 
   return (
@@ -89,43 +86,9 @@ export function ToastBanner() {
         accessibilityRole="button"
         accessibilityLabel={`${activeToast.title}: ${activeToast.body}`}
       >
-        {hasBlurhash && activeToast.imageUri ? (
-          <BlurView intensity={80} tint="dark" style={styles.fill}>
-            <Image
-              source={activeToast.imageUri}
-              placeholder={{ blurhash: activeToast.blurhash }}
-              style={styles.bgImg}
-              contentFit="cover"
-              blurRadius={GASP_PREVIEW_BLUR_RADIUS}
-              testID="notification-toast-background"
-            />
-          </BlurView>
-        ) : (
-          <View style={styles.solid} />
-        )}
+        <NotificationToastBackdrop {...activeToast} />
         <View style={styles.row}>
-          <View style={[styles.thumbBox, !isMediaToast && styles.avatarBox]}>
-            {visualUri ? (
-              <>
-                <Image
-                  source={visualUri}
-                  style={[styles.thumbImg, !isMediaToast && styles.avatarImage]}
-                  contentFit="cover"
-                  blurRadius={isMediaToast ? GASP_PREVIEW_BLUR_RADIUS : 0}
-                  testID="notification-toast-visual"
-                />
-                {isMediaToast && (
-                  <View
-                    pointerEvents="none"
-                    style={styles.mediaPrivacyOverlay}
-                    testID="notification-toast-privacy-overlay"
-                  />
-                )}
-              </>
-            ) : (
-              <Text variant="caption" weight="600" style={styles.fallbackInitial}>{fallbackInitial}</Text>
-            )}
-          </View>
+          <NotificationToastThumbnail {...activeToast} fallbackInitial={fallbackInitial} />
           <View style={styles.col}>
             <Text variant="body" weight="600" numberOfLines={1}>
               {activeToast.title}
@@ -160,12 +123,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10,
   },
-  fill: { ...StyleSheet.absoluteFillObject },
-  bgImg: { ...StyleSheet.absoluteFillObject, opacity: 0.3 },
-  solid: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.surfaceElevated,
-  },
   row: {
     flex: 1,
     flexDirection: "row",
@@ -173,25 +130,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     gap: 12,
   },
-  thumbBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: colors.surface,
-  },
-  thumbImg: { width: 48, height: 48 },
-  mediaPrivacyOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,10,15,0.38)',
-  },
-  avatarBox: {
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-  },
-  avatarImage: { borderRadius: 24 },
-  fallbackInitial: { color: colors.textPrimary },
   col: { flex: 1, justifyContent: "center" },
 });
