@@ -1,5 +1,12 @@
 import { api } from '@/services/api';
-import type { User, UserStats } from '@/services/api/schemas/user.schema';
+import {
+  UpdateProfileInputSchema,
+  UserSchema,
+  type UpdateProfileInput,
+  type User,
+  type UserStats,
+} from '@/services/api/schemas/user.schema';
+import { validateResponse } from '@/services/api/schemas/common.schema';
 
 export async function getMe(): Promise<User> {
   const res = await api.get<User>('/users/me');
@@ -11,14 +18,10 @@ export async function getMyStats(): Promise<UserStats> {
   return res.data;
 }
 
-export async function updateMe(data: {
-  displayName?: string;
-  username?: string;
-  avatarUrl?: string | null;
-  bio?: string;
-}): Promise<User> {
-  const res = await api.patch<User>('/users/me', data);
-  return res.data;
+export async function updateMe(data: UpdateProfileInput): Promise<User> {
+  const input = UpdateProfileInputSchema.parse(data);
+  const res = await api.patch<unknown>('/users/me', input);
+  return validateResponse(UserSchema, res.data, 'updateMe');
 }
 
 export async function searchUsers(query: string): Promise<User[]> {

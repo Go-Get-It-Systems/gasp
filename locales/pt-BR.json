@@ -157,6 +157,36 @@
     "gaspScore": "GASP Score",
     "gaspsSent": "Gasps Sent",
     "gaspsReceived": "Gasps Received",
-    "friends": "Friends"
+    "friends": "Amigos",
+    "edit": {
+      "open": "Editar perfil",
+      "title": "Editar perfil",
+      "back": "Voltar ao perfil",
+      "avatarPreview": "Prévia da foto de perfil",
+      "changePhoto": "Trocar foto",
+      "changePhotoHint": "Escolha uma nova foto de perfil na sua galeria",
+      "removePhoto": "Remover foto",
+      "removePhotoTitle": "Remover foto de perfil?",
+      "removePhotoBody": "Seu perfil passará a mostrar as suas iniciais.",
+      "displayName": "Nome de exibição",
+      "displayNamePlaceholder": "Seu nome",
+      "displayNameError": "Informe um nome entre 1 e 50 caracteres.",
+      "username": "Nome de usuário",
+      "usernamePlaceholder": "seu_usuario",
+      "usernameError": "Use de 3 a 30 letras, números ou sublinhados.",
+      "usernameTaken": "Este nome de usuário já está em uso.",
+      "bio": "Bio",
+      "bioPlaceholder": "Conte um pouco sobre você para seus amigos",
+      "bioHint": "{{count}} de 200 caracteres usados",
+      "bioError": "Sua bio pode ter até 200 caracteres.",
+      "photoPermissionTitle": "Permitir acesso às fotos",
+      "photoPermissionBody": "Permita o acesso para escolher uma foto de perfil. Você pode alterar isso depois nos ajustes do aparelho.",
+      "openSettings": "Abrir Ajustes",
+      "photoSelectionError": "Não foi possível abrir a sua galeria. Tente novamente.",
+      "uploadingPhoto": "Enviando foto… {{percent}}%",
+      "save": "Salvar alterações",
+      "saving": "Salvando…",
+      "saveErrorTitle": "Não foi possível salvar o perfil"
+    }
   }
 }

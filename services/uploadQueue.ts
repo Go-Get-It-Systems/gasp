@@ -3,6 +3,7 @@ import { uploadMedia, type UploadResult, type UploadProgress, type MediaType } f
 import * as Sentry from '@sentry/react-native';
 
 export type { MediaType };
+export type { UploadProgress } from './storage';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

@@ -15,6 +15,7 @@ export const UserSchema = z.object({
   displayName: z.string(),
   username: z.string(),
   avatarUrl: z.string().nullable(),
+  bio: z.string().optional(),
   phoneNumber: z.string().optional(),
   createdAt: z.string(),
   friendshipStatus: FriendshipStatusForUserSchema.optional(),
@@ -22,6 +23,15 @@ export const UserSchema = z.object({
 });
 
 export type User = z.infer<typeof UserSchema>;
+
+export const UpdateProfileInputSchema = z.object({
+  displayName: z.string().min(1).max(50).optional(),
+  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/).optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  bio: z.string().max(200).optional(),
+});
+
+export type UpdateProfileInput = z.infer<typeof UpdateProfileInputSchema>;
 
 export const FriendSchema = UserSchema.extend({
   onlineStatus: z.enum(['online', 'offline', 'away']),

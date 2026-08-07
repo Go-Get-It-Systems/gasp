@@ -22,6 +22,7 @@ export const queryKeys = {
     topGaspers: ['discover', 'topGaspers'] as const,
   },
   users: {
+    me: ['users', 'me'] as const,
     search: (query: string) => ['users', 'search', query] as const,
     profile: (id: string) => ['users', 'profile', id] as const,
     stats: (id: string) => ['users', 'stats', id] as const,
