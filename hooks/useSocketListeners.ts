@@ -126,6 +126,10 @@ export function useSocketListeners() {
 
         useNotificationStore.getState().enqueueToast(toastFromNotificationEvent(event));
 
+        if (event.kind === 'message.new') {
+          useNotificationStore.getState().setChatHasUnread(true);
+          queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all });
+        }
         if (event.kind === 'friend.request') {
           queryClient.invalidateQueries({ queryKey: queryKeys.friends.requests });
         }

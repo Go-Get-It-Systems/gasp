@@ -105,6 +105,12 @@ export function getSocket(): Socket | null {
   return socket;
 }
 
+/** Subscribes to reconnects without exposing the socket singleton to screens. */
+export function onSocketConnect(handler: () => void) {
+  socket?.on('connect', handler);
+  return () => { socket?.off('connect', handler); };
+}
+
 // ── Notification app-state events ─────────────────────────────────
 
 export function sendNotificationAppState(data: {

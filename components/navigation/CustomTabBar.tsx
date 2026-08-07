@@ -22,6 +22,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ContentTypeIndicator } from "@/components/ui/ContentTypeIndicator";
+import { hasUnreadChatActivity, shouldClearChatUnreadHint } from "@/components/navigation/chatUnread";
 import { useConversations } from "@/hooks/queries/useChat";
 import { usePendingGasps } from "@/hooks/queries/useGasps";
 import { useNotificationStore } from "@/stores/notificationStore";
@@ -50,19 +51,35 @@ export function CustomTabBar({
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  const { data: conversations } = useConversations();
+  const { data: conversations, dataUpdatedAt: conversationsUpdatedAt } = useConversations();
   const { data: pendingGasps } = usePendingGasps();
   const inboxUnreadType = useNotificationStore((s) => s.inboxUnreadType);
+  const chatHasUnreadHint = useNotificationStore((s) => s.chatHasUnread);
+  const chatUnreadHintAt = useNotificationStore((s) => s.chatUnreadHintAt);
+  const setChatHasUnread = useNotificationStore((s) => s.setChatHasUnread);
   const tabPulseTrigger = useNotificationStore((s) => s.tabPulseTrigger);
   const resetTabPulse = useNotificationStore((s) => s.resetTabPulse);
 
-  const hasUnreadChats = conversations?.some((c) => c.unreadCount > 0) ?? false;
+  const conversationsHaveUnread = conversations?.some((conversation) => conversation.unreadCount > 0) ?? false;
+  const hasUnreadChats = hasUnreadChatActivity(conversations, chatHasUnreadHint);
   const hasUnreadGasps = (pendingGasps?.length ?? 0) > 0;
 
   const pulseScaleSv = useSharedValue(1);
 
   const inboxTabIndex = state.routes.findIndex((r) => r.name === "inbox");
   const isInboxFocused = state.index === inboxTabIndex;
+
+  useEffect(() => {
+    if (shouldClearChatUnreadHint({
+      conversationsLoaded: conversations !== undefined,
+      conversationsHaveUnread,
+      hasUnreadHint: chatHasUnreadHint,
+      hintCreatedAt: chatUnreadHintAt,
+      conversationsUpdatedAt,
+    })) {
+      setChatHasUnread(false);
+    }
+  }, [chatHasUnreadHint, chatUnreadHintAt, conversations, conversationsHaveUnread, conversationsUpdatedAt, setChatHasUnread]);
 
   useEffect(() => {
     if (tabPulseTrigger > 0 && !isInboxFocused) {
@@ -84,7 +101,7 @@ export function CustomTabBar({
     return () => {
       cancelAnimation(pulseScaleSv);
     };
-  }, [tabPulseTrigger, isInboxFocused]);
+  }, [tabPulseTrigger, isInboxFocused, pulseScaleSv, resetTabPulse]);
 
   const pulseAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScaleSv.value }],

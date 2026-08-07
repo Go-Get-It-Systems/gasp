@@ -5,6 +5,7 @@ import * as mockReactNative from 'react-native';
 
 const mockOpenChat = jest.fn();
 const mockGetOrCreateConversation = jest.fn();
+let mockConversations: unknown[] = [];
 
 jest.mock('@legendapp/list', () => ({
   LegendList: ({ data, renderItem }: { data: unknown[]; renderItem: (item: { item: unknown }) => ReactNode }) => {
@@ -18,13 +19,11 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 jest.mock('@/services/navigation', () => ({ openChat: mockOpenChat }));
 
 jest.mock('@/components/inbox/InboxHeader', () => ({
-  InboxHeader: ({ title }: { title: string }) => {
-    return <mockReactNative.Text>{title}</mockReactNative.Text>;
-  },
-}));
-jest.mock('@/components/inbox/SendGaspToAllButton', () => ({
-  SendGaspToAllButton: ({ onPress }: { onPress: () => void }) => {
-    return <mockReactNative.Pressable accessibilityRole="button" accessibilityLabel="Send Gasp to All" onPress={onPress}><mockReactNative.Text>Send Gasp to All</mockReactNative.Text></mockReactNative.Pressable>;
+  InboxHeader: ({ title, onCameraPress, cameraAccessibilityLabel }: { title: string; onCameraPress: () => void; cameraAccessibilityLabel: string }) => {
+    return <mockReactNative.View>
+      <mockReactNative.Text>{title}</mockReactNative.Text>
+      <mockReactNative.Pressable accessibilityRole="button" accessibilityLabel={cameraAccessibilityLabel} onPress={onCameraPress} />
+    </mockReactNative.View>;
   },
 }));
 jest.mock('@/components/inbox/FriendListItem', () => ({
@@ -43,23 +42,17 @@ jest.mock('@/components/ui/SearchBar', () => ({
   },
 }));
 jest.mock('@/components/ui/QueryState', () => ({
-  QueryState: ({ data, children }: { data: unknown[]; children: (items: unknown[]) => ReactNode }) => children(data),
+  QueryState: ({ data, emptyCta, children }: { data: unknown[]; emptyCta?: { label: string; onPress: () => void }; children: (items: unknown[]) => ReactNode }) => {
+    if (data.length === 0 && emptyCta) {
+      return <mockReactNative.Pressable accessibilityRole="button" accessibilityLabel={emptyCta.label} onPress={emptyCta.onPress} />;
+    }
+    return children(data);
+  },
 }));
 
 jest.mock('@/hooks/queries/useChat', () => ({
   useConversations: () => ({
-    data: [{
-      id: 'conversation-1',
-      participantIds: ['current-user', 'marina'],
-      participantNames: ['Current User', 'Marina'],
-      participantAvatars: [null, null],
-      unreadCount: 1,
-      updatedAt: '2026-08-01T12:00:00.000Z',
-      lastMessageAt: '2026-08-01T12:00:00.000Z',
-      lastMessage: {
-        id: 'message-1', conversationId: 'conversation-1', senderId: 'marina', content: 'Hi', type: 'text', createdAt: '2026-08-01T12:00:00.000Z',
-      },
-    }],
+    data: mockConversations,
     isLoading: false,
     isError: false,
     refetch: jest.fn(),
@@ -90,7 +83,9 @@ jest.mock('react-i18next', () => ({
     t: (key: string) => ({
       'chat.inbox.title': 'CHAT', 'chat.inbox.chats': 'Chats', 'chat.inbox.friends': 'Friends',
       'chat.inbox.searchChats': 'Search chats...', 'chat.inbox.searchFriends': 'Search friends...',
+      'chat.inbox.openCamera': 'Open camera',
       'chat.inbox.noChats': 'No chats yet', 'chat.inbox.noChatsSubtitle': 'Start a conversation with a friend.',
+      'chat.inbox.createGasp': 'Create a Gasp',
       'chat.inbox.noChatsFound': 'No chats found', 'chat.inbox.noFriends': 'No friends yet',
       'chat.inbox.noFriendsSubtitle': 'Add friends to start chatting.', 'chat.inbox.noFriendsFound': 'No friends found',
       'chat.inbox.tryAnotherSearch': 'Try a different search.', 'chat.inbox.findFriends': 'Find friends',
@@ -101,10 +96,22 @@ jest.mock('react-i18next', () => ({
 describe('ChatScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockConversations = [{
+      id: 'conversation-1',
+      participantIds: ['current-user', 'marina'],
+      participantNames: ['Current User', 'Marina'],
+      participantAvatars: [null, null],
+      unreadCount: 1,
+      updatedAt: '2026-08-01T12:00:00.000Z',
+      lastMessageAt: '2026-08-01T12:00:00.000Z',
+      lastMessage: {
+        id: 'message-1', conversationId: 'conversation-1', senderId: 'marina', content: 'Hi', type: 'text', createdAt: '2026-08-01T12:00:00.000Z',
+      },
+    }];
     mockGetOrCreateConversation.mockResolvedValue({ id: 'conversation-lucas' });
   });
 
-  it('shows Chats by default, switches to Friends, and retains the camera CTA', async () => {
+  it('shows Chats by default, switches to Friends, and uses the header camera action', async () => {
     const { getByText, getByRole, getByPlaceholderText, queryByText } = render(<ChatScreen />);
 
     expect(getByText('chat:Marina')).toBeTruthy();
@@ -115,7 +122,16 @@ describe('ChatScreen', () => {
     expect(getByText('friend:Lucas')).toBeTruthy();
     expect(getByPlaceholderText('Search friends...')).toBeTruthy();
 
-    fireEvent.press(getByRole('button', { name: 'Send Gasp to All' }));
+    fireEvent.press(getByRole('button', { name: 'Open camera' }));
+    const { router } = jest.requireMock('expo-router');
+    expect(router.push).toHaveBeenCalledWith('/(tabs)/camera');
+  });
+
+  it('offers Create a Gasp only when Chats is empty', () => {
+    mockConversations = [];
+    const { getByRole } = render(<ChatScreen />);
+
+    fireEvent.press(getByRole('button', { name: 'Create a Gasp' }));
     const { router } = jest.requireMock('expo-router');
     expect(router.push).toHaveBeenCalledWith('/(tabs)/camera');
   });

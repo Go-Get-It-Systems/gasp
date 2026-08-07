@@ -4,8 +4,6 @@ import fc from 'fast-check';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const initialState = useNotificationStore.getState();
-
 function makeToastItem(overrides: Partial<ToastItem> = {}): ToastItem {
   return {
     id: 'toast-1',
@@ -42,6 +40,7 @@ beforeEach(() => {
     tabPulseTrigger: 0,
     inboxUnreadType: null,
     chatHasUnread: false,
+    chatUnreadHintAt: null,
   });
   jest.clearAllMocks();
   jest.useRealTimers();
@@ -182,12 +181,14 @@ describe('setInboxUnreadType', () => {
 // ── Unit Tests: setChatHasUnread ──────────────────────────────────────────────
 
 describe('setChatHasUnread', () => {
-  it('toggles the boolean', () => {
+  it('toggles the boolean and timestamps the temporary hint', () => {
     useNotificationStore.getState().setChatHasUnread(true);
     expect(useNotificationStore.getState().chatHasUnread).toBe(true);
+    expect(useNotificationStore.getState().chatUnreadHintAt).toEqual(expect.any(Number));
 
     useNotificationStore.getState().setChatHasUnread(false);
     expect(useNotificationStore.getState().chatHasUnread).toBe(false);
+    expect(useNotificationStore.getState().chatUnreadHintAt).toBeNull();
   });
 });
 
@@ -205,6 +206,7 @@ describe('Property-Based Tests', () => {
           tabPulseTrigger: 0,
           inboxUnreadType: null,
           chatHasUnread: false,
+          chatUnreadHintAt: null,
         });
 
         useNotificationStore.getState().enqueueToast(newItem);

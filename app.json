@@ -78,7 +78,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "GASP needs access to your photos to send moments"
+          "photosPermission": "GASP needs access to your photos to share moments and update your profile"
         }
       ],
       [

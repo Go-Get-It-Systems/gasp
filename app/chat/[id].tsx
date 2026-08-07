@@ -13,7 +13,7 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useConversation, useConversations, useMessages, flattenMessages, useMarkAsRead } from '@/hooks/queries/useChat';
-import { chatJoinConversation, chatLeaveConversation, chatMarkRead } from '@/services/socket';
+import { chatJoinConversation, chatLeaveConversation, chatMarkRead, onSocketConnect } from '@/services/socket';
 import { resolveChatParticipant } from '@/services/chatParticipant';
 import { findMessageIndex } from '@/services/chatMessageHighlight';
 import { colors } from '@/constants/colors';
@@ -82,7 +82,11 @@ export default function ChatScreen() {
       chatJoinConversation(id);
       chatMarkRead(id);
       markAsRead(id);
-      return () => chatLeaveConversation(id);
+      const unsubscribeReconnect = onSocketConnect(() => chatJoinConversation(id));
+      return () => {
+        unsubscribeReconnect();
+        chatLeaveConversation(id);
+      };
     }
   }, [id, markAsRead]);
 

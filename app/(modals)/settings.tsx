@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import { useAuthStore } from '@/stores/authStore';
 import { useMediaCacheStore } from '@/stores/mediaCacheStore';
 import { clearAllCache, getCacheSize } from '@/services/mediaCache';
@@ -50,7 +51,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     getCacheSize().then((size) => setCacheSize(size));
-  }, []);
+  }, [setCacheSize]);
 
   const handleClearCache = useCallback(() => {
     Alert.alert(
@@ -80,12 +81,12 @@ export default function SettingsScreen() {
         router.replace('/(auth)/welcome');
       }, 100);
     } catch (e) {
-      console.error('Logout error:', e);
+      Sentry.captureException(e, { extra: { context: 'settings.logout' } });
     }
   };
 
   const menuItems = [
-    { id: 'account', icon: User, label: 'Account Settings', color: colors.primary },
+    { id: 'account', icon: User, label: 'Account Settings', color: colors.primary, onPress: () => router.push('/(modals)/edit-profile') },
     { id: 'notifications', icon: Bell, label: 'Notifications', color: colors.accentPink },
     { id: 'privacy', icon: Lock, label: 'Privacy & Security', color: colors.accentCyan },
     { id: 'help', icon: CircleHelp, label: 'Help & Support', color: colors.warning },
@@ -158,7 +159,16 @@ export default function SettingsScreen() {
             const Icon = item.icon;
             const isLast = index === menuItems.length - 1;
             return (
-              <TouchableOpacity key={item.id} style={[styles.menuItem, isLast && { borderBottomWidth: 0 }]} activeOpacity={0.7}>
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.menuItem, isLast && { borderBottomWidth: 0 }]}
+                activeOpacity={0.7}
+                onPress={item.onPress}
+                disabled={!item.onPress}
+                accessibilityLabel={item.label}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !item.onPress }}
+              >
                 <View style={styles.menuItemLeft}>
                   <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
                     <Icon size={20} color={item.color} />

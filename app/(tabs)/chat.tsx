@@ -7,7 +7,6 @@ import * as Sentry from '@sentry/react-native';
 import { openChat } from '@/services/navigation';
 import { InboxHeader } from '@/components/inbox/InboxHeader';
 import { FriendListItem } from '@/components/inbox/FriendListItem';
-import { SendGaspToAllButton } from '@/components/inbox/SendGaspToAllButton';
 import { ChatViewToggle, type ChatView } from '@/components/chat/ChatViewToggle';
 import { ConversationListItem } from '@/components/chat/ConversationListItem';
 import { ConversationListSkeleton } from '@/components/chat/ConversationListSkeleton';
@@ -98,10 +97,6 @@ export default function ChatScreen() {
     openChat({ conversationId, name, avatarUrl: avatarUrl || undefined });
   }, []);
 
-  const handleSendGaspToAll = () => {
-    router.push('/(tabs)/camera');
-  };
-
   const handleCameraPress = () => {
     router.push('/(tabs)/camera');
   };
@@ -168,8 +163,8 @@ export default function ChatScreen() {
             emptyTitle={t(normalizedSearch ? 'chat.inbox.noChatsFound' : 'chat.inbox.noChats')}
             emptySubtitle={t(normalizedSearch ? 'chat.inbox.tryAnotherSearch' : 'chat.inbox.noChatsSubtitle')}
             emptyCta={normalizedSearch ? undefined : {
-              label: t('chat.inbox.findFriends'),
-              onPress: () => handleViewChange('friends'),
+              label: t('chat.inbox.createGasp'),
+              onPress: handleCameraPress,
             }}
           >
             {(items) => (
@@ -207,7 +202,6 @@ export default function ChatScreen() {
           </QueryState>
         )}
       </View>
-      <SendGaspToAllButton onPress={handleSendGaspToAll} />
     </View>
   );
 }
@@ -225,6 +219,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 140,
+    paddingBottom: 32,
   },
 });
