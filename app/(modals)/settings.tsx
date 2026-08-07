@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Sentry from '@sentry/react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/authStore';
 import { useMediaCacheStore } from '@/stores/mediaCacheStore';
 import { clearAllCache, getCacheSize } from '@/services/mediaCache';
@@ -23,20 +24,9 @@ function formatBytes(bytes: number): string {
 
 type AutoDownloadPref = 'wifi' | 'wifi_and_cellular' | 'never';
 
-const DOWNLOAD_OPTIONS: { label: string; value: AutoDownloadPref }[] = [
-  { label: 'WiFi Only', value: 'wifi' },
-  { label: 'WiFi & Mobile Data', value: 'wifi_and_cellular' },
-  { label: 'Never', value: 'never' },
-];
-
-const PREF_LABELS: Record<string, string> = {
-  wifi: 'WiFi Only',
-  wifi_and_cellular: 'WiFi & Data',
-  never: 'Never',
-};
-
 export default function SettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
   const {
     autoDownloadPhotos,
@@ -48,19 +38,31 @@ export default function SettingsScreen() {
   } = useMediaCacheStore();
 
   const [pickerType, setPickerType] = useState<'photos' | 'videos' | null>(null);
+  const downloadOptions: { label: string; value: AutoDownloadPref }[] = [
+    { label: t('settings.storage.wifiOnly'), value: 'wifi' },
+    { label: t('settings.storage.wifiAndData'), value: 'wifi_and_cellular' },
+    { label: t('settings.storage.never'), value: 'never' },
+  ];
+  const preferenceLabels: Record<AutoDownloadPref, string> = {
+    wifi: t('settings.storage.wifiOnly'),
+    wifi_and_cellular: t('settings.storage.wifiAndData'),
+    never: t('settings.storage.never'),
+  };
 
   useEffect(() => {
-    getCacheSize().then((size) => setCacheSize(size));
+    getCacheSize()
+      .then((size) => setCacheSize(size))
+      .catch((error) => Sentry.captureException(error, { extra: { context: 'settings.getCacheSize' } }));
   }, [setCacheSize]);
 
   const handleClearCache = useCallback(() => {
     Alert.alert(
-      'Clear Cache',
-      `Clear all cached media? This will free up ${formatBytes(cacheSize)}.`,
+      t('settings.storage.clearCache'),
+      t('settings.storage.clearCacheBody', { size: formatBytes(cacheSize) }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('settings.storage.clear'),
           style: 'destructive',
           onPress: async () => {
             await clearAllCache();
@@ -69,7 +71,7 @@ export default function SettingsScreen() {
         },
       ],
     );
-  }, [cacheSize, setCacheSize]);
+  }, [cacheSize, setCacheSize, t]);
 
   const handleLogout = async () => {
     try {
@@ -86,11 +88,11 @@ export default function SettingsScreen() {
   };
 
   const menuItems = [
-    { id: 'account', icon: User, label: 'Account Settings', color: colors.primary, onPress: () => router.push('/(modals)/edit-profile') },
-    { id: 'notifications', icon: Bell, label: 'Notifications', color: colors.accentPink },
-    { id: 'privacy', icon: Lock, label: 'Privacy & Security', color: colors.accentCyan },
-    { id: 'help', icon: CircleHelp, label: 'Help & Support', color: colors.warning },
-    { id: 'about', icon: Shield, label: 'About', color: colors.success },
+    { id: 'account', icon: User, label: t('settings.account.title'), color: colors.primary, onPress: () => router.push('/(modals)/settings-account') },
+    { id: 'notifications', icon: Bell, label: t('settings.notifications.title'), color: colors.accentPink, onPress: () => router.push('/(modals)/settings-notifications') },
+    { id: 'privacy', icon: Lock, label: t('settings.privacy.title'), color: colors.accentCyan, onPress: () => router.push('/(modals)/settings-privacy') },
+    { id: 'help', icon: CircleHelp, label: t('settings.help.title'), color: colors.warning, onPress: () => router.push('/(modals)/settings-help') },
+    { id: 'about', icon: Shield, label: t('settings.about.title'), color: colors.success, onPress: () => router.push('/(modals)/settings-about') },
   ];
 
   return (
@@ -100,8 +102,9 @@ export default function SettingsScreen() {
         <IconButton
           icon={<ArrowLeft size={24} color={colors.textPrimary} />}
           onPress={() => router.back()}
+          accessibilityLabel={t('settings.back')}
         />
-        <Text variant="title" weight="bold">Settings</Text>
+        <Text variant="title" weight="bold">{t('settings.title')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -111,49 +114,50 @@ export default function SettingsScreen() {
           <View style={styles.profileCard}>
             <Avatar uri={user.avatarUrl} size={64} initials={user.displayName} />
             <View style={styles.profileInfo}>
-              <Text variant="subtitle" weight="bold">{user.displayName || 'Guest'}</Text>
-              <Text variant="body" color={colors.textSecondary}>@{user.username || 'guest'}</Text>
+              <Text variant="subtitle" weight="bold">{user.displayName || t('settings.guest')}</Text>
+              <Text variant="body" color={colors.textSecondary}>@{user.username || t('settings.guestUsername')}</Text>
             </View>
           </View>
         )}
 
         {/* Storage & Data */}
-        <Text style={styles.sectionHeader}>STORAGE & DATA</Text>
+        <Text style={styles.sectionHeader}>{t('settings.storage.title')}</Text>
         <View style={styles.menuSection}>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setPickerType('photos')}>
-            <Text variant="body" weight="500">Photos</Text>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setPickerType('photos')} accessibilityLabel={t('settings.storage.photos')} accessibilityRole="button">
+            <Text variant="body" weight="500">{t('settings.storage.photos')}</Text>
             <View style={styles.prefBadge}>
               <Text variant="caption" weight="600" color={colors.primary}>
-                {PREF_LABELS[autoDownloadPhotos]}
+                {preferenceLabels[autoDownloadPhotos]}
               </Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setPickerType('videos')}>
-            <Text variant="body" weight="500">Videos</Text>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setPickerType('videos')} accessibilityLabel={t('settings.storage.videos')} accessibilityRole="button">
+            <Text variant="body" weight="500">{t('settings.storage.videos')}</Text>
             <View style={styles.prefBadge}>
               <Text variant="caption" weight="600" color={colors.primary}>
-                {PREF_LABELS[autoDownloadVideos]}
+                {preferenceLabels[autoDownloadVideos]}
               </Text>
             </View>
           </TouchableOpacity>
 
           <View style={styles.menuItem}>
-            <Text variant="body" weight="500">Cached Data</Text>
+            <Text variant="body" weight="500">{t('settings.storage.cachedData')}</Text>
             <Text variant="body" color={colors.textSecondary}>{formatBytes(cacheSize)}</Text>
           </View>
 
-          <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} activeOpacity={0.7} onPress={handleClearCache}>
+          <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} activeOpacity={0.7} onPress={handleClearCache} accessibilityLabel={t('settings.storage.clearCache')} accessibilityRole="button">
             <View style={styles.menuItemLeft}>
               <View style={[styles.iconContainer, { backgroundColor: `${colors.accentPink}15` }]}>
                 <Trash2 size={18} color={colors.accentPink} />
               </View>
-              <Text variant="body" weight="500" color={colors.accentPink}>Clear Cache</Text>
+              <Text variant="body" weight="500" color={colors.accentPink}>{t('settings.storage.clearCache')}</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Menu Items */}
+        <Text style={styles.sectionHeader}>{t('settings.controlsTitle')}</Text>
         <View style={styles.menuSection}>
           {menuItems.map((item, index) => {
             const Icon = item.icon;
@@ -164,10 +168,8 @@ export default function SettingsScreen() {
                 style={[styles.menuItem, isLast && { borderBottomWidth: 0 }]}
                 activeOpacity={0.7}
                 onPress={item.onPress}
-                disabled={!item.onPress}
                 accessibilityLabel={item.label}
                 accessibilityRole="button"
-                accessibilityState={{ disabled: !item.onPress }}
               >
                 <View style={styles.menuItemLeft}>
                   <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
@@ -190,7 +192,7 @@ export default function SettingsScreen() {
             leftIcon={<LogOut size={20} color={colors.error} />}
             className="w-full"
           >
-            <Text color={colors.error} weight="bold">Log Out</Text>
+            <Text color={colors.error} weight="bold">{t('settings.logOut')}</Text>
           </Button>
         </View>
       </ScrollView>
@@ -198,8 +200,8 @@ export default function SettingsScreen() {
       {/* Bottom Sheet Picker */}
       <BottomSheetPicker
         visible={pickerType === 'photos'}
-        title="Photos Auto-Download"
-        options={DOWNLOAD_OPTIONS}
+        title={t('settings.storage.photoAutoDownload')}
+        options={downloadOptions}
         selectedValue={autoDownloadPhotos}
         onSelect={setAutoDownloadPhotos}
         onClose={() => setPickerType(null)}
@@ -207,8 +209,8 @@ export default function SettingsScreen() {
 
       <BottomSheetPicker
         visible={pickerType === 'videos'}
-        title="Videos Auto-Download"
-        options={DOWNLOAD_OPTIONS}
+        title={t('settings.storage.videoAutoDownload')}
+        options={downloadOptions}
         selectedValue={autoDownloadVideos}
         onSelect={setAutoDownloadVideos}
         onClose={() => setPickerType(null)}
