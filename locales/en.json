@@ -167,5 +167,27 @@
     "gaspsSent": "Gasps Sent",
     "gaspsReceived": "Gasps Received",
     "friends": "Friends"
+  },
+  "productUpdates": {
+    "entry": "What's new",
+    "entryWithUnread": "What's new, {{count}} unread updates",
+    "entryHint": "View recent improvements and what we are working on",
+    "entrySubtitle": "See what changed in GASP",
+    "title": "What's new",
+    "subtitle": "See what we improved and what is coming up.",
+    "close": "Close what's new",
+    "empty": "There are no updates here yet. Check back soon.",
+    "new": "New",
+    "openUpdate": "Open update: {{title}}",
+    "whatChanged": "What changed",
+    "helpfulQuestion": "Was this helpful?",
+    "helpfulYes": "Yes",
+    "helpfulNo": "Not yet",
+    "status": {
+      "released": "Released",
+      "improved": "Improved",
+      "in_progress": "In progress",
+      "coming_soon": "Coming soon"
+    }
   }
 }
