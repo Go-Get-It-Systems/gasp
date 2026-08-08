@@ -1,9 +1,10 @@
 import { StyleSheet, View, Pressable } from 'react-native';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
 import { GradientCircle } from '@/components/ui/GradientCircle';
 import { colors } from '@/constants/colors';
-import { Settings } from 'lucide-react-native';
+import { Pencil, Settings } from 'lucide-react-native';
 
 interface ProfileHeaderProps {
   displayName: string;
@@ -11,6 +12,7 @@ interface ProfileHeaderProps {
   avatarUri: string | null;
   gaspScore: number;
   onSettingsPress?: () => void;
+  onEditProfilePress?: () => void;
 }
 
 export function ProfileHeader({
@@ -19,7 +21,10 @@ export function ProfileHeader({
   avatarUri,
   gaspScore,
   onSettingsPress,
+  onEditProfilePress,
 }: ProfileHeaderProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
@@ -60,6 +65,20 @@ export function ProfileHeader({
         <Text variant="caption" style={styles.username}>
           {`@${username}`}
         </Text>
+
+        <Pressable
+          onPress={onEditProfilePress}
+          disabled={!onEditProfilePress}
+          style={styles.editProfileButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.edit.open')}
+          accessibilityState={{ disabled: !onEditProfilePress }}
+        >
+          <Pencil size={16} color={colors.primary} />
+          <Text variant="caption" weight="600" color={colors.primary}>
+            {t('profile.edit.open')}
+          </Text>
+        </Pressable>
 
         <View style={styles.scoreContainer}>
           <Text variant="caption" style={styles.scoreLabel}>
@@ -134,6 +153,14 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  editProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   scoreContainer: {
     alignItems: 'center',

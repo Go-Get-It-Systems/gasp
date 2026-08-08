@@ -157,7 +157,108 @@
     "gaspScore": "GASP Score",
     "gaspsSent": "Gasps Sent",
     "gaspsReceived": "Gasps Received",
-    "friends": "Friends"
+    "friends": "Amigos",
+    "edit": {
+      "open": "Editar perfil",
+      "title": "Editar perfil",
+      "back": "Voltar ao perfil",
+      "avatarPreview": "Prévia da foto de perfil",
+      "changePhoto": "Trocar foto",
+      "changePhotoHint": "Escolha uma nova foto de perfil na sua galeria",
+      "removePhoto": "Remover foto",
+      "removePhotoTitle": "Remover foto de perfil?",
+      "removePhotoBody": "Seu perfil passará a mostrar as suas iniciais.",
+      "displayName": "Nome de exibição",
+      "displayNamePlaceholder": "Seu nome",
+      "displayNameError": "Informe um nome entre 1 e 50 caracteres.",
+      "username": "Nome de usuário",
+      "usernamePlaceholder": "seu_usuario",
+      "usernameError": "Use de 3 a 30 letras, números ou sublinhados.",
+      "usernameTaken": "Este nome de usuário já está em uso.",
+      "bio": "Bio",
+      "bioPlaceholder": "Conte um pouco sobre você para seus amigos",
+      "bioHint": "{{count}} de 200 caracteres usados",
+      "bioError": "Sua bio pode ter até 200 caracteres.",
+      "photoPermissionTitle": "Permitir acesso às fotos",
+      "photoPermissionBody": "Permita o acesso para escolher uma foto de perfil. Você pode alterar isso depois nos ajustes do aparelho.",
+      "openSettings": "Abrir Ajustes",
+      "photoSelectionError": "Não foi possível abrir a sua galeria. Tente novamente.",
+      "uploadingPhoto": "Enviando foto… {{percent}}%",
+      "save": "Salvar alterações",
+      "saving": "Salvando…",
+      "saveErrorTitle": "Não foi possível salvar o perfil"
+    }
+  },
+  "settings": {
+    "title": "Configurações",
+    "back": "Voltar",
+    "guest": "Convidado",
+    "guestUsername": "convidado",
+    "controlsTitle": "CONTA E APP",
+    "logOut": "Sair",
+    "storage": {
+      "title": "ARMAZENAMENTO E DADOS",
+      "photos": "Fotos",
+      "videos": "Vídeos",
+      "cachedData": "Dados em cache",
+      "wifiOnly": "Somente Wi-Fi",
+      "wifiAndData": "Wi-Fi e dados móveis",
+      "never": "Nunca",
+      "clearCache": "Limpar cache",
+      "clear": "Limpar",
+      "clearCacheBody": "Limpar toda a mídia em cache? Isso liberará {{size}}.",
+      "photoAutoDownload": "Download automático de fotos",
+      "videoAutoDownload": "Download automático de vídeos"
+    },
+    "account": {
+      "title": "Conta",
+      "editProfile": "Editar perfil",
+      "editProfileSubtitle": "Altere sua foto, nome, usuário ou bio",
+      "phoneNumber": "Número de telefone"
+    },
+    "notifications": {
+      "title": "Notificações",
+      "devicePermission": "Notificações no dispositivo",
+      "openDeviceSettings": "Abrir ajustes do dispositivo",
+      "openDeviceSettingsSubtitle": "Altere a permissão, os sons e os banners do sistema",
+      "refreshStatus": "Atualizar status",
+      "refreshStatusSubtitle": "Verifique a permissão atual no dispositivo",
+      "statusError": "Não foi possível verificar a permissão de notificações. Tente novamente.",
+      "openSettingsError": "Não foi possível abrir os ajustes do dispositivo.",
+      "preferencesTitle": "Preferências de notificações",
+      "preferencesBody": "Você poderá escolher quais momentos do GASP enviam notificações na próxima atualização de configurações.",
+      "status": {
+        "enabled": "Ativadas neste dispositivo",
+        "disabled": "Desativadas nos ajustes do dispositivo",
+        "not_configured": "Ainda não configuradas"
+      }
+    },
+    "privacy": {
+      "title": "Privacidade e segurança",
+      "friendsOnlyTitle": "Compartilhado com os amigos escolhidos",
+      "friendsOnlyBody": "Os Gasps são enviados diretamente para os amigos que você selecionar.",
+      "ephemeralTitle": "Mídia efêmera",
+      "ephemeralBody": "Os Gasps foram feitos para expirar, então os momentos não ficam no seu feed para sempre.",
+      "comingNextTitle": "Mais controles de privacidade estão a caminho",
+      "comingNextBody": "Bloqueio, denúncias, status de atividade e controles de descoberta serão lançados separadamente."
+    },
+    "help": {
+      "title": "Ajuda e suporte",
+      "terms": "Termos de serviço",
+      "termsSubtitle": "Leia as regras de uso do GASP",
+      "privacy": "Política de privacidade",
+      "privacySubtitle": "Entenda como o GASP trata suas informações",
+      "reportProblemTitle": "Reportar um problema",
+      "reportProblemBody": "O envio de problemas pelo app estará disponível em uma atualização futura.",
+      "openLinkError": "Não foi possível abrir esta página. Tente novamente."
+    },
+    "about": {
+      "title": "Sobre",
+      "version": "Versão do app",
+      "versionUnavailable": "Indisponível",
+      "gaspTitle": "Sobre o GASP",
+      "gaspBody": "GASP é uma forma privada e focada na câmera de compartilhar momentos e reações com amigos."
+    }
   },
   "productUpdates": {
     "entry": "Novidades",

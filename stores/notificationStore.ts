@@ -17,6 +17,7 @@ export interface ToastItem {
   actorAvatarUrl?: string;
   imageUri?: string;
   blurhash?: string;
+  mediaType?: 'image' | 'video';
   conversationId?: string;
   gaspId?: string;
   reactionId?: string;

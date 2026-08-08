@@ -52,6 +52,7 @@ export default function ProfileScreen() {
         avatarUri={user?.avatarUrl ?? null}
         gaspScore={gaspScore}
         onSettingsPress={() => router.push('/(modals)/settings')}
+        onEditProfilePress={() => router.push('/(modals)/edit-profile')}
       />
 
       <QueryState

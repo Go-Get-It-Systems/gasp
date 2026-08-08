@@ -123,6 +123,7 @@ describe("ToastBanner", () => {
 
   it('renders a stable identity fallback when no media or avatar is available', () => {
     useNotificationStore.setState({ activeToast: makeToast({
+      kind: 'friend.request',
       imageUri: undefined,
       blurhash: undefined,
       actorAvatarUrl: undefined,
@@ -135,17 +136,33 @@ describe("ToastBanner", () => {
     expect(getByText('A')).toBeTruthy();
   });
 
-  it('keeps gasp background and thumbnail previews permanently blurred', () => {
+  it('protects image gasp previews with native blur and privacy overlays', () => {
     useNotificationStore.setState({ activeToast: makeToast({
       imageUri: 'https://example.com/gasp.jpg',
       blurhash: 'LKO2?U%2Tw=w',
+      mediaType: 'image',
     }) });
 
     const { getByTestId } = render(<ToastBanner />);
 
-    expect(getByTestId('notification-toast-background').props.blurRadius).toBe(60);
-    expect(getByTestId('notification-toast-visual').props.blurRadius).toBe(60);
+    expect(getByTestId('notification-toast-background').props.blurRadius).toBe(80);
+    expect(getByTestId('notification-toast-background-blur').props.intensity).toBe(100);
+    expect(getByTestId('notification-toast-visual').props.blurRadius).toBe(80);
+    expect(getByTestId('notification-toast-visual-blur').props.intensity).toBe(100);
     expect(getByTestId('notification-toast-privacy-overlay')).toBeTruthy();
+  });
+
+  it('shows an intentional privacy placeholder for video gasps', () => {
+    useNotificationStore.setState({ activeToast: makeToast({
+      imageUri: 'https://example.com/gasp.mp4',
+      blurhash: undefined,
+      mediaType: 'video',
+    }) });
+
+    const { getByTestId, queryByTestId } = render(<ToastBanner />);
+
+    expect(getByTestId('notification-toast-media-fallback')).toBeTruthy();
+    expect(queryByTestId('notification-toast-visual')).toBeNull();
   });
 
   it('does not blur actor avatars on non-media notifications', () => {

@@ -252,6 +252,7 @@ describe('useSocketListeners', () => {
         gaspId: 'gasp-abc',
         imageUri: 'https://cdn.example.com/image.jpg',
         blurhash: 'L6Pj0^i_.AyE_3t7t7R*',
+        mediaType: 'image',
       });
     });
 

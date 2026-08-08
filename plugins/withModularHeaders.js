@@ -8,7 +8,10 @@ const path = require('path');
  * 1. `use_modular_headers!` at root level — gives all pods (including React-Core)
  *    automatic module maps, so RCT_EXPORT_MODULE and other macros expand correctly.
  *
- * 2. `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES` ONLY for RNFB pods —
+ * 2. `$RNFirebaseAsStaticFramework = true` — required when Firebase is linked as a
+ *    static framework, so CocoaPods generates the Firebase Swift compatibility header.
+ *
+ * 3. `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES` ONLY for RNFB pods —
  *    silences the "non-modular include inside framework module" fatal warning that
  *    fires in RNFB pods regardless of (1), without breaking React-Core's macro expansion
  *    (which would happen if the flag were applied globally).
@@ -42,6 +45,23 @@ module.exports = function withModularHeaders(config) {
         console.log('[withModularHeaders] ✓ inserted use_modular_headers! at root level');
       } else {
         console.warn('[withModularHeaders] ✗ platform directive not found');
+      }
+
+      const staticFrameworkFlag = '$RNFirebaseAsStaticFramework = true';
+      if (!contents.includes(staticFrameworkFlag)) {
+        const frameworkConfigRegex = /(\s*use_frameworks! :linkage => ENV\['USE_FRAMEWORKS'\]\.to_sym if ENV\['USE_FRAMEWORKS'\]\n)/;
+
+        if (frameworkConfigRegex.test(contents)) {
+          contents = contents.replace(
+            frameworkConfigRegex,
+            `$1  ${staticFrameworkFlag}\n`
+          );
+          console.log('[withModularHeaders] ✓ enabled RN Firebase static framework support');
+        } else {
+          console.warn('[withModularHeaders] ✗ use_frameworks directive not found');
+        }
+      } else {
+        console.log('[withModularHeaders] RN Firebase static framework support already enabled');
       }
 
       const flagName = 'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES';
