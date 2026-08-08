@@ -259,5 +259,27 @@
       "gaspTitle": "Sobre o GASP",
       "gaspBody": "GASP é uma forma privada e focada na câmera de compartilhar momentos e reações com amigos."
     }
+  },
+  "productUpdates": {
+    "entry": "Novidades",
+    "entryWithUnread": "Novidades, {{count}} atualizações não lidas",
+    "entryHint": "Veja melhorias recentes e no que estamos trabalhando",
+    "entrySubtitle": "Veja o que mudou no GASP",
+    "title": "Novidades",
+    "subtitle": "Veja o que melhoramos e o que vem por aí.",
+    "close": "Fechar novidades",
+    "empty": "Ainda não há novidades por aqui. Volte em breve.",
+    "new": "Novo",
+    "openUpdate": "Abrir atualização: {{title}}",
+    "whatChanged": "O que mudou",
+    "helpfulQuestion": "Isso foi útil?",
+    "helpfulYes": "Sim",
+    "helpfulNo": "Ainda não",
+    "status": {
+      "released": "Lançado",
+      "improved": "Melhorado",
+      "in_progress": "Em desenvolvimento",
+      "coming_soon": "Em breve"
+    }
   }
 }

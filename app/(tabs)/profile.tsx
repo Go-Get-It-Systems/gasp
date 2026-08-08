@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { StatsCard } from '@/components/profile/StatsCard';
 import { ActivityCard } from '@/components/profile/ActivityCard';
+import { ProductUpdatesEntry } from '@/components/product-updates/ProductUpdatesEntry';
 import { QueryState } from '@/components/ui/QueryState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/stores/authStore';
@@ -24,6 +25,9 @@ export default function ProfileScreen() {
   );
 
   const onRefresh = useCallback(() => { refetch(); }, [refetch]);
+  const openProductUpdates = useCallback(() => {
+    router.push('/(modals)/product-updates');
+  }, []);
 
   return (
     <ScrollView
@@ -75,6 +79,10 @@ export default function ProfileScreen() {
               streak={s.streak ?? 0}
               reactionsReceived={s.reactionsReceived ?? 0}
               memberSince={user?.createdAt ?? ''}
+            />
+            <ProductUpdatesEntry
+              userId={user?.id}
+              onPress={openProductUpdates}
             />
           </>
         )}
