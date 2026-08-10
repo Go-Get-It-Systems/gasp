@@ -155,8 +155,8 @@
   },
   "profile": {
     "gaspScore": "GASP Score",
-    "gaspsSent": "Gasps Sent",
-    "gaspsReceived": "Gasps Received",
+    "gaspsSent": "Gasps enviados",
+    "gaspsReceived": "Gasps recebidos",
     "friends": "Amigos",
     "edit": {
       "open": "Editar perfil",
