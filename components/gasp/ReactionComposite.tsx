@@ -61,12 +61,12 @@ export function ReactionComposite({
   watermarkMode = 'hidden',
   reactionPaused = false,
   reactionMuted = false,
-  reactionFlex = 1,
-  originalFlex = 2,
+  reactionFlex = 45,
+  originalFlex = 55,
 }: ReactionCompositeProps) {
   return (
     <View style={styles.container}>
-      {/* Reaction video — left 1/3 */}
+      {/* Reaction video — left 45% */}
       <View testID="reaction-composite-reaction-panel" style={[styles.reactionPanel, { flex: reactionFlex }]}>
         <InlineVideo
           uri={reactionVideoUri}
@@ -79,7 +79,7 @@ export function ReactionComposite({
 
       {showDivider && <View testID="reaction-composite-divider" style={styles.divider} />}
 
-      {/* Original gasp — right 2/3 */}
+      {/* Original gasp — right 55% */}
       <View testID="reaction-composite-gasp-panel" style={[styles.gaspPanel, { flex: originalFlex }]}>
         <OriginalMedia
           uri={originalUri}

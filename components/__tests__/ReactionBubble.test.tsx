@@ -94,6 +94,8 @@ describe('ReactionBubble', () => {
     expect(composites[0].props.showDivider).toBe(true);
     expect(composites[0].props.reactionPaused).toBe(true);
     expect(composites[0].props.reactionMuted).toBe(true);
+    expect(composites[0].props.reactionFlex).toBe(45);
+    expect(composites[0].props.originalFlex).toBe(55);
     expect(getByTestId('reaction-thumbnail-frame')).toBeTruthy();
     expect(queryByLabelText('Close reaction view')).toBeNull();
   });
