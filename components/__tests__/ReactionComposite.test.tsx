@@ -31,15 +31,15 @@ describe('ReactionComposite', () => {
       expect(() => render(<ReactionComposite {...DEFAULT_PROPS} />)).not.toThrow();
     });
 
-    it('renders the reaction panel (flex:1) on the left and gasp panel (flex:2) on the right', () => {
+    it('renders the default 45/55 reaction-to-gasp split', () => {
       const { getByTestId } = render(
         <ReactionComposite {...DEFAULT_PROPS} />,
       );
       const reactionStyle = StyleSheet.flatten(getByTestId('reaction-composite-reaction-panel').props.style) as ViewStyle;
       const gaspStyle = StyleSheet.flatten(getByTestId('reaction-composite-gasp-panel').props.style) as ViewStyle;
 
-      expect(reactionStyle.flex).toBe(1);
-      expect(gaspStyle.flex).toBe(2);
+      expect(reactionStyle.flex).toBe(45);
+      expect(gaspStyle.flex).toBe(55);
     });
 
     it('allows playback to override the panel split', () => {
