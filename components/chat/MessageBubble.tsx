@@ -12,6 +12,7 @@ interface MessageBubbleProps {
   isHighlighted?: boolean;
   replyToMessage?: Message | null;
   otherParticipantName?: string;
+  onLongPress?: () => void;
 }
 
 function MessageBubbleInner({
@@ -21,6 +22,7 @@ function MessageBubbleInner({
   isHighlighted,
   replyToMessage,
   otherParticipantName,
+  onLongPress,
 }: MessageBubbleProps) {
   return (
     <BubbleWrapper
@@ -28,6 +30,7 @@ function MessageBubbleInner({
       isSequential={isSequential}
       isHighlighted={isHighlighted}
       createdAt={message.createdAt}
+      onLongPress={onLongPress}
     >
       {message.type === 'text' && (
         <TextBubble content={message.content} isOwnMessage={isOwnMessage} />
@@ -57,4 +60,5 @@ export const MessageBubble = memo(MessageBubbleInner, (prev, next) =>
   && prev.isSequential === next.isSequential
   && prev.isHighlighted === next.isHighlighted
   && prev.replyToMessage?.id === next.replyToMessage?.id
+  && prev.onLongPress === next.onLongPress
 );

@@ -30,7 +30,11 @@ function participantFromConversation(
       && conversation.participantNames[participantIndex] !== currentDisplayName,
   );
   return index >= 0
-    ? { name: conversation.participantNames[index], avatarUrl: participantAvatars[index] ?? undefined }
+    ? {
+        id: conversation.participantIds[index],
+        name: conversation.participantNames[index],
+        avatarUrl: participantAvatars[index] ?? undefined,
+      }
     : {};
 }
 
@@ -54,5 +58,5 @@ export function resolveChatParticipant(context: ChatParticipantContext) {
     context.currentUsername,
     context.currentDisplayName,
   );
-  return fetched.name ? fetched : { name: 'Chat', avatarUrl: undefined };
+  return fetched.name ? fetched : { name: 'Chat', avatarUrl: undefined, id: undefined };
 }

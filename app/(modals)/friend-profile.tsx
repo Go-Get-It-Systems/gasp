@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View, ScrollView, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
 import { ArrowLeft, MoreHorizontal } from 'lucide-react-native';
@@ -24,11 +25,17 @@ import { StatsCard } from '@/components/profile/StatsCard';
 import { ActivityCard } from '@/components/profile/ActivityCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { colors } from '@/constants/colors';
+import { useBlockUser } from '@/hooks/queries/useSafety';
+import { BlockUserConfirmation } from '@/components/safety/BlockUserConfirmation';
+import { ReportSheet } from '@/components/safety/ReportSheet';
 
 export default function FriendProfileScreen() {
   const insets = useSafeAreaInsets();
   const [menuVisible, setMenuVisible] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [blockVisible, setBlockVisible] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const { t } = useTranslation();
 
   const { userId, displayName, avatarUrl } = useLocalSearchParams<{
     userId: string;
@@ -78,6 +85,7 @@ export default function FriendProfileScreen() {
   const rejectRequest = useRejectFriendRequest();
   const removeFriend = useRemoveFriend();
   const getOrCreateConversation = useGetOrCreateConversation();
+  const blockUser = useBlockUser();
 
   const handleSendGasp = () => {
     router.back();
@@ -125,11 +133,28 @@ export default function FriendProfileScreen() {
     }
   };
 
-  const handleBlock = () =>
-    Alert.alert('Coming soon', 'Block feature will be available in a future update.');
+  const handleBlock = () => setBlockVisible(true);
 
-  const handleReport = () =>
-    Alert.alert('Coming soon', 'Report feature will be available in a future update.');
+  const handleReport = () => setReportVisible(true);
+
+  const confirmBlock = () => {
+    blockUser.mutate(userId, {
+      onSuccess: () => {
+        setBlockVisible(false);
+        Alert.alert(t('safety.block.successTitle'), t('safety.block.successBody'));
+        router.back();
+      },
+      onError: (error) => {
+        Sentry.captureException(error);
+        Alert.alert(t('common.error'), t('safety.block.error'));
+      },
+    });
+  };
+
+  const onReportSubmitted = () => {
+    setReportVisible(false);
+    Alert.alert(t('safety.report.receivedTitle'), t('safety.report.receivedBody'));
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -205,6 +230,20 @@ export default function FriendProfileScreen() {
         onRemoveFriend={handleRemoveFriend}
         onBlock={handleBlock}
         onReport={handleReport}
+      />
+      <BlockUserConfirmation
+        visible={blockVisible}
+        displayName={name}
+        isSubmitting={blockUser.isPending}
+        onCancel={() => setBlockVisible(false)}
+        onConfirm={confirmBlock}
+      />
+      <ReportSheet
+        visible={reportVisible}
+        targetType="profile"
+        targetId={userId}
+        onClose={() => setReportVisible(false)}
+        onSubmitted={onReportSubmitted}
       />
     </View>
   );

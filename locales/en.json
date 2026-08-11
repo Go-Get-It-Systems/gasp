@@ -54,6 +54,7 @@
     "accept": "Accept",
     "reject": "Reject",
     "friends": "Friends",
+    "removeFriend": "Remove friend",
     "declined": "Declined",
     "sent": "Sent",
     "wantsToBeYourFriend": "{{name}} wants to be your friend"
@@ -267,6 +268,44 @@
       "versionUnavailable": "Unavailable",
       "gaspTitle": "About GASP",
       "gaspBody": "GASP is a private, camera-first way to share moments and reactions with friends."
+    }
+  },
+  "safety": {
+    "block": {
+      "title": "Block {{name}}?",
+      "body": "They will no longer be able to message you, send you a Gasp, or send a friend request. Blocking also removes any friendship or pending friend request. You will not see each other in search or suggestions.",
+      "hint": "They will not be notified. If you unblock them later, you will need to add each other again before sharing.",
+      "confirm": "Block user",
+      "successTitle": "User blocked",
+      "successBody": "You can manage blocked users in Privacy & Safety.",
+      "error": "We couldn't block this user. Please try again."
+    },
+    "report": {
+      "title": "Report",
+      "body": "Tell us what happened. Your report is private and does not promise a particular outcome.",
+      "submit": "Submit report",
+      "receivedTitle": "Report received",
+      "receivedBody": "Thanks for helping keep GASP safe.",
+      "error": "We couldn't submit your report. Please try again.",
+      "notePlaceholder": "Add details (optional)",
+      "categories": {
+        "spam": "Spam",
+        "harassment": "Harassment",
+        "hate_speech": "Hate speech",
+        "nudity_or_sexual_content": "Nudity or sexual content",
+        "violence_or_threats": "Violence or threats",
+        "impersonation": "Impersonation",
+        "other": "Other"
+      }
+    },
+    "blockedUsers": {
+      "title": "Blocked users",
+      "entry": "Blocked users",
+      "entrySubtitle": "Manage people you have blocked",
+      "emptyTitle": "No blocked users",
+      "emptyBody": "People you block will appear here.",
+      "unblock": "Unblock",
+      "unblockError": "We couldn't unblock this user. Please try again."
     }
   },
   "productUpdates": {

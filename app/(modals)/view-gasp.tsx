@@ -1,11 +1,12 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Pressable } from 'react-native';
+import { StyleSheet, View, Pressable, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useSharedValue } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { X, Camera } from 'lucide-react-native';
+import { X, Camera, Flag } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { HoldToView } from '@/components/gasp/HoldToView';
 import { ReactionCapture } from '@/components/gasp/ReactionCapture';
 import { ReactionPreview } from '@/components/gasp/ReactionPreview';
@@ -18,9 +19,12 @@ import { useAppStore } from '@/stores/appStore';
 import { useOpenGasp, usePendingGasps } from '@/hooks/queries/useGasps';
 import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
 import { colors } from '@/constants/colors';
+import { ReportSheet } from '@/components/safety/ReportSheet';
 
 export default function ViewGaspScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const [reportVisible, setReportVisible] = useState(false);
   const params = useLocalSearchParams<{
     gaspId?: string;
     chatImageUri?: string;
@@ -196,6 +200,13 @@ export default function ViewGaspScreen() {
           accessibilityLabel="Close gasp viewer" style={[styles.closeButton, { top: insets.top + 12 }]}>
           <X size={24} color="#FFFFFF" />
         </Pressable>
+        {gasp?.id ? <Pressable onPress={() => setReportVisible(true)} accessibilityRole="button" accessibilityLabel={t('safety.report.title')} style={[styles.reportButton, { top: insets.top + 12 }]}>
+          <Flag size={20} color="#FFFFFF" />
+        </Pressable> : null}
+        {gasp?.id ? <ReportSheet visible={reportVisible} targetType="gasp" targetId={gasp.id} onClose={() => setReportVisible(false)} onSubmitted={() => {
+          setReportVisible(false);
+          Alert.alert(t('safety.report.receivedTitle'), t('safety.report.receivedBody'));
+        }} /> : null}
       </View>
     );
   }
@@ -220,6 +231,9 @@ export default function ViewGaspScreen() {
         accessibilityLabel="Close gasp viewer" style={[styles.closeButton, { top: insets.top + 12 }]}>
         <X size={24} color="#FFFFFF" />
       </Pressable>
+      {gasp?.id ? <Pressable onPress={() => setReportVisible(true)} accessibilityRole="button" accessibilityLabel={t('safety.report.title')} style={[styles.reportButton, { top: insets.top + 12 }]}>
+        <Flag size={20} color="#FFFFFF" />
+      </Pressable> : null}
       {previewUri !== null && (
         <View style={styles.previewOverlay}>
           <ReactionPreview originalImageUri={imageUri} originalMediaType={mediaType} reactionVideoUri={previewUri}
@@ -227,6 +241,10 @@ export default function ViewGaspScreen() {
             onDiscard={handleDiscard} isSending={isSending} />
         </View>
       )}
+      {gasp?.id ? <ReportSheet visible={reportVisible} targetType="gasp" targetId={gasp.id} onClose={() => setReportVisible(false)} onSubmitted={() => {
+        setReportVisible(false);
+        Alert.alert(t('safety.report.receivedTitle'), t('safety.report.receivedBody'));
+      }} /> : null}
     </View>
   );
 }
@@ -236,6 +254,10 @@ const styles = StyleSheet.create({
   gestureArea: { flex: 1 },
   closeButton: {
     position: 'absolute', right: 20, width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 10,
+  },
+  reportButton: {
+    position: 'absolute', right: 70, width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 10,
   },
   previewOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
