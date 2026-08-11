@@ -1,8 +1,9 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { View, StyleSheet, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable } from 'react-native';
+import { View, StyleSheet, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable, Alert } from 'react-native';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ChevronDown } from 'lucide-react-native';
 import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
@@ -18,10 +19,13 @@ import { resolveChatParticipant } from '@/services/chatParticipant';
 import { findMessageIndex } from '@/services/chatMessageHighlight';
 import { colors } from '@/constants/colors';
 import type { Message } from '@/services/api/schemas/chat.schema';
+import { openFriendProfile } from '@/services/navigation';
+import { ReportSheet } from '@/components/safety/ReportSheet';
 
 const keyExtractor = (item: Message) => item.id;
 
 export default function ChatScreen() {
+  const { t } = useTranslation();
   const { id, name, avatarUrl, highlightMessageId } = useLocalSearchParams<{
     id: string;
     name?: string;
@@ -42,6 +46,7 @@ export default function ChatScreen() {
   messagesRef.current = messages;
   const highlightedMessageIndex = findMessageIndex(messages, highlightMessageId);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>(undefined);
+  const [reportMessageId, setReportMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!highlightMessageId || highlightedMessageIndex < 0) return;
@@ -76,6 +81,7 @@ export default function ChatScreen() {
   });
   const otherParticipantName = otherParticipant.name;
   const otherParticipantAvatar = otherParticipant.avatarUrl;
+  const otherParticipantId = otherParticipant.id;
 
   useEffect(() => {
     if (id) {
@@ -151,6 +157,7 @@ export default function ChatScreen() {
           isHighlighted={item.id === highlightedMessageId}
           replyToMessage={replyToMessage}
           otherParticipantName={otherNameRef.current}
+          onLongPress={!isOwnMessage ? () => setReportMessageId(item.id) : undefined}
         />
         {showDateSeparator && <DateSeparator date={item.createdAt} />}
       </>
@@ -171,10 +178,20 @@ export default function ChatScreen() {
             variant="ghost"
             onPress={() => router.back()}
           />
-          <View style={styles.headerInfo}>
+          <Pressable
+            style={styles.headerInfo}
+            onPress={() => otherParticipantId && openFriendProfile({
+              userId: otherParticipantId,
+              displayName: otherParticipantName,
+              avatarUrl: otherParticipantAvatar,
+            })}
+            disabled={!otherParticipantId}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${otherParticipantName}'s profile`}
+          >
             <Avatar uri={otherParticipantAvatar || null} size={40} initials={otherParticipantName} />
             <Text variant="subtitle" style={styles.title}>{otherParticipantName}</Text>
-          </View>
+          </Pressable>
           <View style={styles.headerTrailing} />
         </View>
 
@@ -223,6 +240,16 @@ export default function ChatScreen() {
         {/* Input Area */}
         <ChatInput onSend={handleSend} isLoading={isLoadingMessages && messages.length === 0} />
       </View>
+      <ReportSheet
+        visible={!!reportMessageId}
+        targetType="message"
+        targetId={reportMessageId ?? ''}
+        onClose={() => setReportMessageId(null)}
+        onSubmitted={() => {
+          setReportMessageId(null);
+          Alert.alert(t('safety.report.receivedTitle'), t('safety.report.receivedBody'));
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

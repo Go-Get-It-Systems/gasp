@@ -16,7 +16,7 @@ describe('resolveChatParticipant', () => {
       conversation: cachedConversation,
       currentUserId: 'me',
       routeName: 'Route Alex',
-    })).toEqual({ name: 'Alex', avatarUrl: 'https://example.com/alex.jpg' });
+    })).toEqual({ id: 'alex', name: 'Alex', avatarUrl: 'https://example.com/alex.jpg' });
   });
 
   it('uses notification route metadata while the conversation cache is cold', () => {
@@ -31,8 +31,8 @@ describe('resolveChatParticipant', () => {
     expect(resolveChatParticipant({
       currentUserId: 'me',
       fetchedConversation: cachedConversation,
-    })).toEqual({ name: 'Alex', avatarUrl: 'https://example.com/alex.jpg' });
-    expect(resolveChatParticipant({ currentUserId: 'me' })).toEqual({ name: 'Chat', avatarUrl: undefined });
+    })).toEqual({ id: 'alex', name: 'Alex', avatarUrl: 'https://example.com/alex.jpg' });
+    expect(resolveChatParticipant({ currentUserId: 'me' })).toEqual({ name: 'Chat', avatarUrl: undefined, id: undefined });
   });
 
   it('normalizes the backend participants transport shape', () => {
@@ -48,6 +48,7 @@ describe('resolveChatParticipant', () => {
     });
 
     expect(resolveChatParticipant({ conversation, currentUserId: 'me' })).toEqual({
+      id: 'alex',
       name: 'Alex',
       avatarUrl: 'https://example.com/alex.jpg',
     });

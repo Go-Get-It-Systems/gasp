@@ -30,4 +30,7 @@ export const queryKeys = {
   notifications: {
     deviceToken: ['notifications', 'deviceToken'] as const,
   },
+  safety: {
+    blocks: ['safety', 'blocks'] as const,
+  },
 } as const;

@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserMinus, ShieldOff, Flag } from 'lucide-react-native';
 import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
+import { useTranslation } from 'react-i18next';
 
 interface ProfileMenuProps {
   visible: boolean;
@@ -15,6 +16,7 @@ interface ProfileMenuProps {
 
 export function ProfileMenu({ visible, onClose, isFriend, onRemoveFriend, onBlock, onReport }: ProfileMenuProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -24,34 +26,34 @@ export function ProfileMenu({ visible, onClose, isFriend, onRemoveFriend, onBloc
             <Pressable
               style={styles.menuItem}
               onPress={() => { onRemoveFriend?.(); onClose(); }}
-              accessibilityLabel="Remove friend"
+              accessibilityLabel={t('friendRequest.removeFriend')}
               accessibilityRole="button"
             >
               <UserMinus size={20} color={colors.error} />
-              <Text variant="body" style={[styles.menuText, { color: colors.error }]}>Remove Friend</Text>
+              <Text variant="body" style={[styles.menuText, { color: colors.error }]}>{t('friendRequest.removeFriend')}</Text>
             </Pressable>
           )}
           <Pressable
             style={styles.menuItem}
             onPress={() => { onBlock?.(); onClose(); }}
-            accessibilityLabel="Block user"
+            accessibilityLabel={t('safety.block.confirm')}
             accessibilityRole="button"
           >
             <ShieldOff size={20} color={colors.textSecondary} />
-            <Text variant="body" style={styles.menuText}>Block User</Text>
+            <Text variant="body" style={styles.menuText}>{t('safety.block.confirm')}</Text>
           </Pressable>
           <Pressable
             style={styles.menuItem}
             onPress={() => { onReport?.(); onClose(); }}
-            accessibilityLabel="Report user"
+            accessibilityLabel={t('safety.report.title')}
             accessibilityRole="button"
           >
             <Flag size={20} color={colors.textSecondary} />
-            <Text variant="body" style={styles.menuText}>Report User</Text>
+            <Text variant="body" style={styles.menuText}>{t('safety.report.title')}</Text>
           </Pressable>
           <View style={styles.separator} />
-          <Pressable style={styles.menuItem} onPress={onClose} accessibilityLabel="Cancel" accessibilityRole="button">
-            <Text variant="body" style={styles.cancelText}>Cancel</Text>
+          <Pressable style={styles.menuItem} onPress={onClose} accessibilityLabel={t('common.cancel')} accessibilityRole="button">
+            <Text variant="body" style={styles.cancelText}>{t('common.cancel')}</Text>
           </Pressable>
         </View>
       </Pressable>

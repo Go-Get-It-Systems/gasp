@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
 import type { ReactNode } from 'react';
@@ -9,6 +9,7 @@ interface BubbleWrapperProps {
   isHighlighted?: boolean;
   createdAt: string;
   children: ReactNode;
+  onLongPress?: () => void;
 }
 
 export function BubbleWrapper({
@@ -17,9 +18,13 @@ export function BubbleWrapper({
   isHighlighted = false,
   createdAt,
   children,
+  onLongPress,
 }: BubbleWrapperProps) {
   return (
-    <View
+    <Pressable
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      accessibilityRole={onLongPress ? 'button' : undefined}
       style={[
         styles.container,
         isOwnMessage ? styles.ownContainer : styles.otherContainer,
@@ -31,7 +36,7 @@ export function BubbleWrapper({
       <Text variant="caption" style={[styles.time, isOwnMessage ? styles.ownTime : styles.otherTime]}>
         {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

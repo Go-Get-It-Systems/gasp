@@ -45,6 +45,7 @@
     "accept": "Aceitar",
     "reject": "Recusar",
     "friends": "Amigos",
+    "removeFriend": "Remover amigo",
     "declined": "Recusado",
     "sent": "Enviado",
     "wantsToBeYourFriend": "{{name}} quer ser seu amigo"
@@ -258,6 +259,44 @@
       "versionUnavailable": "Indisponível",
       "gaspTitle": "Sobre o GASP",
       "gaspBody": "GASP é uma forma privada e focada na câmera de compartilhar momentos e reações com amigos."
+    }
+  },
+  "safety": {
+    "block": {
+      "title": "Bloquear {{name}}?",
+      "body": "Essa pessoa não poderá mais enviar mensagens, Gasps ou pedidos de amizade para você. O bloqueio também remove qualquer amizade ou pedido de amizade pendente. Vocês também não aparecerão um para o outro na busca e nas sugestões.",
+      "hint": "Ela não será avisada. Se você desbloquear depois, será necessário adicionar a pessoa novamente antes de compartilhar.",
+      "confirm": "Bloquear usuário",
+      "successTitle": "Usuário bloqueado",
+      "successBody": "Você pode gerenciar usuários bloqueados em Privacidade e segurança.",
+      "error": "Não foi possível bloquear este usuário. Tente novamente."
+    },
+    "report": {
+      "title": "Denunciar",
+      "body": "Conte o que aconteceu. Sua denúncia é privada e não promete um resultado específico.",
+      "submit": "Enviar denúncia",
+      "receivedTitle": "Denúncia recebida",
+      "receivedBody": "Obrigado por ajudar a manter o GASP seguro.",
+      "error": "Não foi possível enviar sua denúncia. Tente novamente.",
+      "notePlaceholder": "Adicionar detalhes (opcional)",
+      "categories": {
+        "spam": "Spam",
+        "harassment": "Assédio",
+        "hate_speech": "Discurso de ódio",
+        "nudity_or_sexual_content": "Nudez ou conteúdo sexual",
+        "violence_or_threats": "Violência ou ameaças",
+        "impersonation": "Falsidade ideológica",
+        "other": "Outro"
+      }
+    },
+    "blockedUsers": {
+      "title": "Usuários bloqueados",
+      "entry": "Usuários bloqueados",
+      "entrySubtitle": "Gerencie as pessoas que você bloqueou",
+      "emptyTitle": "Nenhum usuário bloqueado",
+      "emptyBody": "As pessoas que você bloquear aparecerão aqui.",
+      "unblock": "Desbloquear",
+      "unblockError": "Não foi possível desbloquear este usuário. Tente novamente."
     }
   },
   "productUpdates": {
