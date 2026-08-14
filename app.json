@@ -63,8 +63,8 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "organization": "gasp-cv",
-          "project": "gasp"
+          "organization": "go-get-it-systems-wb",
+          "project": "node"
         }
       ],
       [
@@ -122,15 +122,15 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "3a55e98d-0809-4d0a-8c94-9c9cf0b3fe99"
+        "projectId": "f32f11f8-f42c-46bc-acd0-3b419bc72caf"
       }
     },
-    "owner": "gabrielpaulot",
+    "owner": "go-get-it-systems",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/3a55e98d-0809-4d0a-8c94-9c9cf0b3fe99"
+      "url": "https://u.expo.dev/f32f11f8-f42c-46bc-acd0-3b419bc72caf"
     }
   }
 }
