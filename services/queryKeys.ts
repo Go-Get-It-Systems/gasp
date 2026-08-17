@@ -33,4 +33,10 @@ export const queryKeys = {
   safety: {
     blocks: ['safety', 'blocks'] as const,
   },
+  business: {
+    mine: ['business', 'mine'] as const,
+    overview: (workspaceId: string) => ['business', workspaceId, 'overview'] as const,
+    campaigns: (workspaceId: string) => ['business', workspaceId, 'campaigns'] as const,
+    reactions: (workspaceId: string, campaignId: string, filter: string) => ['business', workspaceId, 'campaigns', campaignId, 'reactions', filter] as const,
+  },
 } as const;

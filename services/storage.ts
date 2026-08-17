@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { api } from '@/services/api';
 
-export type MediaType = 'gasps' | 'reactions' | 'avatars';
+export type MediaType = 'gasps' | 'reactions' | 'avatars' | 'campaigns';
 
 export interface UploadResult {
   downloadUrl: string;
