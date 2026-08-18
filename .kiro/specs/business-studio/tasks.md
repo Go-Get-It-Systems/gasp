@@ -1,162 +1,73 @@
-# Implementation Plan: Business Studio MVP
+# Implementation Plan: Business Broadcast MVP
 
-## Scope guard
+## 0. Scope alignment
 
-Implement only the managed-pilot capabilities in `requirements.md`. Do not add
-team management UI, scheduling, reel rendering/export, business DMs, public
-ranking, billing, or rich analytics under this spec.
+- [ ] 0.1 Replace the former reaction-gallery/selection product scope with this
+  Business Broadcast scope; record Featured Reactions and Creator Pro as future
+  specs.
+- [ ] 0.2 Confirm demo workspace, owner, follower cap of 20, one campaign/day
+  and current 24-hour expiry/replay behaviour.
+- [ ] 0.3 Record controlled-pilot acceptance of current public Firebase Storage
+  URLs, or make signed URLs a release prerequisite.
 
-## 0. Product and operational decisions
+## 1. Backend foundation
 
-- [ ] 0.1 Confirm pilot workspace, owner account, real/demo brand status,
-  follower cap, campaign-frequency cap, and whether reaction identity is
-  visible to the owner.
-  - _Requirements: R2, R3, R8_
-- [ ] 0.2 Confirm current 24-hour Gasp expiry/replay settings apply to campaigns.
-  - _Requirements: R4, R5_
-- [ ] 0.3 Confirm written acceptance of the current public Firebase Storage URL
-  risk for a controlled pilot, or make signed URL hardening a prerequisite.
-  - _Requirements: R8_
+- [ ] 1.1 Add validated safe-off config: flag, allow-list, cap, daily limit and
+  chunk size. _Requirements: R6_
+- [ ] 1.2 Add additive workspace/follower/campaign/delivery schema and nullable
+  `gasps.campaign_id`; do not add selection schema for this MVP. _R2-R4_
+- [ ] 1.3 Add controlled demo seed/admin procedure and rollback/deactivation
+  instructions. _R2, R6_
+- [ ] 1.4 Implement owner/allow-list guards and consumer-safe business
+  transformers. _R1, R2, R6_
 
-## 1. Backend foundation and migration
+## 2. Audience and public profile
 
-- [ ] 1.1 Add validated Business Studio configuration in `src/config/env.ts`
-  - Feature flag, workspace allow-list, follower cap, campaigns/day, and
-    fan-out chunk size; safe defaults keep the feature disabled.
-  - _Requirements: R8_
-- [ ] 1.2 Add Drizzle schema and versioned migrations
-  - `business_workspaces`, `business_members`, `business_followers`,
-    `business_campaigns`, `campaign_deliveries`,
-    `campaign_reaction_selections`, and nullable `gasps.campaign_id`.
-  - Add unique and aggregate-query indexes from design.
-  - _Requirements: R2, R3, R4, R5, R7, R8_
-- [ ] 1.3 Add a controlled pilot seed/admin procedure
-  - Provision one verified workspace and owner; document rollback/deactivation.
-  - No public or mobile workspace-creation endpoint.
-  - _Requirements: R2, R8_
-- [ ] 1.4 Add a business membership/role guard and safe transformers
-  - Enforce active allowed workspace/owner at service layer.
-  - Define separate public business and Studio reaction response schemas.
-  - _Requirements: R1, R2, R6, R8_
+- [ ] 2.1 Implement `GET /businesses/mine`, public profile by handle and
+  idempotent follow/unfollow with block/cap enforcement. _R1, R2_
+- [ ] 2.2 Add a small business card/profile entry to Discover without changing
+  personal user schemas or adding ranking. _R2_
 
-## 2. Workspace and audience APIs
+## 3. Campaign broadcast
 
-- [ ] 2.1 Implement `GET /businesses/mine` and public profile by handle.
-  - _Requirements: R1, R2, R3_
-- [ ] 2.2 Implement idempotent follow/unfollow.
-  - Apply active, cap and business-aware block checks without creating a
-    friendship or conversation.
-  - _Requirements: R3, R8_
-- [ ] 2.3 Add a small seeded Business result/card contract to Discover.
-  - Do not alter personal `User`/`RecommendedUser` schemas; use a discriminator.
-  - _Requirements: R3_
+- [ ] 3.1 Add owner-validated `campaigns/{workspaceId}/...` uploads. _R3, R6_
+- [ ] 3.2 Implement draft CRUD, confirmation publish and authoritative state
+  transitions including close/failure. _R3_
+- [ ] 3.3 Extract/reuse the internal Gasp creation helper. _R4_
+- [ ] 3.4 Add idempotent BullMQ fan-out and aggregate reconciliation; recheck
+  eligibility before each delivery. _R4_
+- [ ] 3.5 Disable campaign reaction capture/routing in the consumer viewer and
+  prevent business conversations. _R4_
+- [ ] 3.6 Implement aggregate overview/detail queries: queued, delivered,
+  failed, opened and viewed only. _R5_
 
-## 3. Campaign and delivery backend
+## 4. Mobile Studio and consumer flow
 
-- [ ] 3.1 Add `campaigns` to the authenticated backend upload allow-list.
-  - Store only under `campaigns/{workspaceId}/...` after owner validation.
-  - Reuse existing Firebase Admin Storage credentials and `/uploads` flow.
-  - _Requirements: R4, R8_
-- [ ] 3.2 Implement campaign draft CRUD and state-transition service.
-  - Draft create/edit, publish confirmation endpoint, close and authoritative
-    `draft → publishing → live|failed → closed` transitions.
-  - _Requirements: R4_
-- [ ] 3.3 Extract a shared internal Gasp delivery helper.
-  - Keep current TTL/status defaults and re-use it from personal Gasp and
-    campaign delivery services; do not call an internal HTTP endpoint.
-  - _Requirements: R5, R8_
-- [ ] 3.4 Add `campaign-publication` BullMQ queue and worker.
-  - Snapshot eligible followers, create idempotent deliveries, process bounded
-    chunks, link each generated Gasp, use existing socket/push services, and
-    reconcile campaign outcome/progress.
-  - _Requirements: R5, R8_
-- [ ] 3.5 Implement overview, campaign-detail and aggregate analytics queries.
-  - Returned counts: queued/delivered/failed/opened/reacted/selected only.
-  - _Requirements: R5, R6_
+- [ ] 4.1 Add business Zod contracts, API service, scoped query keys and cache
+  invalidation. _R1-R5_
+- [ ] 4.2 Add owner-only Profile entry and separate `(business)` layout with
+  Overview, Campaigns and Workspace. _R1_
+- [ ] 4.3 Build campaign composer, preview, explicit publication confirmation
+  and bounded publish-state polling. _R3_
+- [ ] 4.4 Add authenticated public business profile and consumer Follow UI. _R2_
+- [ ] 4.5 Make campaign Gasps visually normal in the consumer viewer while
+  suppressing the business reaction CTA. _R4_
 
-## 4. Reaction gallery and selection backend
+## 5. Verification and rollout
 
-- [ ] 4.1 Implement cursor-paginated campaign reaction query.
-  - Newest/Selected filters, privacy-safe actor fields, block/moderation/expiry
-    behaviour, and owner guard.
-  - _Requirements: R6, R8_
-- [ ] 4.2 Implement idempotent selection/unselection endpoints.
-  - Verify the reaction belongs to the stated campaign; persist owner/timestamp.
-  - _Requirements: R7_
-
-## 5. Mobile contracts and separate Studio shell
-
-- [ ] 5.1 Add business Zod schemas, API service, query keys and cache invalidation.
-  - Keys must include workspace/campaign ids.
-  - _Requirements: R1, R3-R7_
-- [ ] 5.2 Add Profile entry, public business profile and follow UI.
-  - Profile entry only for members; public profile only exposes consumer-safe data.
-  - _Requirements: R1, R3_
-- [ ] 5.3 Create `(business)` layout and `BusinessStudioTabBar`.
-  - Route guard, safe unavailable state, Overview/Campaigns/Reactions/Workspace,
-    and explicit exit to personal Profile.
-  - _Requirements: R1_
-
-## 6. Mobile campaign and curation flows
-
-- [ ] 6.1 Build Overview, campaign list and campaign detail.
-  - Include all loading/empty/failed/publishing states and bounded progress poll.
-  - _Requirements: R4-R6_
-- [ ] 6.2 Build BusinessCampaignComposer and publish confirmation.
-  - Reuse media capture/upload/text overlay; do not render friend recipient UI.
-  - _Requirements: R4, R5_
-- [ ] 6.3 Build virtualised CampaignReactionGrid and reaction detail.
-  - Reuse existing playback/composite UI where compatible.
-  - _Requirements: R6_
-- [ ] 6.4 Add selection mutation, selected count and filter.
-  - Optimistic UI must roll back on API failure.
-  - _Requirements: R7_
-
-## 7. Verification and controlled rollout
-
-- [ ] 7.1 Backend tests
-  - Membership, follow/block, state transitions, migration constraints, fan-out
-    idempotency, retry/dedupe, aggregate privacy and selection rules.
-  - _Requirements: R2-R8_
-- [ ] 7.2 Mobile tests and full consumer regression suite.
-  - Route guard, separate navigation, composer validation, cache isolation,
-    gallery selection rollback, and current Gasp/reaction/notification flows.
-  - _Requirements: R1, R4-R8_
-- [ ] 7.3 Execute physical-device owner + two-follower QA.
-  - Follow, publish, background push, view, reaction, gallery, selection,
-    unfollow-before-publish, block and Studio exit.
-  - _Requirements: R3-R8_
-- [ ] 7.4 Execute queue test at approved follower cap and document evidence.
-  - Validate throughput, terminal counts, retries and zero duplicates.
-  - _Requirements: R5, R8_
-- [ ] 7.5 Enable the allowed workspace pilot; record flag/cap/rollback owner.
-  - _Requirements: R8_
-
-## Dependency graph
-
-```mermaid
-flowchart TD
-  D["Decisions"] --> F["Schema + flags + guard"]
-  F --> A["Workspace + follow APIs"]
-  F --> C["Campaign service + shared delivery helper"]
-  C --> Q["Fan-out queue + aggregates"]
-  Q --> R["Reaction gallery + selection APIs"]
-  A --> M["Mobile Studio shell + public profile"]
-  C --> U["Composer + publish UI"]
-  Q --> O["Overview + campaign detail"]
-  R --> G["Gallery + selection UI"]
-  M --> V["Verification"]
-  U --> V
-  O --> V
-  G --> V
-  V --> P["Capped pilot"]
-```
+- [ ] 5.1 Add tests for membership, follow/block, limits, lifecycle, delivery
+  idempotency, aggregate privacy and reaction suppression. _R1-R6_
+- [ ] 5.2 Run mobile regression tests for navigation, cache isolation, composer
+  validation and ordinary personal Gasp/reaction flows. _R1-R5_
+- [ ] 5.3 Device QA with one owner and two followers: follow, publish,
+  background push, hold/view, unfollow-before-publish, block, exit and flag
+  rollback. _R2-R6_
+- [ ] 5.4 Run the queue at cap 20; record throughput, retries, terminal counts
+  and zero duplicates before enabling the pilot. _R4, R6_
 
 ## Definition of done
 
-One administrator-provisioned owner can enter a separate Studio, create and
-publish a campaign to an explicit capped audience, while personal followers
-receive and react through unchanged GASP screens. The owner can see aggregate
-results, browse campaign reactions safely, and persist selections. All
-permissions, blocks, migration, idempotency, device and capped-queue checks
-pass with the feature flag available as immediate rollback.
+One administrator-provisioned demo owner can enter a separate Studio, publish
+one daily campaign to a capped opt-in audience, and see only aggregate delivery
+and viewing outcomes. Followers use their unchanged personal GASP viewer; no
+business reaction, business chat, public UGC or reel capability is exposed.
