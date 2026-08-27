@@ -33,7 +33,9 @@ export const useGaspStore = create<GaspState>((set, get) => ({
   setHoldProgress: (holdProgress) => set({ holdProgress }),
 
   addReaction: (reaction) =>
-    set((state) => ({ reactions: [reaction, ...state.reactions] })),
+    set((state) => state.reactions.some((item) => item.id === reaction.id)
+      ? state
+      : { reactions: [reaction, ...state.reactions] }),
 
   markGaspViewed: (gaspId: string, imageUri?: string) =>
     set((state) => ({

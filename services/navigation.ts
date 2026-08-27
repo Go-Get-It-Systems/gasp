@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import { cacheMedia } from './mediaCache';
 
 // ── Camera Preview ───────────────────────────────────────────────────
@@ -130,4 +131,59 @@ export function openReactionResult({ reactionVideoUri, originalImageUri, senderN
     pathname: '/(modals)/reaction-result',
     params: { reactionVideoUri, originalImageUri, senderName, gaspId, originalMediaType: originalMediaType ?? 'image' },
   });
+}
+
+interface ReactionContinuationParams {
+  reactionId: string;
+  conversationId?: string | null;
+  messageId?: string | null;
+  gaspId: string;
+  reactionVideoUri?: string;
+  originalImageUri?: string;
+  senderName?: string;
+  originalMediaType?: 'image' | 'video';
+}
+
+export function openReactionContinuation({
+  reactionId,
+  conversationId,
+  messageId,
+  gaspId,
+  reactionVideoUri,
+  originalImageUri,
+  senderName,
+  originalMediaType,
+}: ReactionContinuationParams): 'chat' | 'reaction' | 'none' {
+  if (conversationId) {
+    router.push({
+      pathname: '/chat/[id]',
+      params: {
+        id: conversationId,
+        ...(messageId && { highlightMessageId: messageId }),
+      },
+    });
+    return 'chat';
+  }
+
+  const context = { reactionId, gaspId };
+  if (reactionVideoUri && originalImageUri && senderName) {
+    Sentry.captureMessage('openReactionContinuation: missing conversation context', {
+      level: 'warning',
+      extra: context,
+    });
+    openReactionResult({
+      reactionVideoUri,
+      originalImageUri,
+      senderName,
+      gaspId,
+      originalMediaType,
+    });
+    return 'reaction';
+  }
+
+  Sentry.captureMessage('openReactionContinuation: missing navigation context', {
+    level: 'warning',
+    extra: context,
+  });
+  return 'none';
 }

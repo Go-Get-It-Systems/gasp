@@ -443,6 +443,17 @@ describe('useSocketListeners', () => {
         body: 'reacted to your gasp',
       }));
     });
+
+    it('Feature: gasps-social-pulse, Property 13: keeps one global reaction listener and cleans it up', () => {
+      const { unmount } = renderHook(() => useSocketListeners());
+      const reactionHandler = capturedHandlers['gasp:reaction_received'];
+
+      expect(reactionHandler).toBeDefined();
+      expect(jest.requireMock('@/services/socket').onGaspReactionReceived).toHaveBeenCalledTimes(1);
+
+      unmount();
+      expect(capturedHandlers['gasp:reaction_received']).toBeUndefined();
+    });
   });
 
   describe('notification:event', () => {

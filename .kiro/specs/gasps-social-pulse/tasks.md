@@ -10,29 +10,29 @@ social features.
 
 ## Tasks
 
-- [ ] 1. Establish the personal Moment data contract
-  - [ ] 1.1 Add a migration for `gasp_moments` and `gasps.moment_id`
+- [x] 1. Establish the personal Moment data contract
+  - [x] 1.1 Add a migration for `gasp_moments` and `gasps.moment_id`
     - Create the parent table with shared media, sender, replay, timestamps,
       and indexes for sender/latest queries.
     - Add nullable `moment_id` to `gasps` with an indexed sender/moment path.
     - Do not backfill or heuristically group existing rows.
     - _Requirements: 1.1, 1.5, 3.1, 3.2, 3.6, 6.6_
 
-  - [ ] 1.2 Link persisted reactions to their chat continuation
+  - [x] 1.2 Link persisted reactions to their chat continuation
     - Add nullable `message_id` to `reactions` with an appropriate FK/index.
     - Update reaction creation so the created reaction is associated with the
       persisted reaction message after that message is successfully created.
     - Preserve existing chat/socket/push behavior when message creation fails.
     - _Requirements: 4.2, 4.5, 6.4_
 
-  - [ ] 1.3 Add backend schemas, transformers, and focused migration tests
+  - [x] 1.3 Add backend schemas, transformers, and focused migration tests
     - Keep request/response contracts explicit and validated.
     - Test legacy Gasp rows without `moment_id` and reaction rows without
       `message_id` as valid backward-compatible states.
     - _Requirements: 3.6, 4.2, 6.2, 6.6_
 
-- [ ] 2. Create personal Moment and Reaction_Return APIs
-  - [ ] 2.1 Make personal batch send create a Moment atomically
+- [x] 2. Create personal Moment and Reaction_Return APIs
+  - [x] 2.1 Make personal batch send create a Moment atomically
     - Validate all recipients before writes and retain existing safety checks.
     - Write a Moment and all recipient Gasp rows in one transaction.
     - Emit recipient events only after a successful commit.
@@ -42,7 +42,7 @@ social features.
       `gasps.latestMoment` inside `onSuccess`.
     - _Requirements: 1.1, 1.5, 1.6, 3.1, 3.2, 3.7_
 
-  - [ ] 2.2 Add `GET /gasps/moments/latest`
+  - [x] 2.2 Add `GET /gasps/moments/latest`
     - Return `null` for no personal Moment.
     - Aggregate recipient, delivered/opened, reaction, and expiry counts from
       linked personal Gasp rows only.
@@ -50,7 +50,7 @@ social features.
     - Exclude Business_Gasps (`campaignId IS NOT NULL`) and blocked relationships.
     - _Requirements: 1.1, 1.5, 3.3, 3.4, 3.5_
 
-  - [ ] 2.2b Extend `GET /gasps/pending` to exclude Business_Gasps
+  - [x] 2.2b Extend `GET /gasps/pending` to exclude Business_Gasps
     - Add `campaignId IS NULL` filter to the pending-Gasps query so the
       Open-now rail never surfaces business content.
     - This is an explicit change to an existing endpoint; regression tests must
@@ -58,7 +58,7 @@ social features.
       remain valid.
     - _Requirements: 1.1, 1.5_
 
-  - [ ] 2.3 Add cursor-paginated `GET /reactions/received`
+  - [x] 2.3 Add cursor-paginated `GET /reactions/received`
     - Join reaction, original personal Gasp, reactor, and reliable message /
       conversation continuation context.
     - Enforce sender ownership and block/access rules.
@@ -69,26 +69,26 @@ social features.
       `reactions.created_at <= snapshotAt` before the cursor predicate.
     - _Requirements: 1.1, 1.5, 4.1, 4.2, 4.7_
 
-  - [ ] 2.4 Cover backend contracts and failure cases
+  - [x] 2.4 Cover backend contracts and failure cases
     - Test atomic batch success and no partial recipient writes on failure.
     - Test latest-Moment totals, legacy exclusion, campaign exclusion, blocks,
       pagination, unauthorized access, and linked reaction-message behavior.
     - _Requirements: 3.7, 4.1 through 4.2, 4.7, 6.6_
 
-- [ ] 3. Add frontend contracts, queries, and realtime cache updates
-  - [ ] 3.1 Add Zod schemas and API clients
+- [x] 3. Add frontend contracts, queries, and realtime cache updates
+  - [x] 3.1 Add Zod schemas and API clients
     - Define `Moment`, `LatestMoment`, and `ReactionReturn` schemas.
     - Add validated API functions and centralized query keys.
     - Derive all domain types from schemas.
     - _Requirements: 3.3, 4.2, 6.1, 6.2_
 
-  - [ ] 3.2 Add React Query hooks
+  - [x] 3.2 Add React Query hooks
     - Add `useLatestMoment` and `useReceivedReactions` with clear enabled,
       loading, empty, error, and refetch semantics.
     - Do not add server loading/data functions to Zustand.
     - _Requirements: 4.1, 4.3, 6.1_
 
-  - [ ] 3.3 Extend the global socket listener contract
+  - [x] 3.3 Extend the global socket listener contract
     - Update/invalidate received-reactions and latest-Moment queries when a
       sender receives `gasp:reaction_received`.
     - Preserve current pending-Gasp, chat, notification, reconnect, and
@@ -96,8 +96,8 @@ social features.
     - Add focused listener tests for duplicate/idempotent updates.
     - _Requirements: 4.6, 6.4, 6.6_
 
-- [ ] 4. Build the attention-first Gasps interface
-  - [ ] 4.1 Create the Pulse header and Open-now rail
+- [x] 4. Build the attention-first Gasps interface
+  - [x] 4.1 Create the Pulse header and Open-now rail
     - Replace ambiguous Feed/hold wording with localized Gasps/attention copy.
     - Build privacy-safe loading, populated, and empty states.
     - Reuse `CountdownRing`, avatar fallback, media cache, and typed viewer
@@ -105,14 +105,14 @@ social features.
     - Add accessible camera and item actions with safe item-scoped preloading.
     - _Requirements: 1.4, 2.1 through 2.5, 5.1 through 5.5_
 
-  - [ ] 4.2 Create LatestMomentCard
+  - [x] 4.2 Create LatestMomentCard
     - Render one compact latest personal Moment with pluralized human outcome
       copy and privacy-safe visual treatment.
     - Do not add an interaction until a useful detail destination is designed.
     - Handle legacy/no-data/loading/error states without a blank card.
     - _Requirements: 3.3 through 3.6, 5.1 through 5.3_
 
-  - [ ] 4.3 Create the Reaction_Return section and `openReactionContinuation` helper
+  - [x] 4.3 Create the Reaction_Return section and `openReactionContinuation` helper
     - Render server-backed received reactions above secondary activity.
     - Create `openReactionContinuation({ reactionId, conversationId,
       messageId, gaspId, reactionVideoUri, originalImageUri, senderName,
@@ -126,7 +126,7 @@ social features.
     - Remove `gaspStore.reactions` as the source for this tab section.
     - _Requirements: 4.3 through 4.6, 5.1 through 5.5, 6.3_
 
-  - [ ] 4.4 Recompose `app/(tabs)/inbox.tsx`
+  - [x] 4.4 Recompose `app/(tabs)/inbox.tsx`
     - Keep it as a thin coordinator using one vertical virtualized list or a
       safe equivalent; avoid uncontrolled nested scrolling.
     - Order sections: Open now, Your latest moment, Reactions for you, then
@@ -136,7 +136,7 @@ social features.
     - _Requirements: 1.1 through 1.4, 2.1 through 2.6, 4.4, 5.3_
 
 - [ ] 5. Localize, test, and validate the feature
-  - [ ] 5.0 Set up property-based testing infrastructure
+  - [x] 5.0 Set up property-based testing infrastructure
     - Install and configure a PBT library compatible with the existing Jest
       setup (e.g., `fast-check`); add a shared test helper for generating
       `Gasp`, `LatestMoment`, and `ReactionReturn` arbitraries.
@@ -151,13 +151,13 @@ social features.
       P13 no screen-level listener leak, P14 navigation no-duplicate and its
       chat/result/abort fallback cases.
     - _Requirements: 6.6_
-  - [ ] 5.1 Add localized copy and component tests
+  - [x] 5.1 Add localized copy and component tests
     - Add all new strings to existing locale files.
     - Test long names, plural summaries, privacy-safe previews, empty states,
       section order, card/item press behavior, and accessibility labels.
     - _Requirements: 2.1 through 2.6, 3.4, 5.2 through 5.5, 6.6_
 
-  - [ ] 5.2 Run automated verification
+  - [x] 5.2 Run automated verification
     - Run focused frontend and backend tests first, then repository typechecks
       and wider suites where baseline allows.
     - Record unrelated pre-existing lint failures separately.

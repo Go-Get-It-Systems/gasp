@@ -15,6 +15,7 @@ export const ApiGaspSchema = z.object({
   blurhash: z.string().nullable(),
   textOverlay: z.string().nullable().optional(),
   replayable: z.boolean().optional().default(false),
+  momentId: z.string().nullable().optional(),
   status: GaspStatusSchema,
   deliveryStatus: z.enum(['sent', 'delivered', 'opened']).optional(),
   createdAt: z.string(),
@@ -36,6 +37,7 @@ export const GaspSchema = z.object({
   blurhash: z.string(),
   textOverlay: z.string().optional(),
   replayable: z.boolean(),
+  momentId: z.string().optional(),
   status: GaspStatusSchema,
   deliveryStatus: z.enum(['sent', 'delivered', 'opened']).optional().default('sent'),
   createdAt: z.string(),
@@ -71,6 +73,7 @@ export function normalizePendingGasp(item: ApiPendingGasp): Gasp {
     blurhash: item.gasp.blurhash ?? '',
     textOverlay: item.gasp.textOverlay ?? undefined,
     replayable: item.gasp.replayable ?? false,
+    momentId: item.gasp.momentId ?? undefined,
     status: item.gasp.status,
     deliveryStatus: item.gasp.deliveryStatus ?? 'sent',
     createdAt: item.gasp.createdAt,
@@ -92,6 +95,7 @@ export function normalizeGasp(raw: z.infer<typeof ApiGaspSchema>): Gasp {
     blurhash: raw.blurhash ?? '',
     textOverlay: raw.textOverlay ?? undefined,
     replayable: raw.replayable ?? false,
+    momentId: raw.momentId ?? undefined,
     status: raw.status,
     deliveryStatus: raw.deliveryStatus ?? 'sent',
     createdAt: raw.createdAt,
@@ -106,6 +110,7 @@ export const ApiReactionSchema = z.object({
   gaspId: z.string(),
   reactorId: z.string(),
   videoUrl: z.string(),
+  messageId: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 
@@ -134,3 +139,60 @@ export function normalizeReaction(raw: z.infer<typeof ApiReactionSchema>): React
     capturedAt: raw.createdAt,
   };
 }
+
+export const SocialIdentitySummarySchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  username: z.string(),
+  avatarUrl: z.string().nullable(),
+});
+
+export const MomentSchema = z.object({
+  id: z.string(),
+  senderId: z.string(),
+  imageUrl: z.string(),
+  mediaType: GaspMediaTypeSchema,
+  blurhash: z.string(),
+  textOverlay: z.string().nullable().optional(),
+  replayable: z.boolean(),
+  createdAt: z.string(),
+  expiresAt: z.string(),
+});
+
+export const OriginalMediaMetadataSchema = z.object({
+  imageUrl: z.string(),
+  mediaType: GaspMediaTypeSchema,
+});
+
+export const LatestMomentSchema = z.object({
+  id: z.string(),
+  recipientCount: z.number().int().nonnegative(),
+  deliveredCount: z.number().int().nonnegative(),
+  openedCount: z.number().int().nonnegative(),
+  reactionCount: z.number().int().nonnegative(),
+  isExpired: z.boolean(),
+  expiresAt: z.string(),
+  identitySummaries: z.array(SocialIdentitySummarySchema).max(3),
+  mediaMetadata: z.object({
+    imageUrl: z.string(),
+    mediaType: GaspMediaTypeSchema,
+    blurhash: z.string(),
+    textOverlay: z.string().nullable().optional(),
+    replayable: z.boolean(),
+  }),
+});
+
+export const ReactionReturnSchema = z.object({
+  id: z.string(),
+  gaspId: z.string(),
+  reactor: SocialIdentitySummarySchema,
+  reactionMediaUrl: z.string(),
+  originalMediaMetadata: OriginalMediaMetadataSchema,
+  capturedAt: z.string(),
+  conversationId: z.string().nullable(),
+  messageId: z.string().nullable(),
+});
+
+export type Moment = z.infer<typeof MomentSchema>;
+export type LatestMoment = z.infer<typeof LatestMomentSchema>;
+export type ReactionReturn = z.infer<typeof ReactionReturnSchema>;

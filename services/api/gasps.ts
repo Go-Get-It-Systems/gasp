@@ -1,6 +1,7 @@
 import { api } from '@/services/api';
-import type { Gasp, ApiPendingGasp, ApiGasp } from '@/services/api/schemas/gasp.schema';
-import { normalizePendingGasp, normalizeGasp } from '@/services/api/schemas/gasp.schema';
+import type { Gasp, ApiPendingGasp, ApiGasp, LatestMoment } from '@/services/api/schemas/gasp.schema';
+import { LatestMomentSchema, normalizePendingGasp, normalizeGasp } from '@/services/api/schemas/gasp.schema';
+import { validateResponse } from '@/services/api/schemas/common.schema';
 
 interface SendGaspInput {
   recipientId: string;
@@ -38,6 +39,11 @@ export async function getPendingGasps(): Promise<Gasp[]> {
 export async function getSentGasps(): Promise<Gasp[]> {
   const res = await api.get<ApiGasp[]>('/gasps/sent');
   return res.data.map(normalizeGasp);
+}
+
+export async function getLatestMoment(): Promise<LatestMoment | null> {
+  const res = await api.get<unknown>('/gasps/moments/latest');
+  return validateResponse(LatestMomentSchema.nullable(), res.data, 'getLatestMoment');
 }
 
 /**
