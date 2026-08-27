@@ -1,0 +1,1 @@
+ALTER TABLE "gasps" ADD COLUMN "media_type" varchar(10) DEFAULT 'image' NOT NULL;

@@ -1,0 +1,38 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "0.1 Replace the former reaction-gallery/selection product scope with this": [
+      {
+        "executionId": "514f9f04-ce4d-4839-9341-8565b4187b29",
+        "chatSessionId": "sess_415ceec6-152f-4487-b13b-a8d31743ac7c",
+        "timestamp": 1787062965985
+      }
+    ],
+    "0.2 Confirm demo workspace, owner, follower cap of 20, one campaign/day": [
+      {
+        "executionId": "f31b7aaa-0310-4ba4-86ef-60725d4b8600",
+        "chatSessionId": "sess_9d7c82af-b3a1-4ab9-9b9a-20aeab385895",
+        "timestamp": 1787063076691
+      }
+    ],
+    "0.3 Record controlled-pilot acceptance of current public Firebase Storage": [
+      {
+        "executionId": "1105efaf-f45e-481e-9949-45f095e79997",
+        "chatSessionId": "sess_4fa8187a-db0d-425b-8be2-616ff64b7db1",
+        "timestamp": 1787063157447
+      }
+    ],
+    "1.1 Add validated safe-off config: flag, allow-list, cap, daily limit and": [
+      {
+        "executionId": "31a7fb8d-1565-4d73-959e-30f6ab07fcbf",
+        "chatSessionId": "sess_beb7e67c-ffea-45ee-a9a4-7757ffec95dd",
+        "timestamp": 1787063444618
+      },
+      {
+        "executionId": "31a7fb8d-1565-4d73-959e-30f6ab07fcbf",
+        "chatSessionId": "sess_beb7e67c-ffea-45ee-a9a4-7757ffec95dd",
+        "timestamp": 1787063726681
+      }
+    ]
+  }
+}

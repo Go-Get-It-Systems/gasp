@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.log
+*firebase*.json
+*-firebase-adminsdk-*.json
+gasp-*.json

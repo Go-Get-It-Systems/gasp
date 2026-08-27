@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "reactotron": {
+      "url": "http://localhost:4567/mcp"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    },
+    "simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "production",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://gasp-backend-production.up.railway.app",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://fda93d65c7eda3b4fb62633c4aad2768@o4511504422010880.ingest.us.sentry.io/4511657324183552"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production": {
+      "channel": "production",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://gasp-backend-production.up.railway.app",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://fda93d65c7eda3b4fb62633c4aad2768@o4511504422010880.ingest.us.sentry.io/4511657324183552"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "gabrielpt201111@gmail.com",
+        "ascAppId": "6763954977",
+        "appleTeamId": "RNYP352KSW"
+      }
+    }
+  }
+}
