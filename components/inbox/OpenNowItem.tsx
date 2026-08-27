@@ -29,7 +29,7 @@ export function OpenNowItem({ gasp, isLoading, featured = false, onPress }: Open
       disabled={isLoading}
       style={({ pressed }) => [
         styles.card,
-        featured && styles.featured,
+        featured ? styles.featured : styles.compact,
         urgent && styles.urgentCard,
         pressed && styles.pressed,
       ]}
@@ -84,7 +84,6 @@ export function OpenNowItem({ gasp, isLoading, featured = false, onPress }: Open
 
 const styles = StyleSheet.create({
   card: {
-    width: 154,
     height: 204,
     borderRadius: 24,
     borderCurve: 'continuous',
@@ -95,7 +94,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(124,58,237,0.45)',
   },
-  featured: { width: 236 },
+  compact: { width: 154 },
+  featured: {
+    alignSelf: 'stretch',
+    marginHorizontal: 20,
+  },
   urgentCard: { borderColor: 'rgba(245,158,11,0.72)' },
   pressed: { opacity: 0.84, transform: [{ scale: 0.98 }] },
   topRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },

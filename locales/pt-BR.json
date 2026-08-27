@@ -79,6 +79,8 @@
       "reactedToMoment": "reagiu ao seu momento",
       "reactionsForYou": "REAÇÕES PARA VOCÊ",
       "reactionsError": "Não foi possível carregar as reações. Toque para tentar novamente.",
+      "showAllReactions": "Ver todas as {{count}} reações",
+      "showFewerReactions": "Mostrar menos",
       "loadMore": "Carregar mais reações",
       "activity": "ATIVIDADE"
     }
