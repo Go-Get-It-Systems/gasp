@@ -35,6 +35,19 @@ export function useSentGasps(enabled = true) {
   });
 }
 
+export function useLatestMoment(enabled = true) {
+  const query = useQuery({
+    queryKey: queryKeys.gasps.latestMoment,
+    queryFn: gaspsApi.getLatestMoment,
+    enabled,
+  });
+
+  return {
+    ...query,
+    isEmpty: !query.isLoading && !query.isError && query.data === null,
+  };
+}
+
 export function useSendBatchGasp() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -52,6 +65,7 @@ export function useSendBatchGasp() {
       queryClient.setQueryData<Gasp[]>(queryKeys.gasps.sent, (old) =>
         [...newGasps, ...(old ?? [])],
       );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.gasps.latestMoment });
     },
   });
 }

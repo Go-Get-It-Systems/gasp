@@ -9,6 +9,10 @@ export const queryKeys = {
   gasps: {
     pending: ['gasps', 'pending'] as const,
     sent: ['gasps', 'sent'] as const,
+    latestMoment: ['gasps', 'latestMoment'] as const,
+  },
+  reactions: {
+    received: ['reactions', 'received'] as const,
   },
   friends: {
     all: ['friends'] as const,

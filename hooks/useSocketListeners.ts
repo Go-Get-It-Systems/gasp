@@ -4,6 +4,7 @@ import type { Conversation, Message } from '@/services/api/schemas/chat.schema';
 import { ApiReactionSchema, normalizeReaction, type Gasp } from '@/services/api/schemas/gasp.schema';
 import { validateResponse } from '@/services/api/schemas/common.schema';
 import { queryKeys } from '@/services/queryKeys';
+import { invalidateSocialPulseReactionCaches } from '@/services/socialPulseCache';
 import {
     getSocket,
     onChatConversationUpdated,
@@ -98,6 +99,7 @@ export function useSocketListeners() {
         };
 
         useGaspStore.getState().addReaction(normalizedReaction);
+        void invalidateSocialPulseReactionCaches(queryClient);
         useNotificationStore.getState().enqueueToast({
           id: normalizedReaction.id,
           kind: 'gasp.reaction_received',
