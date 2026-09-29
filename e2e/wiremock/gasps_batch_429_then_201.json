@@ -1,0 +1,36 @@
+[
+  {
+    "_comment": "Stub 1 — first call to POST /gasps/batch returns 429 (rate limit).",
+    "scenarioName": "gasps-batch-rate-limit",
+    "requiredScenarioState": "Started",
+    "newScenarioState": "RetryAllowed",
+    "request": {
+      "method": "POST",
+      "url": "/gasps/batch"
+    },
+    "response": {
+      "status": 429,
+      "headers": {
+        "Content-Type": "application/json",
+        "Retry-After": "5"
+      },
+      "body": "{\"message\": \"Too many requests. Please wait before sending again.\"}"
+    }
+  },
+  {
+    "_comment": "Stub 2 — second call to POST /gasps/batch returns 201 (success).",
+    "scenarioName": "gasps-batch-rate-limit",
+    "requiredScenarioState": "RetryAllowed",
+    "request": {
+      "method": "POST",
+      "url": "/gasps/batch"
+    },
+    "response": {
+      "status": 201,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"gasps\": [{\"id\": \"test-gasp-id\", \"status\": \"pending\"}]}"
+    }
+  }
+]

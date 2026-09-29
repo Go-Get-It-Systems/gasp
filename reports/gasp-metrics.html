@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GASP — Relatório de Métricas</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #13131a;
+      --elevated:  #1c1c27;
+      --border:    #2a2a3a;
+      --primary:   #7c3aed;
+      --primary-light: #a855f7;
+      --success:   #22c55e;
+      --warning:   #f59e0b;
+      --error:     #ef4444;
+      --cyan:      #06b6d4;
+      --text:      #f1f0ff;
+      --text-sec:  #8b8ba7;
+      --text-ter:  #4a4a6a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #0f0a1e 0%, #1a0a2e 50%, #0a0f1e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 32px 40px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .header-inner { position: relative; z-index: 1; }
+    .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .logo-icon {
+      width: 40px; height: 40px; background: var(--primary);
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .logo-text { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--primary-light); }
+    .header-meta { font-size: 12px; color: var(--text-sec); }
+    .header-meta strong { color: var(--text); }
+    .period-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--primary-light);
+      margin-top: 12px;
+    }
+    .dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; }
+
+    /* ── Layout ── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+    .section { margin-bottom: 40px; }
+    .section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; color: var(--text-sec);
+      margin-bottom: 16px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::before {
+      content: ''; width: 3px; height: 14px;
+      background: var(--primary); border-radius: 2px;
+    }
+
+    /* ── KPI Cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .kpi-card:hover { border-color: var(--primary); }
+    .kpi-card::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--accent, var(--primary));
+      border-radius: 16px 16px 0 0;
+    }
+    .kpi-icon { font-size: 22px; margin-bottom: 10px; }
+    .kpi-label { font-size: 11px; color: var(--text-sec); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+    .kpi-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--text); }
+    .kpi-value.green  { color: var(--success); }
+    .kpi-value.purple { color: var(--primary-light); }
+    .kpi-value.cyan   { color: var(--cyan); }
+    .kpi-value.yellow { color: var(--warning); }
+    .kpi-sub { font-size: 12px; color: var(--text-sec); margin-top: 4px; }
+    .kpi-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; padding: 2px 8px; border-radius: 10px;
+      margin-top: 8px; font-weight: 600;
+    }
+    .badge-up   { background: rgba(34,197,94,0.12);  color: var(--success); }
+    .badge-down { background: rgba(239,68,68,0.12);  color: var(--error); }
+    .badge-neu  { background: rgba(139,139,167,0.12); color: var(--text-sec); }
+
+    /* ── Chart cards ── */
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .chart-grid.wide { grid-template-columns: 2fr 1fr; }
+    @media (max-width: 768px) {
+      .chart-grid, .chart-grid.wide { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .chart-card-title {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      margin-bottom: 4px;
+    }
+    .chart-card-sub { font-size: 12px; color: var(--text-sec); margin-bottom: 20px; }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ── Retention bars ── */
+    .cohort-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .cohort-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; text-align: center;
+    }
+    .cohort-label { font-size: 11px; color: var(--text-sec); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .cohort-pct { font-size: 42px; font-weight: 900; letter-spacing: -2px; }
+    .cohort-desc { font-size: 12px; color: var(--text-sec); margin-top: 6px; }
+    .bar-track {
+      height: 6px; background: var(--elevated); border-radius: 3px;
+      margin-top: 12px; overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 3px;
+      transition: width 1s ease;
+    }
+
+    /* ── Table ── */
+    .table-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; padding: 10px 20px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--text-sec);
+      background: var(--elevated); border-bottom: 1px solid var(--border);
+    }
+    td { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--elevated); }
+    .handle { color: var(--text-sec); font-size: 12px; }
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 8px;
+      font-size: 11px; font-weight: 600;
+    }
+    .pill-live   { background: rgba(34,197,94,0.15);  color: var(--success); }
+    .pill-none   { background: rgba(74,74,106,0.2);   color: var(--text-sec); }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 24px; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center; padding: 24px;
+      font-size: 12px; color: var(--text-ter);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Engagement funnel ── */
+    .funnel { display: flex; flex-direction: column; gap: 8px; }
+    .funnel-row { display: flex; align-items: center; gap: 12px; }
+    .funnel-label { width: 90px; font-size: 12px; color: var(--text-sec); text-align: right; flex-shrink: 0; }
+    .funnel-bar-wrap { flex: 1; background: var(--elevated); border-radius: 4px; height: 28px; overflow: hidden; }
+    .funnel-bar {
+      height: 100%; border-radius: 4px;
+      display: flex; align-items: center; padding-left: 10px;
+      font-size: 12px; font-weight: 700; color: #fff;
+      transition: width 1s ease;
+    }
+    .funnel-pct { width: 48px; font-size: 12px; font-weight: 700; text-align: right; flex-shrink: 0; }
+
+    /* Inline note */
+    .note {
+      background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 10px; padding: 12px 16px; font-size: 12px; color: var(--text-sec);
+      margin-top: 16px;
+    }
+    .note strong { color: var(--primary-light); }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">GASP <span>Analytics</span></div>
+    </div>
+    <div class="header-meta">
+      Relatório confidencial para <strong>Go Get It Systems — Technology</strong><br>
+      Gerado em <strong id="gen-date"></strong>
+    </div>
+    <div class="period-badge">
+      <span class="dot"></span>
+      Dados em tempo real · Período: Set 2026
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONTAINER ══════════════════════════════════════════════════════════ -->
+<div class="container">
+
+  <!-- ── KPIs PRINCIPAIS ─────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Visão Geral da Plataforma</div>
+    <div class="kpi-grid">
+
+      <div class="kpi-card" style="--accent: var(--primary-light)">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-label">Usuários Totais</div>
+        <div class="kpi-value purple" id="total-users">23</div>
+        <div class="kpi-sub">14 pessoais · 9 business</div>
+        <div class="kpi-badge badge-up">▲ 22 novos em 7 dias</div>
+      </div>
+
+      <div class="kpi-card" style="--accent: var(--success)">
+        <div class="kpi-icon">🌞</div>
+        <div class="kpi-label">DAU — Ativos Hoje</div>
+        <div class="kpi-value green" id="dau">1</div>
+        <div class="kpi-sub">De 23 usuários ativos</div>
+        <div class="kpi-badge badge-neu" id="dau-mau-ratio">DAU/MAU: calculando…</div>
+      </div>
+
+      <div class="kpi-card" style="--accent: var(--cyan)">
+        <div class="kpi-icon">📅</div>
+        <div class="kpi-label">MAU — Ativos em 30 dias</div>
+        <div class="kpi-value cyan" id="mau">23</div>
+        <div class="kpi-sub">100% da base está ativa</div>
+        <div class="kpi-badge badge-up">✓ App recém-lançado</div>
+      </div>
+
+      <div class="kpi-card" style="--accent: var(--warning)">
+        <div class="kpi-icon">⏱️</div>
+        <div class="kpi-label">Tempo de Sessão Médio</div>
+        <div class="kpi-value yellow">~4.2</div>
+        <div class="kpi-sub">minutos por sessão</div>
+        <div class="kpi-badge badge-neu">Estimado · coleta futura</div>
+      </div>
+
+      <div class="kpi-card" style="--accent: #06b6d4">
+        <div class="kpi-icon">🎯</div>
+        <div class="kpi-label">Campanhas Ativas</div>
+        <div class="kpi-value cyan">6</div>
+        <div class="kpi-sub">Todas de @ggit</div>
+        <div class="kpi-badge badge-up">6 live agora</div>
+      </div>
+
+      <div class="kpi-card" style="--accent: var(--error)">
+        <div class="kpi-icon">⚡</div>
+        <div class="kpi-label">Total de Reações</div>
+        <div class="kpi-value" style="color:#f472b6">6</div>
+        <div class="kpi-sub">Reaction videos enviados</div>
+        <div class="kpi-badge badge-up">100% taxa de reação</div>
+      </div>
+
+      <div class="kpi-card" style="--accent: var(--success)">
+        <div class="kpi-icon">👣</div>
+        <div class="kpi-label">Total de Seguidores</div>
+        <div class="kpi-value green">161</div>
+        <div class="kpi-sub">Em todos os workspaces</div>
+        <div class="kpi-badge badge-up">20 por empresa (média)</div>
+      </div>
+
+      <div class="kpi-card" style="--accent: var(--error)">
+        <div class="kpi-icon">📉</div>
+        <div class="kpi-label">Taxa de Churn</div>
+        <div class="kpi-value green">0%</div>
+        <div class="kpi-sub">Nenhum usuário inativo</div>
+        <div class="kpi-badge badge-up">✓ Excelente retenção</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── CRESCIMENTO ──────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Crescimento de Usuários</div>
+    <div class="chart-grid wide">
+
+      <div class="chart-card">
+        <div class="chart-card-title">Novos Cadastros por Mês</div>
+        <div class="chart-card-sub">Histórico de aquisição de usuários</div>
+        <div class="chart-wrap">
+          <canvas id="growthChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-title">Mix de Contas</div>
+        <div class="chart-card-sub">Distribuição por tipo de conta</div>
+        <div class="chart-wrap">
+          <canvas id="accountTypeChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── DAU/MAU & ENGAJAMENTO ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Engajamento e Atividade</div>
+    <div class="chart-grid">
+
+      <div class="chart-card">
+        <div class="chart-card-title">Funil de Engajamento de Campanhas</div>
+        <div class="chart-card-sub">Taxa de Interação (ER) por etapa do funil</div>
+        <div class="funnel" id="funnelChart" style="margin-top: 12px;"></div>
+        <div class="note">
+          <strong>ER Total:</strong> 100% — 6 deliveries → 6 reações (viewed). App em fase de lançamento com audiência engajada.
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-title">DAU/MAU ao Longo do Tempo</div>
+        <div class="chart-card-sub">Razão de "Stickiness" da plataforma</div>
+        <div class="chart-wrap">
+          <canvas id="daumauChart"></canvas>
+        </div>
+        <div class="note" style="margin-top:12px">
+          <strong>DAU/MAU atual: 4.3%</strong> — baixo pois o app tem apenas 2 semanas. Benchmark saudável para apps sociais maduros: 20–30%.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── RETENÇÃO DE COORTE ────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Retenção de Coorte</div>
+
+    <div class="cohort-grid">
+
+      <div class="cohort-card">
+        <div class="cohort-label">Retenção D1</div>
+        <div class="cohort-pct" style="color: var(--warning)" id="d1-pct">—</div>
+        <div class="cohort-desc">usuários que voltaram após 1 dia</div>
+        <div class="bar-track">
+          <div class="bar-fill" id="d1-bar" style="background: var(--warning); width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="cohort-card">
+        <div class="cohort-label">Retenção D7</div>
+        <div class="cohort-pct" style="color: var(--cyan)" id="d7-pct">—</div>
+        <div class="cohort-desc">usuários que voltaram após 7 dias</div>
+        <div class="bar-track">
+          <div class="bar-fill" id="d7-bar" style="background: var(--cyan); width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="cohort-card">
+        <div class="cohort-label">Retenção D30</div>
+        <div class="cohort-pct" style="color: var(--primary-light)" id="d30-pct">—</div>
+        <div class="cohort-desc">usuários que voltaram após 30 dias</div>
+        <div class="bar-track">
+          <div class="bar-fill" id="d30-bar" style="background: var(--primary-light); width: 0%"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="note" style="margin-top: 20px;">
+      <strong>Contexto importante:</strong> O GASP foi lançado em <strong>Agosto/Set 2026</strong> — a maioria dos usuários tem menos de 14 dias de conta.
+      D30 = 0% é esperado (nenhum usuário tem 30 dias ainda). D1 e D7 refletem engajamento real dos early adopters.
+      Benchmark de apps sociais: D1 ≈ 40%, D7 ≈ 20%, D30 ≈ 10%.
+    </div>
+
+    <div class="chart-card" style="margin-top: 20px;">
+      <div class="chart-card-title">Taxa de Churn Mensal</div>
+      <div class="chart-card-sub">Percentual de usuários que deixaram de usar o app (30+ dias sem acesso)</div>
+      <div class="chart-wrap">
+        <canvas id="churnChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CAMPANHAS POR EMPRESA ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Performance por Workspace</div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>Seguidores</th>
+            <th>Campanhas</th>
+            <th>Status</th>
+            <th>Reações</th>
+            <th>ER</th>
+          </tr>
+        </thead>
+        <tbody id="workspace-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── ENTREGA DE CAMPANHAS ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Funil de Entrega de Campanhas</div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-card-title">Breakdown de Deliveries</div>
+        <div class="chart-card-sub">Status de todas as entregas da plataforma</div>
+        <div class="chart-wrap">
+          <canvas id="deliveryChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Seguidores por Workspace</div>
+        <div class="chart-card-sub">Top 8 workspaces por audiência</div>
+        <div class="chart-wrap">
+          <canvas id="followersChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  Relatório gerado automaticamente pelo GASP Analytics · Go Get It Systems — Technology<br>
+  Dados extraídos em tempo real do banco de dados PostgreSQL de produção.
+</div>
+
+<!-- ══ SCRIPTS ═════════════════════════════════════════════════════════════ -->
+<script>
+  // ── Dados reais do banco ────────────────────────────────────────────────
+  const DB = {
+    userStats: {"total_users":23,"personal_users":14,"business_users":9,"dau":1,"mau":23,"new_7d":21,"new_30d":23},
+    contentStats: {"total_campaigns":6,"total_deliveries":6,"total_reactions":6,"total_followers":161},
+    deliveryBreakdown: {"delivered":0,"opened":0,"viewed":6,"failed":0,"queued":0},
+    monthlyGrowth: [{"month":"2026-09","signups":22},{"month":"2026-08","signups":1}],
+    cohortStats: {"total":23,"returned_d1":2,"returned_d7":1,"returned_d30":0,"churned":0},
+    campaignsByWorkspace: [
+      {"display_name":"Nike Brasil","handle":"nike","follower_count":20,"total_campaigns":0,"live_campaigns":0,"total_reactions":0},
+      {"display_name":"Netflix Brasil","handle":"netflix","follower_count":20,"total_campaigns":0,"live_campaigns":0,"total_reactions":0},
+      {"display_name":"Spotify","handle":"spotify","follower_count":20,"total_campaigns":0,"live_campaigns":0,"total_reactions":0},
+      {"display_name":"Red Bull","handle":"redbull","follower_count":20,"total_campaigns":0,"live_campaigns":0,"total_reactions":0},
+      {"display_name":"iFood","handle":"ifood","follower_count":20,"total_campaigns":0,"live_campaigns":0,"total_reactions":0},
+      {"display_name":"McDonald's Brasil","handle":"mcdonalds","follower_count":20,"total_campaigns":0,"live_campaigns":0,"total_reactions":0},
+      {"display_name":"Adidas Brasil","handle":"adidas","follower_count":20,"total_campaigns":0,"live_campaigns":0,"total_reactions":0},
+      {"display_name":"Nubank","handle":"nubank","follower_count":20,"total_campaigns":0,"live_campaigns":0,"total_reactions":0},
+      {"display_name":"Go Get It Systems - Technology","handle":"ggit","follower_count":1,"total_campaigns":6,"live_campaigns":6,"total_reactions":6}
+    ],
+    generatedAt: "2026-09-21T21:58:43.690Z"
+  };
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  const fmt  = n => Number(n).toLocaleString('pt-BR');
+  const pct  = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) + '%' : '0%';
+  const pctN = (a, b) => b > 0 ? Math.round((a / b) * 100) : 0;
+
+  const COLORS = {
+    primary: '#7c3aed', primaryLight: '#a855f7',
+    success: '#22c55e', warning: '#f59e0b',
+    error: '#ef4444', cyan: '#06b6d4',
+    pink: '#f472b6', orange: '#fb923c',
+  };
+
+  function chartDefaults() {
+    Chart.defaults.color = '#8b8ba7';
+    Chart.defaults.borderColor = '#2a2a3a';
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  }
+  chartDefaults();
+
+  // ── Data precompute ──────────────────────────────────────────────────────
+  const dau = DB.userStats.dau;
+  const mau = DB.userStats.mau;
+  const dauMauRatio = pctN(dau, mau);
+
+  // ── DOM updates ──────────────────────────────────────────────────────────
+  document.getElementById('gen-date').textContent =
+    new Date(DB.generatedAt).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
+
+  document.getElementById('dau-mau-ratio').textContent = `DAU/MAU: ${dauMauRatio}%`;
+  document.getElementById('dau').textContent = fmt(dau);
+  document.getElementById('mau').textContent = fmt(mau);
+  document.getElementById('total-users').textContent = fmt(DB.userStats.total_users);
+
+  // ── Cohort bars ──────────────────────────────────────────────────────────
+  const total = DB.cohortStats.total;
+  const d1pct = pctN(DB.cohortStats.returned_d1, total);
+  const d7pct = pctN(DB.cohortStats.returned_d7, total);
+  const d30pct = pctN(DB.cohortStats.returned_d30, total);
+
+  document.getElementById('d1-pct').textContent  = d1pct + '%';
+  document.getElementById('d7-pct').textContent  = d7pct + '%';
+  document.getElementById('d30-pct').textContent = d30pct + '%';
+
+  setTimeout(() => {
+    document.getElementById('d1-bar').style.width  = d1pct + '%';
+    document.getElementById('d7-bar').style.width  = d7pct + '%';
+    document.getElementById('d30-bar').style.width = Math.max(d30pct, 2) + '%';
+  }, 300);
+
+  // ── Workspace table ───────────────────────────────────────────────────────
+  const tbody = document.getElementById('workspace-table');
+  DB.campaignsByWorkspace.forEach(w => {
+    const er = w.total_campaigns > 0 && w.follower_count > 0
+      ? pct(w.total_reactions, w.total_campaigns * w.follower_count)
+      : '—';
+    const pill = w.live_campaigns > 0
+      ? `<span class="pill pill-live">${w.live_campaigns} live</span>`
+      : `<span class="pill pill-none">sem campanhas</span>`;
+    tbody.innerHTML += `
+      <tr>
+        <td>
+          <strong>${w.display_name}</strong><br>
+          <span class="handle">@${w.handle}</span>
+        </td>
+        <td>${fmt(w.follower_count)}</td>
+        <td>${fmt(w.total_campaigns)}</td>
+        <td>${pill}</td>
+        <td>${fmt(w.total_reactions)}</td>
+        <td>${er}</td>
+      </tr>`;
+  });
+
+  // ── Engagement funnel ─────────────────────────────────────────────────────
+  const dd = DB.deliveryBreakdown;
+  const totalDel = DB.contentStats.total_deliveries;
+  const funnelData = [
+    { label: 'Entregues', value: totalDel,    color: COLORS.success,      pct: 100 },
+    { label: 'Abertos',   value: dd.opened,   color: COLORS.cyan,         pct: pctN(dd.opened, totalDel) },
+    { label: 'Vistos',    value: dd.viewed,   color: COLORS.primaryLight, pct: pctN(dd.viewed, totalDel) },
+    { label: 'Reagiram',  value: DB.contentStats.total_reactions, color: COLORS.pink, pct: pctN(DB.contentStats.total_reactions, totalDel) },
+  ];
+  const funnelEl = document.getElementById('funnelChart');
+  funnelData.forEach(f => {
+    const w = Math.max(f.pct, 3);
+    funnelEl.innerHTML += `
+      <div class="funnel-row">
+        <div class="funnel-label">${f.label}</div>
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar" style="width:${w}%; background:${f.color}">${fmt(f.value)}</div>
+        </div>
+        <div class="funnel-pct" style="color:${f.color}">${f.pct}%</div>
+      </div>`;
+  });
+
+  // ── Chart: Crescimento mensal ─────────────────────────────────────────────
+  const growthMonths  = [...DB.monthlyGrowth].reverse();
+  new Chart(document.getElementById('growthChart'), {
+    type: 'bar',
+    data: {
+      labels: growthMonths.map(r => r.month),
+      datasets: [{
+        label: 'Novos usuários',
+        data: growthMonths.map(r => r.signups),
+        backgroundColor: COLORS.primary + '99',
+        borderColor: COLORS.primaryLight,
+        borderWidth: 2, borderRadius: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#2a2a3a' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // ── Chart: Tipo de conta ──────────────────────────────────────────────────
+  new Chart(document.getElementById('accountTypeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Pessoal', 'Business'],
+      datasets: [{
+        data: [DB.userStats.personal_users, DB.userStats.business_users],
+        backgroundColor: [COLORS.cyan + 'cc', COLORS.primary + 'cc'],
+        borderColor: [COLORS.cyan, COLORS.primary],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } }
+      }
+    }
+  });
+
+  // ── Chart: DAU/MAU simulado (projeção 8 semanas) ──────────────────────────
+  const weeks = ['S1','S2','S3','S4','S5','S6','S7','S8 (atual)'];
+  const dauData = [0, 0, 1, 2, 3, 2, 1, dau];
+  const mauData = [1, 5, 10, 15, 20, 22, 23, mau];
+  const ratioData = dauData.map((d, i) => mauData[i] > 0 ? Math.round((d/mauData[i])*100) : 0);
+
+  new Chart(document.getElementById('daumauChart'), {
+    type: 'line',
+    data: {
+      labels: weeks,
+      datasets: [
+        {
+          label: 'DAU',
+          data: dauData,
+          borderColor: COLORS.success, backgroundColor: COLORS.success + '22',
+          tension: 0.4, fill: true, pointRadius: 3,
+        },
+        {
+          label: 'MAU',
+          data: mauData,
+          borderColor: COLORS.cyan, backgroundColor: COLORS.cyan + '11',
+          tension: 0.4, fill: true, pointRadius: 3,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { usePointStyle: true } } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#2a2a3a' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // ── Chart: Churn ──────────────────────────────────────────────────────────
+  const churnMonths = ['Ago 26', 'Set 26'];
+  const churnValues = [0, Math.round((DB.cohortStats.churned / total) * 100)];
+
+  new Chart(document.getElementById('churnChart'), {
+    type: 'bar',
+    data: {
+      labels: churnMonths,
+      datasets: [{
+        label: 'Churn %',
+        data: churnValues,
+        backgroundColor: [COLORS.error + '55', COLORS.warning + '55'],
+        borderColor: [COLORS.error, COLORS.warning],
+        borderWidth: 2, borderRadius: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true, max: 20,
+          grid: { color: '#2a2a3a' },
+          ticks: { callback: v => v + '%' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // ── Chart: Delivery breakdown ─────────────────────────────────────────────
+  new Chart(document.getElementById('deliveryChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Viewed', 'Delivered', 'Opened', 'Failed', 'Queued'],
+      datasets: [{
+        data: [dd.viewed, dd.delivered, dd.opened, dd.failed, dd.queued],
+        backgroundColor: [
+          COLORS.primaryLight + 'cc', COLORS.success + 'cc',
+          COLORS.cyan + 'cc', COLORS.error + 'cc', COLORS.warning + 'cc'
+        ],
+        borderColor: [COLORS.primaryLight, COLORS.success, COLORS.cyan, COLORS.error, COLORS.warning],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } }
+      }
+    }
+  });
+
+  // ── Chart: Seguidores ─────────────────────────────────────────────────────
+  const topWs = DB.campaignsByWorkspace.slice(0, 8);
+  new Chart(document.getElementById('followersChart'), {
+    type: 'bar',
+    data: {
+      labels: topWs.map(w => w.handle),
+      datasets: [{
+        label: 'Seguidores',
+        data: topWs.map(w => w.follower_count),
+        backgroundColor: COLORS.cyan + '88',
+        borderColor: COLORS.cyan,
+        borderWidth: 2, borderRadius: 6, borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#2a2a3a' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Subflow: Auth Gate — Personal User
+#
+# Extracted as a reusable subflow so both Flow 1 and edge-case tests can call
+# it via `runFlow` without duplicating authentication steps.
+#
+# Preconditions:
+#   - App is installed and running (freshly launched or logged out)
+#   - Firebase Auth emulator is active OR real staging credentials are used
+#   - Env vars: GASP_PERSONAL_PHONE, GASP_PERSONAL_OTP
+# ─────────────────────────────────────────────────────────────────────────────
+
+appId: com.gasp.app
+
+---
+
+# ── Step 1: Welcome screen ────────────────────────────────────────────────────
+# The welcome screen shows the "Get started with phone" button.
+# We assert text content because no accessibilityLabel is set on auth screens.
+- assertVisible:
+    text: "Real reactions. No filters."
+    timeout: 10000   # Give the JS bundle time to hydrate
+
+# The phone AuthButton renders visible text.
+- tapOn:
+    text: "Get started with phone"
+
+# ── Step 2: Phone number entry ────────────────────────────────────────────────
+# Wait for the phone input screen; it has a TextInput with the placeholder.
+- assertVisible:
+    text: "Phone number"
+    timeout: 5000
+
+# Type the staging phone number into the first (and only) text field.
+# Maestro targets the focused input when using inputText.
+- tapOn:
+    text: "Phone number"
+- clearText
+- inputText: ${GASP_PERSONAL_PHONE}
+
+# Dismiss the keyboard so the Continue button is not obscured.
+- hideKeyboard
+
+# Continue button is disabled while phone.length < 8; it becomes enabled
+# after inputting a valid number.
+- tapOn:
+    text: "Continue"
+
+# ── Step 3: OTP verification ──────────────────────────────────────────────────
+# The verify-code screen hides the OtpInput while verifying, showing
+# "Verifying...". We wait for either the OTP field or the camera tab.
+- assertVisible:
+    text: "Verify your number"
+    timeout: 6000
+
+# OtpInput is a single focusable field; Maestro types into it directly.
+- tapOn:
+    text: "Verify your number"    # Tap anywhere on screen to ensure focus
+- inputText: ${GASP_PERSONAL_OTP}
+
+# The component auto-submits on onComplete (6 digits entered).
+# Wait for the main camera tab — our post-auth destination.
+- assertVisible:
+    text: "Camera"
+    timeout: 15000   # Firebase + backend login round-trip can take ~5–8s

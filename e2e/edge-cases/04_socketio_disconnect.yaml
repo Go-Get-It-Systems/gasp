@@ -1,0 +1,175 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Edge Case 2 — Socket.IO Disconnect: Empty Friends List in send-gasp
+#
+# Validates the resilience of the send-gasp flow when the Socket.IO connection
+# drops BEFORE the user opens the send-gasp modal, leaving inboxStore.friends
+# empty (or stale). Tests that:
+#   1. The send-gasp modal opens without crashing when friends=[]
+#   2. The friends list is empty (no friend rows rendered)
+#   3. The send button is NOT present (no selection possible)
+#   4. When the connection is restored, the inbox repopulates via Socket.IO
+#      reconnect → setBulkOnlineStatus → setFriends, and friend rows appear
+#
+# Also validates the appStore.isOnline state — if the app has an offline banner
+# it should appear when disconnected and disappear on reconnect.
+#
+# Network simulation approach (Android Emulator):
+#   - Use ADB to block only the backend WebSocket port (3000), leaving Firebase
+#     reachable so camera still works.
+#   - Command: adb shell iptables -A OUTPUT -p tcp --dport 3000 -j REJECT
+#   - Restore: adb shell iptables -D OUTPUT -p tcp --dport 3000 -j REJECT
+#
+# This is more precise than full airplane mode: it disconnects Socket.IO
+# specifically while keeping the app otherwise functional.
+#
+# Preconditions:
+#   - Personal user is authenticated with at least 1 friend in the DB
+#   - The staging backend WebSocket is running on port 3000
+# ─────────────────────────────────────────────────────────────────────────────
+
+appId: com.gasp.app
+
+---
+
+# ── Setup: authenticate as personal user ──────────────────────────────────────
+- runFlow: ../flows/00_auth_personal.yaml
+
+# Verify the inbox is populated before we cut the connection.
+# Navigate to the Gasps/Inbox tab to trigger inboxStore population.
+- tapOn:
+    text: "Gasps"
+
+- assertVisible:
+    text: "Gasps"
+    timeout: 5000
+
+# At least one friend must be present in the inbox list.
+- assertVisible:
+    text: ${GASP_FRIEND_NAME}
+    timeout: 8000
+
+# ── Block backend port 3000 to simulate Socket.IO disconnect ─────────────────
+- runScript:
+    file: ../scripts/block_ws_port.js   # iptables -A OUTPUT -p tcp --dport 3000 -j REJECT
+
+# Give Socket.IO time to detect the disconnection and emit 'disconnect'.
+# The default Socket.IO reconnection timeout is ~5s.
+- wait:
+    ms: 6000
+
+# ── Navigate to Camera tab ────────────────────────────────────────────────────
+- tapOn:
+    text: "Camera"
+
+- assertVisible:
+    text: "Camera"
+    timeout: 5000
+
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Take a photo to open send-gasp modal.
+- tapOn:
+    point: "50%,85%"
+
+- assertVisible:
+    text: "Processing"
+    timeout: 6000
+
+- assertNotVisible:
+    text: "Processing"
+    timeout: 10000
+
+# ── Verify send-gasp modal opens but friends list is EMPTY ───────────────────
+- assertVisible:
+    text: "Send to"
+    timeout: 8000
+
+# With inboxStore.friends=[], filteredFriends=[] and the FlatList renders
+# nothing. The friend's name should NOT be visible.
+- assertNotVisible:
+    text: ${GASP_FRIEND_NAME}
+    timeout: 3000
+
+# The send button requires selectedIds.size > 0 — with no friends to select,
+# it must not be present.
+- assertNotVisible:
+    text: "Send to 1 friend"
+    timeout: 2000
+
+# The "Select all" button is still rendered but tapping it selects zero friends.
+- assertVisible:
+    text: "Select all"
+
+- tapOn:
+    text: "Select all"
+
+# Even after "Select all", the send button should not appear.
+- assertNotVisible:
+    text: "Send to"    # The button "Send to N friend(s)" — not the header
+    timeout: 2000
+
+# ── Close the modal and restore connection ────────────────────────────────────
+# Close using the X button in the header (accessibilityLabel not set,
+# but it is the only Pressable near the top-left of the modal).
+- tapOn:
+    point: "8%,6%"    # Top-left close icon position in send-gasp header
+
+# Back on Camera tab.
+- assertVisible:
+    text: "Camera"
+    timeout: 5000
+
+# Restore the backend connection.
+- runScript:
+    file: ../scripts/unblock_ws_port.js   # iptables -D OUTPUT -p tcp --dport 3000 -j REJECT
+
+# Wait for Socket.IO to reconnect and re-sync inboxStore.
+# Socket.IO has exponential backoff; allow up to 15s for reconnect + sync.
+- wait:
+    ms: 8000
+
+# ── Verify friends repopulate after reconnect ─────────────────────────────────
+# Navigate to the inbox/Gasps tab to trigger the Socket.IO 'online_users' event
+# which fires setBulkOnlineStatus and re-renders the friend list.
+- tapOn:
+    text: "Gasps"
+
+- assertVisible:
+    text: ${GASP_FRIEND_NAME}
+    timeout: 15000   # Full Socket.IO reconnect + server sync
+
+# ── Retry: open send-gasp from Camera tab — friends should be back ────────────
+- tapOn:
+    text: "Camera"
+
+- waitForAnimationToEnd:
+    timeout: 3000
+
+- tapOn:
+    point: "50%,85%"
+
+- assertVisible:
+    text: "Processing"
+    timeout: 6000
+
+- assertNotVisible:
+    text: "Processing"
+    timeout: 10000
+
+- assertVisible:
+    text: "Send to"
+    timeout: 8000
+
+# Friends list is repopulated — the friend should now appear.
+- assertVisible:
+    text: ${GASP_FRIEND_NAME}
+    timeout: 8000
+
+# Close the modal — test complete.
+- tapOn:
+    point: "8%,6%"
+
+- assertVisible:
+    text: "Camera"
+    timeout: 5000

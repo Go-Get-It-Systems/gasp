@@ -1,0 +1,15 @@
+rules:
+  - capability: shell
+    match: ["git *", "npm *", "npx *"]
+    effect: allow
+
+  - capability: fs_write
+    match: ["src/**", "tests/**"]
+    effect: allow
+
+  - capability: fs_read
+    effect: allow
+
+  - capability: mcp
+    match: ["my-server/*"]
+    effect: allow

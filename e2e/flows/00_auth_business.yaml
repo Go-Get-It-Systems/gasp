@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Subflow: Auth Gate — Business User
+#
+# Identical structure to 00_auth_personal but uses GASP_BUSINESS_* credentials.
+# After login the app lands on the Camera tab; the business user navigates to
+# Studio in the main flow that imports this subflow.
+#
+# Preconditions:
+#   - accountType='business' is set in the database for GASP_BUSINESS_PHONE
+#   - Env vars: GASP_BUSINESS_PHONE, GASP_BUSINESS_OTP
+# ─────────────────────────────────────────────────────────────────────────────
+
+appId: com.gasp.app
+
+---
+
+# ── Step 1: Welcome screen ────────────────────────────────────────────────────
+- assertVisible:
+    text: "Real reactions. No filters."
+    timeout: 10000
+
+- tapOn:
+    text: "Get started with phone"
+
+# ── Step 2: Phone number entry ────────────────────────────────────────────────
+- assertVisible:
+    text: "Phone number"
+    timeout: 5000
+
+- tapOn:
+    text: "Phone number"
+- clearText
+- inputText: ${GASP_BUSINESS_PHONE}
+- hideKeyboard
+- tapOn:
+    text: "Continue"
+
+# ── Step 3: OTP verification ──────────────────────────────────────────────────
+- assertVisible:
+    text: "Verify your number"
+    timeout: 6000
+
+- tapOn:
+    text: "Verify your number"
+- inputText: ${GASP_BUSINESS_OTP}
+
+# Business users land on Camera tab too; Studio is the 4th tab (index 3).
+- assertVisible:
+    text: "Camera"
+    timeout: 15000

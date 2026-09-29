@@ -1,0 +1,218 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Flow 1: Personal User — Camera Capture + Send Gasp
+#
+# Gherkin coverage:
+#   Scenario: Auth Gate — login with phone and OTP
+#   Scenario: Tirar foto e navegar para o modal de envio
+#   Scenario: Selecionar amigo e enviar gasp
+#   Scenario: Ativar replay antes de enviar
+#   Scenario: Buscar amigo pelo nome
+#   Scenario: Selecionar todos os amigos
+#
+# Preconditions:
+#   - Device/emulator has camera hardware (or camera simulator mock enabled)
+#   - Personal user (GASP_PERSONAL_PHONE) has at least 1 friend in inboxStore
+#   - Backend staging is running and accessible at EXPO_PUBLIC_API_URL
+#
+# Selectors used:
+#   - Text content for screens without accessibilityLabel (auth, camera tab bar)
+#   - accessibilityLabel for tappable elements that have them
+#   - accessibilityRole="switch" + label for Replayable toggle
+# ─────────────────────────────────────────────────────────────────────────────
+
+appId: com.gasp.app
+
+---
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 1 — Auth Gate (reuses subflow)
+# ════════════════════════════════════════════════════════════════════════════
+
+- runFlow: 00_auth_personal.yaml
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 2 — Camera tab: verify we're on the right screen
+# ════════════════════════════════════════════════════════════════════════════
+
+# The Camera tab is the default post-auth destination.
+# camera.tsx shows a full-screen camera view with the tab bar beneath.
+# The CustomTabBar renders text labels — "Camera" confirms we are here.
+- assertVisible:
+    text: "Camera"
+    timeout: 5000
+
+# Wait for the camera to initialize. camera.tsx shows a processing overlay
+# ("Processing..." with ActivityIndicator) while the camera warms up.
+# We wait for it to disappear before taking a photo.
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# Guard: if the camera permission banner is visible, the test cannot proceed.
+# In CI, permissions should be granted at device setup time via ADB/simctl:
+#   Android: adb shell pm grant com.gasp.app android.permission.CAMERA
+#   iOS:     xcrun simctl privacy booted grant camera com.gasp.app
+- assertNotVisible:
+    text: "Camera Access"
+    timeout: 2000
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 3 — Capture a photo
+# ════════════════════════════════════════════════════════════════════════════
+
+# The shutter button in camera.tsx is a circular Pressable at the bottom
+# center of the screen. It has accessibilityRole="button" but no
+# accessibilityLabel set. We use a coordinate-relative tap as fallback.
+#
+# Strategy: try the text/label selector first; fall back to a relative point
+# at 50% width, 85% height (bottom center where shutter lives).
+#
+# Note: The shutter button in camera.tsx does NOT have a label yet —
+# this is a gap identified during test authoring. Adding testID="camera-shutter"
+# to camera.tsx is recommended (see README section "Recommended Code Changes").
+- tapOn:
+    point: "50%,85%"     # Bottom-center shutter position
+
+# camera.tsx shows a processing overlay after capture before navigating.
+# Wait for the "Processing..." text to appear and then disappear.
+- assertVisible:
+    text: "Processing"
+    timeout: 6000
+- assertNotVisible:
+    text: "Processing"
+    timeout: 10000
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 4 — send-gasp modal: header and initial state
+# ════════════════════════════════════════════════════════════════════════════
+
+# After processing, camera.tsx navigates to /(modals)/send-gasp.
+# The header title is the fixed text "Send to".
+- assertVisible:
+    text: "Send to"
+    timeout: 8000
+
+# Verify the Replayable toggle is present and starts in "Play once" mode.
+# accessibilityLabel is set on the Pressable wrapping the toggle.
+- assertVisible:
+    label: "Allow recipient to replay this gasp"
+
+# The toggle defaults to replayable=false, so "Play once" text is shown.
+- assertVisible:
+    text: "Play once"
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 5 — Friends list: search interaction
+# ════════════════════════════════════════════════════════════════════════════
+
+# Wait for the friends list to populate from inboxStore.
+# The friend's display name should be visible.
+- assertVisible:
+    text: ${GASP_FRIEND_NAME}
+    timeout: 6000
+
+# Test: search by username filters the list correctly.
+- tapOn:
+    text: "Search friends..."
+- inputText: ${GASP_FRIEND_USERNAME}
+
+# After typing, only the matching friend should remain visible.
+- assertVisible:
+    text: ${GASP_FRIEND_NAME}
+    timeout: 3000
+
+# Clear the search to restore the full list.
+- clearText
+- hideKeyboard
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 6 — Select all / Deselect all
+# ════════════════════════════════════════════════════════════════════════════
+
+# "Select all" is a Pressable with text "Select all" (when nothing selected).
+- tapOn:
+    text: "Select all"
+
+# After select-all, the button text changes to "Deselect all".
+- assertVisible:
+    text: "Deselect all"
+    timeout: 2000
+
+# The send button should now read "Send to N friend(s)".
+# We assert it contains "Send to" and "friend" (count-agnostic).
+- assertVisible:
+    text: "Send to"
+
+# Deselect all to return to a clean state for the next assertion.
+- tapOn:
+    text: "Deselect all"
+
+- assertNotVisible:
+    text: "Deselect all"
+    timeout: 2000
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 7 — Activate Replayable toggle
+# ════════════════════════════════════════════════════════════════════════════
+
+# Tap the replayable toggle — accessibilityRole="switch".
+# Maestro resolves by accessibilityLabel on the Pressable.
+- tapOn:
+    label: "Allow recipient to replay this gasp"
+
+# After tap, replayable=true — the UI shows "Replayable" text.
+- assertVisible:
+    text: "Replayable"
+    timeout: 2000
+
+# The subtitle changes to "Recipient can replay until it expires".
+- assertVisible:
+    text: "Recipient can replay until it expires"
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 8 — Select one friend and send the gasp
+# ════════════════════════════════════════════════════════════════════════════
+
+# Tap the specific friend row to select them.
+# The row renders the friend's display name as a Text element.
+- tapOn:
+    text: ${GASP_FRIEND_NAME}
+
+# Selection checkbox becomes filled; the send button appears.
+- assertVisible:
+    text: "Send to 1 friend"
+    timeout: 2000
+
+# Send the gasp. This triggers:
+#   1. compressImage / compressVideo
+#   2. uploadWithRetry → Firebase Storage (progress updates 0→100%)
+#   3. POST /gasps/batch
+- tapOn:
+    text: "Send to 1 friend"
+
+# ── Upload in progress ────────────────────────────────────────────────────────
+# The send button is replaced by ActivityIndicator + "Uploading..." / "Compressing..."
+# and a progress bar. We assert at least one of these upload states appears.
+- assertVisible:
+    text: "Uploading"
+    timeout: 12000
+
+# ── Upload complete — modal closes ────────────────────────────────────────────
+# On success, router.back() is called from submitMetadata, closing the modal
+# and returning to the camera tab. We assert the Camera tab text returns.
+- assertVisible:
+    text: "Camera"
+    timeout: 30000   # Upload to Firebase Storage can take 10–20s on slow CI
+
+# ════════════════════════════════════════════════════════════════════════════
+# SECTION 9 — Post-send: confirm no error state is showing
+# ════════════════════════════════════════════════════════════════════════════
+
+# Verify no error modal (any error kind) leaked through.
+# Error modals use accessibilityViewIsModal=true and contain specific text.
+- assertNotVisible:
+    text: "Try again"
+    timeout: 1000
+
+- assertNotVisible:
+    text: "Network error"
+    timeout: 1000

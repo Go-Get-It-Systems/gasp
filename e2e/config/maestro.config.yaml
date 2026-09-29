@@ -1,0 +1,16 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Maestro Global Configuration — GASP App
+# Docs: https://maestro.mobile.dev/reference/configuration
+# ─────────────────────────────────────────────────────────────────────────────
+
+# App bundle ID — must match app.json / android/app/build.gradle
+appId: com.gasp.app           # Android package name
+# iOS: com.gasp.app           # Uncomment and set correct Bundle ID for iOS
+
+# Default timeout for waitFor* commands (ms). Increased because Firebase Auth
+# + uploadWithRetry can be slow on CI devices.
+onlyVisibleIfNeeded: false
+
+# Environment variables are loaded from e2e/config/.env.test at runtime via:
+#   maestro test --env GASP_PERSONAL_PHONE=... flows/
+# Or set them in your CI secrets and pass with --env flags.

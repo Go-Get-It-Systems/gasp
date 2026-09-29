@@ -1,0 +1,183 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Edge Case 1 — Upload Failure + Retry via uploadWithRetry
+#
+# Validates the full error-recovery path in send-gasp.tsx when Firebase Storage
+# upload fails mid-flight, and confirms that:
+#   1. The correct error modal (kind='network' or kind='upload') appears
+#   2. The "Try again" button is present and tappable
+#   3. On retry, the already-uploaded media URL is reused from uploadedMediaRef
+#      (no second compress+upload cycle — progress jumps straight to sending)
+#   4. On successful retry the modal closes and Camera tab is visible
+#
+# Also covers the "pin limit" guard (max 6 featured reactions) as a bonus
+# assertion at the end, since it requires no network manipulation.
+#
+# Network failure simulation approach:
+#   Option A (recommended for Android Emulator):
+#     adb shell settings put global airplane_mode_on 1
+#     adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true
+#   Option B (iOS Simulator):
+#     No native airplane-mode API; use mitmproxy to return 503 for Firebase URLs.
+#   Option C (staging backend mock):
+#     Configure WireMock to respond with connection reset on first call to
+#     firebasestorage.googleapis.com, then normal response on second call.
+#
+# The test uses Maestro's `evalScript` + `runScript` for ADB-based network
+# manipulation on Android. iOS users should substitute with mitmproxy config.
+#
+# Preconditions:
+#   - Personal user is authenticated (pre-state: already logged in)
+#   - inboxStore has at least 1 friend
+#   - A photo was captured and the send-gasp modal is open
+#   - Android emulator with ADB access OR mitmproxy configured
+# ─────────────────────────────────────────────────────────────────────────────
+
+appId: com.gasp.app
+
+---
+
+# ── Setup: authenticate and navigate to the send-gasp modal ──────────────────
+- runFlow: ../flows/00_auth_personal.yaml
+
+# Take a photo to arrive at the send-gasp modal.
+- assertVisible:
+    text: "Camera"
+    timeout: 5000
+
+- waitForAnimationToEnd:
+    timeout: 3000
+
+- assertNotVisible:
+    text: "Camera Access"
+    timeout: 2000
+
+- tapOn:
+    point: "50%,85%"   # Shutter button
+
+- assertVisible:
+    text: "Processing"
+    timeout: 6000
+
+- assertNotVisible:
+    text: "Processing"
+    timeout: 10000
+
+- assertVisible:
+    text: "Send to"
+    timeout: 8000
+
+# Select a friend so the send button appears.
+- assertVisible:
+    text: ${GASP_FRIEND_NAME}
+    timeout: 6000
+
+- tapOn:
+    text: ${GASP_FRIEND_NAME}
+
+- assertVisible:
+    text: "Send to 1 friend"
+    timeout: 2000
+
+# ── Simulate network failure BEFORE tapping send ─────────────────────────────
+# Android ADB — disable all network connectivity on the emulator.
+# This causes Firebase Storage SDK to throw a network error, which
+# uploadWithRetry catches and classifies as SendErrorKind='network'.
+- runScript:
+    file: ../scripts/network_off.js   # See e2e/scripts/ — calls adb shell
+
+# ── Tap send — upload should fail ────────────────────────────────────────────
+- tapOn:
+    text: "Send to 1 friend"
+
+# "Compressing..." or "Uploading..." briefly visible before the error.
+# uploadWithRetry has internal retry logic (3 attempts with backoff) — the
+# error modal only appears after all retries are exhausted.
+# Give it enough time for 3 retries: 3 × (attempt + backoff) ≈ 20s max.
+- assertVisible:
+    text: "Uploading"
+    timeout: 8000
+
+# ── Error modal: network kind ─────────────────────────────────────────────────
+# send-gasp.tsx renders the error overlay with accessibilityViewIsModal=true.
+# For network errors: WifiOff icon, kind='network', canRetry=true.
+# i18n key 'sendGasp.errorNetworkTitle' — assert partial text that is stable
+# regardless of locale (the WifiOff icon itself is not text-assertable).
+#
+# The error modal always shows a retry button when canRetry=true.
+# i18n key 'common.tryAgain' resolves to "Try again" in en locale.
+- assertVisible:
+    text: "Try again"
+    timeout: 25000   # Wait for all uploadWithRetry internal attempts to exhaust
+
+# The cancel button is also visible (text: "Cancel" from 'common.cancel').
+- assertVisible:
+    text: "Cancel"
+
+# ── Restore network BEFORE retrying ──────────────────────────────────────────
+- runScript:
+    file: ../scripts/network_on.js    # Re-enables network via ADB
+
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# ── Tap "Try again" ───────────────────────────────────────────────────────────
+- tapOn:
+    text: "Try again"
+
+# On retry: uploadedMediaRef.current is null (upload never completed), so the
+# full compress+upload cycle runs again. Progress indicator reappears.
+- assertVisible:
+    text: "Uploading"
+    timeout: 10000
+
+# ── Successful retry — modal closes, back to Camera ──────────────────────────
+- assertVisible:
+    text: "Camera"
+    timeout: 30000
+
+# Confirm the error modal is fully gone.
+- assertNotVisible:
+    text: "Try again"
+    timeout: 2000
+
+# ════════════════════════════════════════════════════════════════════════════
+# Bonus: Pin Limit Guard (6 featured reactions max)
+#
+# Precondition: workspace already has 6 pinned reactions (seeded via API).
+# Navigate to Studio → Reactions, find an unpinned reaction, attempt to pin.
+# ════════════════════════════════════════════════════════════════════════════
+
+# Navigate to Studio.
+- tapOn:
+    text: "Studio"
+
+- assertVisible:
+    text: "Overview"
+    timeout: 6000
+
+- tapOn:
+    text: "Reactions"
+
+# An unpinned reaction must exist (seeded in fixture).
+- assertVisible:
+    label: "Pin to featured"
+    timeout: 8000
+
+# Attempt to pin — pinMutation.mutate fires, but pinnedCount >= 6 guard
+# in studio.tsx fires BEFORE the mutation:
+#   if (!pinned && pinnedCount >= 6) { Alert.alert('Limit reached', ...) }
+- tapOn:
+    label: "Pin to featured"
+
+# Guard alert appears immediately (no network call made).
+- assertVisible:
+    text: "You can feature up to 6 reactions. Unpin one first."
+    timeout: 3000
+
+# Dismiss the alert.
+- tapOn:
+    text: "OK"
+
+# The pin button label remains "Pin to featured" (not changed to "Unpin").
+- assertVisible:
+    label: "Pin to featured"

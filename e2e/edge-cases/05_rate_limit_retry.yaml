@@ -1,0 +1,182 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Edge Case 3 — Rate Limit 429 on POST /gasps/batch with Smart Retry
+#
+# Validates that when the backend returns HTTP 429 for POST /gasps/batch:
+#   1. The correct error modal (kind='rateLimit', icon=Clock) appears
+#   2. The "Try again" button is visible (canRetry=true for rateLimit)
+#   3. uploadedMediaRef.current is set (upload succeeded before the 429)
+#      so retry SKIPS compress+upload and calls submitMetadata() directly
+#   4. The progress indicator does NOT restart from 0% on retry (no re-upload)
+#   5. On successful retry the modal closes and Camera tab is visible
+#
+# Network simulation approach:
+#   WireMock stub on the staging backend (or a local proxy) that intercepts
+#   POST /gasps/batch and returns:
+#     - First call:  HTTP 429  { message: "Too many requests" }
+#     - Second call: HTTP 201  (normal success)
+#
+#   WireMock scenario file: e2e/wiremock/gasps_batch_429_then_201.json
+#   Load stubs before test: wiremock --port 3001 --root-dir e2e/wiremock
+#   Point EXPO_PUBLIC_API_URL=http://localhost:3001 in .env.test
+#
+# Alternatively, on a real staging backend, temporarily lower the rate limit
+# to 1 req/min for the test user and run the test quickly.
+#
+# Preconditions:
+#   - Personal user is authenticated
+#   - inboxStore has at least 1 friend
+#   - WireMock stub is active returning 429 on first /gasps/batch call
+# ─────────────────────────────────────────────────────────────────────────────
+
+appId: com.gasp.app
+
+---
+
+# ── Setup: authenticate and open send-gasp modal ─────────────────────────────
+- runFlow: ../flows/00_auth_personal.yaml
+
+- assertVisible:
+    text: "Camera"
+    timeout: 5000
+
+- waitForAnimationToEnd:
+    timeout: 3000
+
+- assertNotVisible:
+    text: "Camera Access"
+    timeout: 2000
+
+- tapOn:
+    point: "50%,85%"    # Shutter
+
+- assertVisible:
+    text: "Processing"
+    timeout: 6000
+
+- assertNotVisible:
+    text: "Processing"
+    timeout: 10000
+
+- assertVisible:
+    text: "Send to"
+    timeout: 8000
+
+# Select the friend.
+- assertVisible:
+    text: ${GASP_FRIEND_NAME}
+    timeout: 6000
+
+- tapOn:
+    text: ${GASP_FRIEND_NAME}
+
+- assertVisible:
+    text: "Send to 1 friend"
+    timeout: 2000
+
+# ── Tap send ──────────────────────────────────────────────────────────────────
+- tapOn:
+    text: "Send to 1 friend"
+
+# ── Upload phase: Firebase Storage succeeds ───────────────────────────────────
+# The upload to Firebase Storage completes successfully.
+# uploadedMediaRef.current is now set with { downloadUrl }.
+# Progress bar reaches ~90% before the POST /gasps/batch call is made.
+- assertVisible:
+    text: "Uploading"
+    timeout: 8000
+
+# Wait for the upload percentage to reach high — indicates upload finished
+# and submitMetadata is being called.
+- assertVisible:
+    text: "100%"
+    timeout: 25000
+
+# ── Backend 429 fires — error modal appears ───────────────────────────────────
+# POST /gasps/batch returns 429. classifySendError detects status=429 →
+# SendErrorKind='rateLimit'. canRetry=true.
+# The error modal renders with Clock icon and 'sendGasp.errorRateLimitTitle'.
+# Both "Try again" and "Cancel" buttons appear.
+- assertVisible:
+    text: "Try again"
+    timeout: 8000
+
+- assertVisible:
+    text: "Cancel"
+
+# ── Assert no progress bar is visible (upload already done) ──────────────────
+# The progress bar is only shown during isUploading=true.
+# On the 429 error path, isUploading was set to false before the modal showed.
+- assertNotVisible:
+    text: "Uploading"
+    timeout: 1000
+
+# ── Tap "Try again" — retry uses cached download URL ─────────────────────────
+# WireMock stub is now configured to return 201 on the second call.
+# submitMetadata(downloadUrl) is called directly — no re-upload.
+# Because there is no upload phase, the progress bar does NOT appear again.
+- tapOn:
+    text: "Try again"
+
+# The error modal dismisses immediately.
+- assertNotVisible:
+    text: "Try again"
+    timeout: 3000
+
+# ── Assert no second upload cycle ────────────────────────────────────────────
+# If uploadedMediaRef is correctly reused, "Uploading..." and "Compressing..."
+# should NOT reappear during the retry.
+- assertNotVisible:
+    text: "Uploading"
+    timeout: 3000
+
+- assertNotVisible:
+    text: "Compressing"
+    timeout: 1000
+
+# ── Success — modal closes, Camera tab returns ────────────────────────────────
+# POST /gasps/batch 201 → submitMetadata resolves → router.back() fires.
+- assertVisible:
+    text: "Camera"
+    timeout: 10000
+
+# Final assertion: no error state leaked.
+- assertNotVisible:
+    text: "Try again"
+    timeout: 1000
+
+# ════════════════════════════════════════════════════════════════════════════
+# Appendix: WireMock stub definition
+#
+# Save as e2e/wiremock/gasps_batch_429_then_201.json and load before the test.
+# WireMock Scenarios allow stateful response switching.
+#
+# {
+#   "scenarioName": "gasps-batch-rate-limit",
+#   "requiredScenarioState": "Started",
+#   "newScenarioState": "RetryAllowed",
+#   "request": {
+#     "method": "POST",
+#     "url": "/gasps/batch"
+#   },
+#   "response": {
+#     "status": 429,
+#     "headers": { "Content-Type": "application/json" },
+#     "body": "{\"message\": \"Too many requests. Please wait.\"}"
+#   }
+# }
+#
+# Second stub (same scenarioName, state "RetryAllowed"):
+# {
+#   "scenarioName": "gasps-batch-rate-limit",
+#   "requiredScenarioState": "RetryAllowed",
+#   "request": {
+#     "method": "POST",
+#     "url": "/gasps/batch"
+#   },
+#   "response": {
+#     "status": 201,
+#     "headers": { "Content-Type": "application/json" },
+#     "body": "{\"gasps\": []}"
+#   }
+# }
+# ════════════════════════════════════════════════════════════════════════════
