@@ -4,6 +4,7 @@ import { colors } from "@/constants/colors";
 import type { Gasp } from "@/services/api/schemas/gasp.schema";
 import { formatRelativeTime } from "@/utils/format";
 import { Image } from "expo-image";
+import { ImageOff, Play } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 
 interface SentGaspItemProps {
@@ -24,12 +25,27 @@ export function SentGaspItem({ gasp, onPress }: SentGaspItemProps) {
       accessibilityRole="button"
     >
       <View style={styles.thumbnailColumn}>
-        <Image
-          source={{ uri: gasp.imageUri }}
-          placeholder={gasp.blurhash ? { blurhash: gasp.blurhash } : undefined}
-          style={styles.thumbnail}
-          contentFit="cover"
-        />
+        {/* expo-image cannot draw a video file, and expired media is cleared,
+            so both get an explicit placeholder instead of a blank tile. */}
+        {gasp.mediaType === "video" || !gasp.imageUri ? (
+          <View style={[styles.thumbnail, styles.placeholder]}>
+            {gasp.blurhash ? (
+              <Image placeholder={{ blurhash: gasp.blurhash }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            ) : null}
+            {gasp.imageUri ? (
+              <Play size={20} color={colors.textPrimary} fill={colors.textPrimary} />
+            ) : (
+              <ImageOff size={18} color={colors.textTertiary} />
+            )}
+          </View>
+        ) : (
+          <Image
+            source={{ uri: gasp.imageUri }}
+            placeholder={gasp.blurhash ? { blurhash: gasp.blurhash } : undefined}
+            style={styles.thumbnail}
+            contentFit="cover"
+          />
+        )}
         <DeliveryStatusLabel status={gasp.deliveryStatus} />
       </View>
       <View style={styles.textContainer}>
@@ -55,6 +71,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderCurve: "continuous",
     backgroundColor: colors.surface,
+  },
+  placeholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   textContainer: {
     marginTop: 2,
