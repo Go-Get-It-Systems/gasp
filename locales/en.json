@@ -183,7 +183,11 @@
     "errorGenericMessage": "Please try again or pick another friend.",
     "sentTitle": "Gasp sent",
     "sentToOne": "to {{name}}",
-    "sentToMany": "to {{count}} friends"
+    "sentToMany": "to {{count}} friends",
+    "allowReplays": "Allow replays",
+    "allowReplaysOn": "Can replay until it expires",
+    "allowReplaysOff": "Play once — disappears after viewing",
+    "allowReplaysA11y": "Allow the recipient to replay this gasp"
   },
   "viewGasp": {
     "cameraMicRequired": "Camera & Microphone Required",

@@ -377,20 +377,20 @@ export default function SendGaspScreen() {
         <Pressable
           onPress={() => setReplayable((v) => !v)}
           accessibilityRole="switch"
-          accessibilityLabel="Allow recipient to replay this gasp"
+          accessibilityLabel={t('sendGasp.allowReplaysA11y')}
           accessibilityState={{ checked: replayable }}
           style={styles.replayableRow}
         >
           <View style={styles.replayableLeft}>
             <Repeat size={18} color={replayable ? colors.primary : colors.textSecondary} />
             <View style={styles.replayableTextWrap}>
+              {/* Fixed label so the switch position alone says on/off; it used to
+                  read "Play once" while switched off, which looked inverted. */}
               <Text variant="label" style={styles.replayableTitle}>
-                {replayable ? 'Replayable' : 'Play once'}
+                {t('sendGasp.allowReplays')}
               </Text>
               <Text variant="caption" style={styles.replayableSubtitle}>
-                {replayable
-                  ? 'Recipient can replay until it expires'
-                  : 'Single view, disappears after viewing'}
+                {replayable ? t('sendGasp.allowReplaysOn') : t('sendGasp.allowReplaysOff')}
               </Text>
             </View>
           </View>

@@ -184,7 +184,11 @@
     "errorGenericMessage": "Tente novamente ou escolha outro amigo.",
     "sentTitle": "Gasp enviado",
     "sentToOne": "para {{name}}",
-    "sentToMany": "para {{count}} amigos"
+    "sentToMany": "para {{count}} amigos",
+    "allowReplays": "Permitir replay",
+    "allowReplaysOn": "Pode rever até expirar",
+    "allowReplaysOff": "Ver uma vez — some depois de visto",
+    "allowReplaysA11y": "Permitir que o destinatário reveja este gasp"
   },
   "viewGasp": {
     "cameraMicRequired": "Camera & Microphone Required",
