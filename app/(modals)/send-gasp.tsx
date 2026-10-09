@@ -11,6 +11,8 @@ import axios from 'axios';
 import { Text } from '@/components/ui/Text';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { useInboxStore } from '@/stores/inboxStore';
+import { useNotificationStore } from '@/stores/notificationStore';
+import { successHaptic } from '@/utils/haptics';
 import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
 import type { InboxFriend } from '@/stores/inboxStore';
@@ -156,8 +158,10 @@ export default function SendGaspScreen() {
         replayable,
       });
 
-      // Fire-and-forget socket chat messages so they visually populate the conversation stream
-      for (const friendId of recipientArray) {
+      // Fire-and-forget chat messages so they populate each conversation. Not
+      // awaited: the gasp itself is already delivered by sendBatch, and doing
+      // this serially per recipient kept the progress bar stuck at 90%.
+      void Promise.allSettled(recipientArray.map(async (friendId) => {
         try {
           const conv = await getOrCreateMutation.mutateAsync(friendId);
           let content: string;
@@ -172,7 +176,7 @@ export default function SendGaspScreen() {
         } catch (e) {
           Sentry.captureException(e, { extra: { context: 'send-gasp.fanOutChatMessage', friendId } });
         }
-      }
+      }));
     },
     [selectedIds, isVideoMode, textOverlay, replayable, sendBatchMutation, getOrCreateMutation],
   );
@@ -212,6 +216,18 @@ export default function SendGaspScreen() {
 
       setUploadProgress(1);
       uploadedMediaRef.current = null;
+      successHaptic();
+      const recipients = friends.filter((f) => selectedIds.has(f.id));
+      useNotificationStore.getState().enqueueToast({
+        id: `gasp-sent-${Date.now()}`,
+        kind: 'gasp.sent',
+        title: t('sendGasp.sentTitle'),
+        body: recipients.length === 1
+          ? t('sendGasp.sentToOne', { name: recipients[0].name })
+          : t('sendGasp.sentToMany', { count: recipients.length }),
+        route: '',
+        actorAvatarUrl: recipients.length === 1 ? recipients[0].avatarUrl ?? undefined : undefined,
+      });
       router.dismissAll();
       router.replace('/(tabs)/camera');
     } catch (error) {
@@ -231,7 +247,7 @@ export default function SendGaspScreen() {
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [imageUri, isUploading, user?.id, isVideoMode, selectedIds.size, submitMetadata]);
+  }, [imageUri, isUploading, user?.id, isVideoMode, selectedIds, submitMetadata, friends, t]);
 
   const handleRetry = useCallback(() => {
     setErrorState(null);

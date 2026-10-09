@@ -180,7 +180,10 @@
     "errorUploadTitle": "Couldn't upload media",
     "errorUploadMessage": "Your photo or video didn't make it. Try again from the camera.",
     "errorGenericTitle": "Couldn't send",
-    "errorGenericMessage": "Please try again or pick another friend."
+    "errorGenericMessage": "Please try again or pick another friend.",
+    "sentTitle": "Gasp sent",
+    "sentToOne": "to {{name}}",
+    "sentToMany": "to {{count}} friends"
   },
   "viewGasp": {
     "cameraMicRequired": "Camera & Microphone Required",

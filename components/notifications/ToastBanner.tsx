@@ -68,7 +68,7 @@ export function ToastBanner() {
     if (!activeToast) return;
     clearTimer();
     cancelAnimation(translateYSv);
-    openNotificationRoute(activeToast.route);
+    if (activeToast.route) openNotificationRoute(activeToast.route);
     dequeueToast();
   };
 

@@ -106,6 +106,18 @@ describe("ToastBanner", () => {
     expect(useNotificationStore.getState().activeToast).toBeNull();
   });
 
+  it("tapping a route-less confirmation toast only dismisses it", () => {
+    useNotificationStore.setState({
+      activeToast: makeToast({ kind: "gasp.sent", title: "Gasp sent", body: "to Bob", route: "" }),
+    });
+
+    const { getByText } = render(<ToastBanner />);
+    fireEvent.press(getByText("to Bob"));
+
+    expect(router.push).not.toHaveBeenCalled();
+    expect(useNotificationStore.getState().activeToast).toBeNull();
+  });
+
   it('renders actor-first copy with an accessible notification button', () => {
     useNotificationStore.setState({ activeToast: makeToast({
       title: 'Alice',

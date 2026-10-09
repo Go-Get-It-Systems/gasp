@@ -181,7 +181,10 @@
     "errorUploadTitle": "Não foi possível enviar a mídia",
     "errorUploadMessage": "Sua foto ou vídeo não chegou. Tente novamente pela câmera.",
     "errorGenericTitle": "Não foi possível enviar",
-    "errorGenericMessage": "Tente novamente ou escolha outro amigo."
+    "errorGenericMessage": "Tente novamente ou escolha outro amigo.",
+    "sentTitle": "Gasp enviado",
+    "sentToOne": "para {{name}}",
+    "sentToMany": "para {{count}} amigos"
   },
   "viewGasp": {
     "cameraMicRequired": "Camera & Microphone Required",
