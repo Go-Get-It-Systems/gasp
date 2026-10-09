@@ -2,7 +2,18 @@ import type { Gasp } from '@/services/api/schemas/gasp.schema';
 
 export function updateGaspInList(list: Gasp[] | undefined, updated: Gasp): Gasp[] {
   if (!list) return [];
-  return list.map((g) => (g.id === updated.id ? { ...g, ...updated } : g));
+  return list.map((g) => {
+    if (g.id !== updated.id) return g;
+    // open/close-view responses carry the bare gasp row without the sender
+    // join; keep the sender identity the list already has.
+    return {
+      ...g,
+      ...updated,
+      senderName: updated.senderName || g.senderName,
+      senderAvatarUrl: updated.senderAvatarUrl ?? g.senderAvatarUrl,
+      blurhash: updated.blurhash || g.blurhash,
+    };
+  });
 }
 
 export function removeFromList(list: Gasp[] | undefined, gaspId: string): Gasp[] {

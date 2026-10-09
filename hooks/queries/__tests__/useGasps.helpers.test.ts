@@ -1,4 +1,4 @@
-import { findPendingGasp, findPendingGaspByMedia, isChatGaspOpenable } from '@/hooks/queries/useGasps.helpers';
+import { findPendingGasp, findPendingGaspByMedia, isChatGaspOpenable, updateGaspInList } from '@/hooks/queries/useGasps.helpers';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
 
 const gasp = (id: string) => ({ id }) as Gasp;
@@ -43,5 +43,19 @@ describe('isChatGaspOpenable', () => {
     expect(isChatGaspOpenable({ pendingLoaded: true, pendingMatch: pending(true), viewedLocally: true })).toBe(true);
     expect(isChatGaspOpenable({ pendingLoaded: true, pendingMatch: pending(false), viewedLocally: true })).toBe(false);
     expect(isChatGaspOpenable({ pendingLoaded: true, pendingMatch: pending(false), viewedLocally: false })).toBe(true);
+  });
+});
+
+describe('updateGaspInList', () => {
+  it('keeps the sender identity when the update comes from a bare gasp response', () => {
+    const listed = { id: 'g', senderName: 'Bi', senderAvatarUrl: 'https://a/bi.jpg', blurhash: 'LKO2', status: 'pending' } as Gasp;
+    const fromOpen = { id: 'g', senderName: '', senderAvatarUrl: null, blurhash: '', status: 'viewed' } as unknown as Gasp;
+
+    const [merged] = updateGaspInList([listed], fromOpen);
+
+    expect(merged.status).toBe('viewed');
+    expect(merged.senderName).toBe('Bi');
+    expect(merged.senderAvatarUrl).toBe('https://a/bi.jpg');
+    expect(merged.blurhash).toBe('LKO2');
   });
 });
