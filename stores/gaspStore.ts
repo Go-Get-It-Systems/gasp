@@ -15,6 +15,8 @@ interface GaspState {
   addReaction: (reaction: Reaction) => void;
   markGaspViewed: (gaspId: string, imageUri?: string) => void;
   markChatGaspViewed: (messageId: string, mediaUrl?: string) => void;
+  /** Mark media viewed when it was opened outside the chat (e.g. the Gasps tab) */
+  markGaspMediaViewed: (mediaUrl: string) => void;
   isGaspMediaViewed: (mediaUrl: string) => boolean;
   isChatGaspViewed: (messageId: string) => boolean;
   clearViewedChatGasps: () => void;
@@ -53,6 +55,9 @@ export const useGaspStore = create<GaspState>((set, get) => ({
     })),
 
   isGaspMediaViewed: (mediaUrl) => !!get().viewedGaspUrls[mediaUrl],
+
+  markGaspMediaViewed: (mediaUrl) =>
+    set((state) => ({ viewedGaspUrls: { ...state.viewedGaspUrls, [mediaUrl]: true } })),
 
   isChatGaspViewed: (messageId) => !!get().viewedChatGaspIds[messageId],
 

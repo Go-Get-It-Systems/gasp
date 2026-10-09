@@ -17,7 +17,7 @@ import { useViewGasp } from '@/hooks/useViewGasp';
 import { useGaspStore } from '@/stores/gaspStore';
 import { useAppStore } from '@/stores/appStore';
 import { useOpenGasp, usePendingGasps } from '@/hooks/queries/useGasps';
-import { findPendingGasp } from '@/hooks/queries/useGasps.helpers';
+import { findPendingGasp, findPendingGaspByMedia } from '@/hooks/queries/useGasps.helpers';
 import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
 import { colors } from '@/constants/colors';
 import { ReportSheet } from '@/components/safety/ReportSheet';
@@ -48,7 +48,10 @@ export default function ViewGaspScreen() {
 
   // Never fall back to another pending gasp: a notification for gasp A must
   // not open gasp B (and consume it) when A is missing from the list.
-  const gasp = findPendingGasp(pendingGasps, params.gaspId);
+  // A gasp opened from the chat is the same server gasp as in the Gasps tab
+  // (same media URL); linking them keeps both views and the server in sync.
+  const gasp = findPendingGasp(pendingGasps, params.gaspId)
+    ?? findPendingGaspByMedia(pendingGasps, params.chatGaspUrl);
   // On a cold start from a push the pending list may still be loading.
   const isResolvingGasp = !!params.gaspId && !params.chatImageUri && !pendingQuery.isFetched;
 
@@ -134,13 +137,15 @@ export default function ViewGaspScreen() {
       if (messageId && imageUri) {
         useGaspStore.getState().markChatGaspViewed(messageId, imageUri);
       }
+      const mediaUrl = params.chatGaspUrl || gasp?.imageUrl;
+      if (mediaUrl) useGaspStore.getState().markGaspMediaViewed(mediaUrl);
       if (gasp && !openedRef.current) {
         openedRef.current = true;
         gaspIdRef.current = gasp.id;
         openGaspMutation.mutate(gasp.id);
       }
     };
-  }, [messageId, imageUri, gasp, openGaspMutation, openedRef, gaspIdRef]);
+  }, [messageId, imageUri, gasp, openGaspMutation, openedRef, gaspIdRef, params.chatGaspUrl]);
 
   const { gesture, isHolding, holdProgress, startProgressAnimation, resetProgress } =
     useHoldGesture({
