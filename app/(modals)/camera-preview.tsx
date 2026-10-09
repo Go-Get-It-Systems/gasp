@@ -8,6 +8,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sentry from '@sentry/react-native';
 import { X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
 import { DraggableText } from '@/components/camera/DraggableText';
 import { TextEditOverlay } from '@/components/camera/TextEditOverlay';
@@ -18,6 +19,7 @@ import { useTextOverlay } from '@/hooks/useTextOverlay';
 import { openSendGasp } from '@/services/navigation';
 
 export default function CameraPreviewScreen() {
+  const { t } = useTranslation();
   const { imageUri, isVideo, fromGallery } = useLocalSearchParams<{ imageUri: string; isVideo?: string; fromGallery?: string }>();
   const insets = useSafeAreaInsets();
   const isVideoMode = isVideo === 'true';
@@ -124,7 +126,14 @@ export default function CameraPreviewScreen() {
               {!videoReady && <ActivityIndicator size="large" color="#FFFFFF" />}
             </View>
           ) : (
-            <Image source={{ uri: imageUri }} style={styles.preview} resizeMode={isFromGallery ? 'contain' : 'cover'} />
+            <View style={styles.preview}>
+              {/* Gallery photos keep their framing (contain) over a blurred
+                  fill of themselves instead of black bars. */}
+              {isFromGallery && (
+                <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={40} />
+              )}
+              <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} resizeMode={isFromGallery ? 'contain' : 'cover'} />
+            </View>
           )
         ) : (
           <View style={styles.preview}>
@@ -172,6 +181,7 @@ export default function CameraPreviewScreen() {
       {!isTextEditing && !isDragging && (
         <PreviewBottomBar
           onRetake={() => router.back()}
+          retakeLabel={isFromGallery ? t('cameraPreview.chooseAnother') : t('cameraPreview.retake')}
           onSend={handleSend}
           onSave={handleSave}
           onOpenText={handleOpenTextEditor}

@@ -213,13 +213,24 @@ export function HoldToView({
             nativeControls={false}
           />
         ) : (
-          <Image
-            source={{ uri: resolvedUri }}
-            style={styles.revealedImage}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            transition={200}
-          />
+          <>
+            {/* Full image (contain) over a blurred fill of itself, so photos
+                that don't match the screen ratio don't get black bars. */}
+            <Image
+              source={{ uri: resolvedUri }}
+              style={styles.revealedImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              blurRadius={40}
+            />
+            <Image
+              source={{ uri: resolvedUri }}
+              style={styles.revealedImage}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+          </>
         )}
         {textOverlay && <TextOverlayRenderer data={textOverlay} />}
       </Animated.View>

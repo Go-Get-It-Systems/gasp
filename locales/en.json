@@ -391,5 +391,9 @@
       "in_progress": "In progress",
       "coming_soon": "Coming soon"
     }
+  },
+  "cameraPreview": {
+    "retake": "Retake",
+    "chooseAnother": "Choose another"
   }
 }
