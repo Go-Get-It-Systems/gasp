@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -31,8 +31,6 @@ interface HoldToViewProps {
   holdProgress: SharedValue<number>;
   isRevealed: SharedValue<number>;
   onVideoLoad?: (durationMs: number) => void;
-  /** When true, keeps the video paused so expo-video does not take over the audio session mid-recording */
-  isRecording?: boolean;
 }
 
 export function HoldToView({
@@ -45,7 +43,6 @@ export function HoldToView({
   holdProgress,
   isRevealed,
   onVideoLoad,
-  isRecording = false,
 }: HoldToViewProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -107,15 +104,11 @@ export function HoldToView({
     };
   }, [isVideo, videoPlayer, onVideoLoad]);
 
-  // expo-video switches AVAudioSession to .playback whenever it plays, which
-  // cuts the microphone of an ongoing reaction recording. Until the audio
-  // session is shared (needs native work, validated on device), a video gasp
-  // stays on its first frame while the reaction is being recorded.
-  const isRecordingRef = useRef(isRecording);
-  isRecordingRef.current = isRecording;
-
+  // The gasp video plays (with sound) while the reaction is recorded. This
+  // relies on patches/expo-video+*.patch: stock expo-video switches
+  // AVAudioSession to .playback on play, which would cut the recording's mic.
   const startVideo = useCallback(() => {
-    if (!isVideo || isRecordingRef.current) return;
+    if (!isVideo) return;
     try {
       videoPlayer.currentTime = 0;
       videoPlayer.play();
@@ -123,19 +116,6 @@ export function HoldToView({
       Sentry.captureException(e, { extra: { context: 'HoldToView.startVideo' } });
     }
   }, [videoPlayer, isVideo]);
-
-  // Pause video during reaction recording to free AVCapture session
-  useEffect(() => {
-    if (!isVideo) return;
-    if (isRecording) {
-      try { videoPlayer.pause(); } catch {}
-    } else {
-      // Resume only if revealed
-      if (isRevealed.get() === 1) {
-        try { videoPlayer.play(); } catch {}
-      }
-    }
-  }, [isRecording, isVideo, videoPlayer, isRevealed]);
 
   const pauseVideo = useCallback(() => {
     if (!isVideo) return;
