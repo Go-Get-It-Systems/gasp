@@ -18,7 +18,7 @@ export function BusinessDirectorySection() {
   const { t } = useTranslation();
   // An empty gated pilot does not add an empty section to the personal Discover screen.
   if (query.data?.length === 0) return null;
-  return <View style={businessStyles.section}><Text variant="subtitle">{t('business.directory')}</Text>
+  return <View style={{ ...businessStyles.section, paddingHorizontal: 20 }}><Text variant="subtitle">{t('business.directory')}</Text>
     <BusinessQuery query={query} empty={t('business.emptyDirectory')}>{(rows) => rows.map((row) =>
       <BusinessButton key={row.id} label={`${row.displayName} · @${row.handle}`} onPress={() => openBusinessProfile({ handle: row.handle })} />
     )}</BusinessQuery>
