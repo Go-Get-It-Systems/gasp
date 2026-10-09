@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Sentry from '@sentry/react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/Text';
 import { parseTextOverlay, TextOverlayRenderer } from './TextOverlayRenderer';
 import { GaspTimer } from './GaspTimer';
@@ -47,6 +48,7 @@ export function HoldToView({
   isRecording = false,
 }: HoldToViewProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const isVideo = mediaType === 'video';
   const textOverlay = textOverlayJson ? parseTextOverlay(textOverlayJson) : null;
   // Use cached local path if available, otherwise use the URI as-is
@@ -237,7 +239,7 @@ export function HoldToView({
       </Animated.View>
 
       {/* Timer during hold */}
-      <Animated.View style={[styles.timerContainer, timerStyle]}>
+      <Animated.View style={[styles.timerContainer, { top: insets.top + 12 }, timerStyle]}>
         <GaspTimer progress={holdProgress} size={60} strokeWidth={3} />
       </Animated.View>
     </View>
@@ -285,9 +287,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     marginTop: -8,
   },
+  // Top-left: the top-right corner holds the close/report buttons and the
+  // default self-view position.
   timerContainer: {
     position: 'absolute',
-    top: 60,
-    right: 20,
+    left: 20,
   },
 });
