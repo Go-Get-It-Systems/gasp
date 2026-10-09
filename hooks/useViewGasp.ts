@@ -9,6 +9,7 @@ import { useCloseViewGasp, useCreateReaction } from '@/hooks/queries/useGasps';
 import { uploadWithRetry, enqueueUpload, removeFromQueue } from '@/services/uploadQueue';
 import { sendMessage as sendMessageREST } from '@/services/api/messages';
 import { compressVideo } from '@/services/videoCompression';
+import { resolveReactionMediaUrl } from '@/services/compositeService';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
 import { useTranslation } from 'react-i18next';
 
@@ -77,6 +78,10 @@ export function useViewGasp({
   const recordingPromiseRef = useRef<Promise<{ uri: string } | undefined> | null>(null);
   const releasedRef = useRef(false);
   const revealedRef = useRef(false);
+  // Timestamps that let the server composite line the gasp up with the face:
+  // the clip starts during the countdown, before the reveal.
+  const recordingStartedAtRef = useRef<number | null>(null);
+  const revealedAtRef = useRef<number | null>(null);
   const isRecordingRef = useRef(false);
   const isMountedRef = useRef(true);
   const gaspIdRef = useRef<string | null>(null);
@@ -158,6 +163,7 @@ export function useViewGasp({
     try {
       isRecordingRef.current = true;
       setIsRecording(true);
+      recordingStartedAtRef.current = Date.now();
       recordingPromiseRef.current = camera.recordAsync({
         maxDuration: reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S,
       });
@@ -193,6 +199,7 @@ export function useViewGasp({
   const handleCountdownComplete = useCallback(() => {
     if (releasedRef.current) return;
     revealedRef.current = true;
+    revealedAtRef.current = Date.now();
     isRevealed.value = withTiming(1, { duration: 300 });
     startProgressAnimation();
     onReveal?.();
@@ -331,20 +338,29 @@ export function useViewGasp({
           bgUploadQueueIdRef.current = null;
         }
 
-        // 3. Navigate back immediately after upload, before composite job starts
+        // 3. Navigate back right after the upload; compositing continues in the background
         setPreviewUri(null);
         router.back();
 
+        // 4. Ask the server for the side-by-side composite (falls back to the
+        //    raw reaction), so the sender sees what the reaction was about.
+        const startedAt = recordingStartedAtRef.current;
+        const revealedAt = revealedAtRef.current;
+        const revealOffsetMs = startedAt !== null && revealedAt !== null
+          ? Math.max(0, revealedAt - startedAt)
+          : undefined;
+        const reactionMediaUrl = await resolveReactionMediaUrl(reactionVideoUrl, gaspUrl, revealOffsetMs);
+
         try {
           if (messageId) {
-            await sendMessageWithRetry(resolvedConversationId, reactionVideoUrl, messageId, 3);
+            await sendMessageWithRetry(resolvedConversationId, reactionMediaUrl, messageId, 3);
           } else if (currentGaspId) {
             await createReaction({
               gaspId: currentGaspId,
-              videoUrl: reactionVideoUrl,
+              videoUrl: reactionMediaUrl,
             });
           } else {
-            await sendMessageREST(resolvedConversationId, buildReactionMessagePayload(reactionVideoUrl));
+            await sendMessageREST(resolvedConversationId, buildReactionMessagePayload(reactionMediaUrl));
           }
           reactionSucceededRef.current = true;
         } catch (sendError: unknown) {
