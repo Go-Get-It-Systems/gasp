@@ -60,7 +60,6 @@ const DEFAULT_HOOK_PROPS = {
   isRevealed: makeSharedValue(0) as any,
   startProgressAnimation: jest.fn(),
   resetProgress: jest.fn(),
-  onStopGaspVideo: jest.fn(),
   gaspUrl: 'https://cdn.example.com/gasp.jpg',
 };
 

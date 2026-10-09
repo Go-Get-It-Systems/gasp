@@ -1,5 +1,5 @@
-import { useCallback, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';import { useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Sentry from '@sentry/react-native';
@@ -29,10 +29,8 @@ interface HoldToViewProps {
   holdProgress: SharedValue<number>;
   isRevealed: SharedValue<number>;
   onVideoLoad?: (durationMs: number) => void;
-  /** When true, mutes/pauses the video player to free AVCapture for reaction recording */
+  /** When true, keeps the video paused so expo-video does not take over the audio session mid-recording */
   isRecording?: boolean;
-  /** Callback ref — call to stop video and free AVCapture session */
-  onStopVideoRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export function HoldToView({
@@ -46,7 +44,6 @@ export function HoldToView({
   isRevealed,
   onVideoLoad,
   isRecording = false,
-  onStopVideoRef,
 }: HoldToViewProps) {
   const isVideo = mediaType === 'video';
   const textOverlay = textOverlayJson ? parseTextOverlay(textOverlayJson) : null;
@@ -106,8 +103,15 @@ export function HoldToView({
     };
   }, [isVideo, videoPlayer, onVideoLoad]);
 
+  // expo-video switches AVAudioSession to .playback whenever it plays, which
+  // cuts the microphone of an ongoing reaction recording. Until the audio
+  // session is shared (needs native work, validated on device), a video gasp
+  // stays on its first frame while the reaction is being recorded.
+  const isRecordingRef = useRef(isRecording);
+  isRecordingRef.current = isRecording;
+
   const startVideo = useCallback(() => {
-    if (!isVideo) return;
+    if (!isVideo || isRecordingRef.current) return;
     try {
       videoPlayer.currentTime = 0;
       videoPlayer.play();
@@ -115,20 +119,6 @@ export function HoldToView({
       Sentry.captureException(e, { extra: { context: 'HoldToView.startVideo' } });
     }
   }, [videoPlayer, isVideo]);
-
-  // Expose stop function via ref so parent can stop video before recording starts
-  const [isVideoStopped, setIsVideoStopped] = useState(false);
-  useEffect(() => {
-    if (onStopVideoRef) {
-      onStopVideoRef.current = () => {
-        try { videoPlayer.pause(); } catch {}
-        setIsVideoStopped(true);
-      };
-    }
-    return () => {
-      if (onStopVideoRef) onStopVideoRef.current = null;
-    };
-  }, [videoPlayer, onStopVideoRef]);
 
   // Pause video during reaction recording to free AVCapture session
   useEffect(() => {
@@ -211,7 +201,7 @@ export function HoldToView({
 
       {/* Revealed media (visible on hold) */}
       <Animated.View style={[styles.revealedContainer, imageStyle]}>
-        {isVideo && videoPlayer && !isVideoStopped ? (
+        {isVideo && videoPlayer ? (
           <VideoView
             player={videoPlayer}
             style={styles.revealedImage}

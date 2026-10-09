@@ -54,6 +54,7 @@ interface ReactionCaptureProps {
   maxDurationS?: number;
   cameraRef?: React.RefObject<CameraView | null>;
   onCornerChange?: (cornerIndex: number) => void;
+  onCameraReady?: () => void;
 }
 
 export function ReactionCapture({
@@ -63,6 +64,7 @@ export function ReactionCapture({
   maxDurationS = 30,
   cameraRef,
   onCornerChange,
+  onCameraReady,
 }: ReactionCaptureProps) {
   const translateX = useSharedValue(CORNERS[DEFAULT_CORNER].x);
   const translateY = useSharedValue(CORNERS[DEFAULT_CORNER].y);
@@ -177,7 +179,8 @@ export function ReactionCapture({
         )}
         <Animated.View style={[styles.cameraWrapper, borderAnimatedStyle]}>
           {isCameraActive && (
-            <CameraView ref={cameraRef} style={styles.camera} facing="front" mode="video" />
+            <CameraView ref={cameraRef} style={styles.camera} facing="front" mode="video"
+              onCameraReady={onCameraReady} />
           )}
           <View style={styles.dragHandle} />
         </Animated.View>

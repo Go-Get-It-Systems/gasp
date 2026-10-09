@@ -132,27 +132,77 @@ describe('useViewGasp', () => {
       expect(defaultProps.startProgressAnimation).toHaveBeenCalledTimes(1);
     });
 
-    it('sets isRecording to true (when cameraRef is available)', () => {
-      jest.useFakeTimers();
+    it('starts recording at the reveal when the camera was not ready during the countdown', () => {
       const { result } = renderHook(() => useViewGasp(defaultProps));
-
-      // Simulate camera ref being available
+      const recordAsync = jest.fn(() => Promise.resolve({ uri: 'file://video.mp4' }));
       result.current.reactionCameraRef.current = {
-        recordAsync: jest.fn(() => Promise.resolve({ uri: 'file://video.mp4' })),
+        recordAsync,
         stopRecording: jest.fn(),
       } as unknown as CameraView;
 
       act(() => {
+        result.current.handleHoldStart();
         result.current.handleCountdownComplete();
       });
 
-      // B3 fix: recordAsync is called after AVCAPTURE_SETTLE_MS (2000ms) delay
+      expect(recordAsync).toHaveBeenCalledTimes(1);
+      expect(result.current.isRecording).toBe(true);
+    });
+  });
+
+  describe('handleCameraReady', () => {
+    const mockCamera = () => ({
+      recordAsync: jest.fn(() => new Promise<{ uri: string }>(() => {})),
+      stopRecording: jest.fn(),
+    });
+
+    it('starts recording during the countdown, before the reveal', () => {
+      const { result } = renderHook(() => useViewGasp(defaultProps));
+      const camera = mockCamera();
+      result.current.reactionCameraRef.current = camera as unknown as CameraView;
+
       act(() => {
-        jest.advanceTimersByTime(2000);
+        result.current.handleHoldStart();
+        result.current.handleCameraReady();
       });
 
+      expect(camera.recordAsync).toHaveBeenCalledTimes(1);
+      // 5s gasp + 3s countdown + 1s slack
+      expect(camera.recordAsync).toHaveBeenCalledWith({ maxDuration: 9 });
       expect(result.current.isRecording).toBe(true);
-      jest.useRealTimers();
+      expect(defaultProps.startProgressAnimation).not.toHaveBeenCalled();
+    });
+
+    it('does not start a second recording at the reveal', () => {
+      const { result } = renderHook(() => useViewGasp(defaultProps));
+      const camera = mockCamera();
+      result.current.reactionCameraRef.current = camera as unknown as CameraView;
+
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCameraReady();
+        result.current.handleCountdownComplete();
+      });
+
+      expect(camera.recordAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not record after the hold was released', async () => {
+      const { result } = renderHook(() => useViewGasp(defaultProps));
+      const camera = mockCamera();
+
+      act(() => {
+        result.current.handleHoldStart();
+      });
+      await act(async () => {
+        await result.current.handleRelease();
+      });
+      result.current.reactionCameraRef.current = camera as unknown as CameraView;
+      act(() => {
+        result.current.handleCameraReady();
+      });
+
+      expect(camera.recordAsync).not.toHaveBeenCalled();
     });
   });
 

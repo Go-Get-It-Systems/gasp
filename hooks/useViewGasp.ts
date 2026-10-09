@@ -13,9 +13,12 @@ import type { Gasp } from '@/services/api/schemas/gasp.schema';
 import { useTranslation } from 'react-i18next';
 
 const MAX_REACTION_DURATION_S = 30;
-// After stopping expo-video, iOS needs ~2s for AVAudioSession to fully release
-// before expo-camera can acquire it for recording.
-const AVCAPTURE_SETTLE_MS = 2000;
+// Recording starts as soon as the front camera is ready during the 3-2-1
+// countdown, so the clip also covers the countdown before the reveal.
+const COUNTDOWN_S = 3;
+// Slack so recordAsync's own maxDuration never cuts the clip before the
+// progress ring ends the hold.
+const RECORDING_SLACK_S = 1;
 
 // Backoff delays for sendMessage retries: immediate, 500ms, 1500ms
 const SEND_RETRY_DELAYS_MS = [0, 500, 1500];
@@ -37,8 +40,6 @@ interface UseViewGaspProps {
   isRevealed: SharedValue<number>;
   startProgressAnimation: () => void;
   resetProgress: () => void;
-  /** Called to stop the gasp video before recording starts — frees AVCapture session */
-  onStopGaspVideo?: () => void;
   /** Remote CDN URL of the original gasp — retained for diagnostics */
   gaspUrl: string;
   /** Called once when the media is actually revealed — the only point where the gasp is consumed */
@@ -61,7 +62,6 @@ export function useViewGasp({
   isRevealed,
   startProgressAnimation,
   resetProgress,
-  onStopGaspVideo,
   gaspUrl,
   resolveConversationId,
   onReveal,
@@ -150,58 +150,54 @@ export function useViewGasp({
     );
   }, [t]);
 
+  const reactionDurationS = Math.min(holdDurationS, MAX_REACTION_DURATION_S);
+
+  const startRecording = useCallback(() => {
+    const camera = reactionCameraRef.current;
+    if (!camera || releasedRef.current || isRecordingRef.current) return;
+    try {
+      isRecordingRef.current = true;
+      setIsRecording(true);
+      recordingPromiseRef.current = camera.recordAsync({
+        maxDuration: reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S,
+      });
+      recordingPromiseRef.current?.catch((e) => {
+        Sentry.captureException(e, { tags: { feature: 'reaction-recording' } });
+        isRecordingRef.current = false;
+        setIsRecording(false);
+        recordingPromiseRef.current = null;
+      });
+    } catch (e) {
+      Sentry.captureException(e, { tags: { feature: 'reaction-recording', step: 'start-recording' } });
+      isRecordingRef.current = false;
+      setIsRecording(false);
+      recordingPromiseRef.current = null;
+    }
+  }, [reactionDurationS]);
+
   const handleHoldStart = useCallback(() => {
     releasedRef.current = false;
     setIsCountingDown(true);
   }, []);
 
-  // Called when the 3-2-1 countdown finishes:
-  // 1. Reveal the media (isRevealed → 1)
-  // 2. Start the progress ring animation (gasp media duration)
-  // 3. Start recording for exactly the gasp media duration (capped at MAX_REACTION_DURATION_S)
+  // The front camera mounts when the hold starts; begin recording as soon as it
+  // is ready so the reveal itself is captured (previously recording only began
+  // ~2s after the reveal and missed the reaction's first moments).
+  const handleCameraReady = useCallback(() => {
+    if (!releasedRef.current) startRecording();
+  }, [startRecording]);
+
+  // Called when the 3-2-1 countdown finishes: reveal the media, start the
+  // progress ring for the gasp duration, and start recording if the camera
+  // was not ready in time during the countdown.
   const handleCountdownComplete = useCallback(() => {
     if (releasedRef.current) return;
     revealedRef.current = true;
     isRevealed.value = withTiming(1, { duration: 300 });
     startProgressAnimation();
     onReveal?.();
-    if (!reactionCameraRef.current) return;
-    const reactionDurationS = Math.min(holdDurationS, MAX_REACTION_DURATION_S);
-
-    // For image gasps: record immediately after settle delay (no AVCapture conflict).
-    // For video gasps: stop video first, then record after a longer settle to
-    // let AVAudioSession fully release before expo-camera takes it.
-    const startRecording = () => {
-      if (!reactionCameraRef.current || releasedRef.current) {
-        isRecordingRef.current = false;
-        setIsRecording(false);
-        return;
-      }
-      try {
-        isRecordingRef.current = true;
-        setIsRecording(true);
-        recordingPromiseRef.current = reactionCameraRef.current.recordAsync({
-          maxDuration: reactionDurationS,
-        });
-        recordingPromiseRef.current?.catch((e) => {
-          Sentry.captureException(e, { tags: { feature: 'reaction-recording' } });
-          isRecordingRef.current = false;
-          setIsRecording(false);
-          recordingPromiseRef.current = null;
-        });
-      } catch (e) {
-        Sentry.captureException(e, { tags: { feature: 'reaction-recording', step: 'start-recording' } });
-        isRecordingRef.current = false;
-        setIsRecording(false);
-        recordingPromiseRef.current = null;
-      }
-    };
-
-    // Stop gasp video immediately so VideoView unmounts and releases AVAudioSession.
-    // Use a separate signal — NOT isRecording — to avoid remounting the reaction camera.
-    onStopGaspVideo?.();
-    setTimeout(startRecording, AVCAPTURE_SETTLE_MS);
-  }, [isRevealed, startProgressAnimation, holdDurationS, onStopGaspVideo, onReveal]);
+    startRecording();
+  }, [isRevealed, startProgressAnimation, onReveal, startRecording]);
 
   const handleRelease = useCallback(async () => {
     if (releasedRef.current) return;
@@ -418,9 +414,10 @@ export function useViewGasp({
     isRecording,
     previewUri,
     isSending,
-    /** Actual reaction recording duration in seconds (= gasp duration capped at 30s) */
-    reactionDurationS: Math.min(holdDurationS, MAX_REACTION_DURATION_S),
+    /** Reaction recording duration in seconds (= gasp duration capped at 30s, plus the countdown) */
+    reactionDurationS: reactionDurationS + COUNTDOWN_S,
     handleHoldStart,
+    handleCameraReady,
     handleCountdownComplete,
     handleRelease,
     handleSend,

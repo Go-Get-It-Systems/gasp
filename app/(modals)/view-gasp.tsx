@@ -84,8 +84,6 @@ export default function ViewGaspScreen() {
   const resetProgressRef = useRef<() => void>(() => {});
   const stableStartProgress = useCallback(() => startProgressRef.current(), []);
   const stableResetProgress = useCallback(() => resetProgressRef.current(), []);
-  const stopVideoRef = useRef<(() => void) | null>(null);
-  const stableStopVideo = useCallback(() => stopVideoRef.current?.(), []);
   const resolveConversationId = useCallback(async () => {
     if (conversationId) return conversationId;
     if (!gasp?.senderId) return null;
@@ -109,6 +107,7 @@ export default function ViewGaspScreen() {
     isSending,
     reactionDurationS,
     handleHoldStart,
+    handleCameraReady,
     handleCountdownComplete,
     handleRelease,
     handleSend,
@@ -122,7 +121,6 @@ export default function ViewGaspScreen() {
     isRevealed,
     startProgressAnimation: stableStartProgress,
     resetProgress: stableResetProgress,
-    onStopGaspVideo: stableStopVideo,
     gaspUrl,
     resolveConversationId,
     onReveal: handleReveal,
@@ -222,14 +220,13 @@ export default function ViewGaspScreen() {
           <HoldToView imageUri={imageUri} mediaType={mediaType} blurhash={blurhash}
             senderName={senderName} textOverlayJson={params.chatTextOverlay}
             isHolding={isHolding} holdProgress={holdProgress} isRevealed={isRevealed}
-            isRecording={isRecording} onStopVideoRef={stopVideoRef}
-            onVideoLoad={handleVideoLoad} />
+            isRecording={isRecording} onVideoLoad={handleVideoLoad} />
         </View>
       </GestureDetector>
       <ReactionCapture isActive={isCameraNeeded}
         isVisible={!!(cameraPermission?.granted && micPermission?.granted)}
         isRecording={isRecording} maxDurationS={reactionDurationS}
-        cameraRef={reactionCameraRef} />
+        cameraRef={reactionCameraRef} onCameraReady={handleCameraReady} />
       <RecordingCountdown isActive={isCountingDown} onCountdownComplete={handleCountdownComplete} />
       <Pressable onPress={handleClose} accessibilityRole="button"
         accessibilityLabel="Close gasp viewer" style={[styles.closeButton, { top: insets.top + 12 }]}>
