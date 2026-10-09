@@ -6,7 +6,7 @@ import * as s from './schemas/business.schema';
 // Unlike legacy adapters, business contracts fail closed after logging validation errors.
 async function request<T>(schema: z.ZodType<T>, path: string, method = 'get', data?: unknown): Promise<T> {
   const response = await api.request({ url: `/businesses${path}`, method, data });
-  return schema.parse(validateResponse(schema, response.data, `business:${method}:${path}`));
+  return schema.parse(validateResponse(schema, response.data, `business:${method}:${path}`, false));
 }
 const segment = (value: string) => encodeURIComponent(value);
 const workspace = (id: string) => `/${segment(id)}`;
