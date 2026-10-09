@@ -228,6 +228,22 @@ beforeEach(() => {
 
 describe('useSocketListeners', () => {
   describe('gasp:received event', () => {
+    it('keeps business campaigns out of the personal cache and waits for the routed notification event', () => {
+      renderHook(() => useSocketListeners());
+      capturedHandlers['gasp:received']({ gasp: makeGasp({ campaignId: 'campaign-1', recipientId: 'user-123' }) });
+      expect(mockSetQueryData).not.toHaveBeenCalled();
+      expect(mockEnqueueToast).not.toHaveBeenCalled();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.business.inbox('user-123') });
+      const route = '/(modals)/business-profile?handle=pilot&campaignId=campaign-1';
+      capturedHandlers['notification:event']({ kind: 'gasp.received', recipientId: 'user-123', actorId: 'business', actorName: 'Pilot', gaspId: 'gasp-1', eventId: 'gasp-1', route });
+      expect(mockEnqueueToast).toHaveBeenCalledWith(expect.objectContaining({ id: 'gasp-1', route }));
+    });
+    it('ignores a business event for a previous logged-in actor', () => {
+      renderHook(() => useSocketListeners());
+      capturedHandlers['gasp:received']({ gasp: makeGasp({ campaignId: 'campaign-1', recipientId: 'previous-actor' }) });
+      expect(mockInvalidateQueries).not.toHaveBeenCalled();
+      expect(mockEnqueueToast).not.toHaveBeenCalled();
+    });
     it('calls enqueueToast on the notification store with correct gaspId, senderName, imageUri', () => {
       renderHook(() => useSocketListeners());
 

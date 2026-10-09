@@ -16,6 +16,7 @@ export const ApiGaspSchema = z.object({
   textOverlay: z.string().nullable().optional(),
   replayable: z.boolean().optional().default(false),
   momentId: z.string().nullable().optional(),
+  campaignId: z.string().nullable().optional(),
   status: GaspStatusSchema,
   deliveryStatus: z.enum(['sent', 'delivered', 'opened']).optional(),
   createdAt: z.string(),
@@ -27,6 +28,7 @@ export const ApiGaspSchema = z.object({
 export const GaspSchema = z.object({
   id: z.string(),
   senderId: z.string(),
+  recipientId: z.string().optional(),
   senderName: z.string(),
   senderAvatarUrl: z.string().nullable(),
   /** Remote CDN URL of the original gasp media — never overwritten by mediaCache */
@@ -38,6 +40,7 @@ export const GaspSchema = z.object({
   textOverlay: z.string().optional(),
   replayable: z.boolean(),
   momentId: z.string().optional(),
+  campaignId: z.string().optional(),
   status: GaspStatusSchema,
   deliveryStatus: z.enum(['sent', 'delivered', 'opened']).optional().default('sent'),
   createdAt: z.string(),
@@ -65,6 +68,7 @@ export function normalizePendingGasp(item: ApiPendingGasp): Gasp {
   return {
     id: item.gasp.id,
     senderId: item.gasp.senderId,
+    recipientId: item.gasp.recipientId,
     senderName: item.sender?.displayName ?? item.sender?.username ?? 'Unknown',
     senderAvatarUrl: item.sender?.avatarUrl ?? null,
     imageUrl: item.gasp.imageUrl ?? '',
@@ -74,6 +78,7 @@ export function normalizePendingGasp(item: ApiPendingGasp): Gasp {
     textOverlay: item.gasp.textOverlay ?? undefined,
     replayable: item.gasp.replayable ?? false,
     momentId: item.gasp.momentId ?? undefined,
+    campaignId: item.gasp.campaignId ?? undefined,
     status: item.gasp.status,
     deliveryStatus: item.gasp.deliveryStatus ?? 'sent',
     createdAt: item.gasp.createdAt,
@@ -87,6 +92,7 @@ export function normalizeGasp(raw: z.infer<typeof ApiGaspSchema>): Gasp {
   return {
     id: raw.id,
     senderId: raw.senderId,
+    recipientId: raw.recipientId,
     senderName: '',
     senderAvatarUrl: null,
     imageUrl: raw.imageUrl,
@@ -96,6 +102,7 @@ export function normalizeGasp(raw: z.infer<typeof ApiGaspSchema>): Gasp {
     textOverlay: raw.textOverlay ?? undefined,
     replayable: raw.replayable ?? false,
     momentId: raw.momentId ?? undefined,
+    campaignId: raw.campaignId ?? undefined,
     status: raw.status,
     deliveryStatus: raw.deliveryStatus ?? 'sent',
     createdAt: raw.createdAt,

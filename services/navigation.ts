@@ -2,6 +2,27 @@ import { router } from 'expo-router';
 import * as Sentry from '@sentry/react-native';
 import { cacheMedia } from './mediaCache';
 
+export function openBusinessStudio() { router.push('/(modals)/business-studio'); }
+export function openMyCampaignReactions() { router.push('/(modals)/my-campaign-reactions'); }
+export function openBusinessProfile(params: { handle: string; campaignId?: string }) {
+  router.push({ pathname: '/(modals)/business-profile', params });
+}
+export function openCampaignComposer(params: { workspaceId: string; campaignId?: string }) {
+  router.push({ pathname: '/(modals)/campaign-composer', params });
+}
+export function openCampaignDashboard(params: { workspaceId: string; campaignId: string }) {
+  router.push({ pathname: '/(modals)/campaign-dashboard', params });
+}
+export function openCampaignViewer(params: { workspaceId: string; campaignId: string; handle: string }) {
+  router.push({ pathname: '/(modals)/campaign-viewer', params });
+}
+export function openCampaignReactionComposer(params: { workspaceId: string; campaignId: string }) {
+  router.push({ pathname: '/(modals)/campaign-react', params });
+}
+export function openBusinessReaction({ owner, ...params }: { workspaceId: string; campaignId: string; reactionId: string; owner?: boolean }) {
+  router.push({ pathname: '/(modals)/business-reaction', params: { ...params, owner: owner ? 'true' : 'false' } });
+}
+
 // ── Camera Preview ───────────────────────────────────────────────────
 interface CameraPreviewParams {
   imageUri: string;

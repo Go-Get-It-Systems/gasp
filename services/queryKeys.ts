@@ -1,4 +1,15 @@
 export const queryKeys = {
+  business: {
+    all: ['business'] as const,
+    actor: (actor: string) => ['business', actor] as const,
+    workspaces: (actor: string) => ['business', actor, 'workspaces'] as const,
+    directory: (actor: string) => ['business', actor, 'directory'] as const,
+    inbox: (actor: string) => ['business', actor, 'inbox'] as const,
+    receipts: (actor: string) => ['business', actor, 'receipts'] as const,
+    profile: (actor: string, handle: string) => ['business', actor, 'profile', handle] as const,
+    workspace: (actor: string, workspace: string, resource: string) => ['business', actor, workspace, resource] as const,
+    campaign: (actor: string, workspace: string, campaign: string, resource: string) => ['business', actor, workspace, campaign, resource] as const,
+  },
   conversations: {
     all: ['conversations'] as const,
     detail: (id: string) => ['conversations', id] as const,

@@ -23,6 +23,7 @@ import { useReceivedReactions } from '@/hooks/queries/useReactions';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
 import { openGaspViewer } from '@/services/navigation';
 import { SOCIAL_PULSE_SECTION_ORDER, sortOpenNow, type SocialPulseSection } from '@/services/socialPulse';
+import { CampaignInboxSection } from '@/components/business/BusinessEntries';
 
 export default function InboxScreen() {
   const insets = useSafeAreaInsets();
@@ -122,6 +123,7 @@ export default function InboxScreen() {
         data={sections}
         keyExtractor={(item) => item}
         renderItem={renderSection}
+        ListFooterComponent={<CampaignInboxSection />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 104 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
