@@ -102,7 +102,10 @@ export default function ViewGaspScreen() {
   // server) only once the media is actually revealed — never on screen mount,
   // so a failed or abandoned attempt keeps the gasp available.
   const revealRef = useRef<() => void>(() => {});
-  const handleReveal = useCallback(() => revealRef.current(), []);
+  const handleReveal = useCallback(() => {
+    revealRef.current();
+    setRevealTick((n) => n + 1);
+  }, []);
 
   const {
     reactionCameraRef,
@@ -132,20 +135,29 @@ export default function ViewGaspScreen() {
     onReveal: handleReveal,
   });
 
+  const hasRevealedRef = useRef(false);
   useEffect(() => {
     revealRef.current = () => {
+      hasRevealedRef.current = true;
       if (messageId && imageUri) {
         useGaspStore.getState().markChatGaspViewed(messageId, imageUri);
       }
       const mediaUrl = params.chatGaspUrl || gasp?.imageUrl;
       if (mediaUrl) useGaspStore.getState().markGaspMediaViewed(mediaUrl);
-      if (gasp && !openedRef.current) {
-        openedRef.current = true;
-        gaspIdRef.current = gasp.id;
-        openGaspMutation.mutate(gasp.id);
-      }
     };
-  }, [messageId, imageUri, gasp, openGaspMutation, openedRef, gaspIdRef, params.chatGaspUrl]);
+  }, [messageId, imageUri, gasp, params.chatGaspUrl]);
+
+  // Tell the server once the media was revealed. Also covers a chat gasp
+  // whose server record resolves after the reveal (pending list still
+  // loading), so the server never keeps a gasp the viewer already saw.
+  const [revealTick, setRevealTick] = useState(0);
+  useEffect(() => {
+    if (hasRevealedRef.current && gasp && !openedRef.current) {
+      openedRef.current = true;
+      gaspIdRef.current = gasp.id;
+      openGaspMutation.mutate(gasp.id);
+    }
+  }, [gasp, revealTick, openGaspMutation, openedRef, gaspIdRef]);
 
   const { gesture, isHolding, holdProgress, startProgressAnimation, resetProgress } =
     useHoldGesture({
