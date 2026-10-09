@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 import { StyleSheet, View, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,10 +34,11 @@ export default function VerifyCodeScreen() {
       try {
         await login(firebaseToken);
         router.replace('/(tabs)/camera');
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If 401 with "not registered" → user needs to create profile
-        const status = error?.response?.status;
-        const msg = error?.response?.data?.message ?? '';
+        const response = isAxiosError<{ message?: string }>(error) ? error.response : undefined;
+        const status = response?.status;
+        const msg = response?.data?.message ?? '';
         if (status === 401 && msg.toLowerCase().includes('not registered')) {
           router.replace({
             pathname: '/(auth)/create-profile',
@@ -46,8 +48,8 @@ export default function VerifyCodeScreen() {
           Alert.alert('Login failed', getApiErrorMessage(error));
         }
       }
-    } catch (error: any) {
-      const code = error?.code ?? '';
+    } catch (error: unknown) {
+      const code = (error as { code?: string } | null)?.code ?? '';
       const message =
         code === 'auth/invalid-verification-code'
           ? 'Invalid code. Please try again.'

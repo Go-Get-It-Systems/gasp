@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -269,7 +269,6 @@ export function AnimatedFace({ size, animated = true, interval = 2500 }: Animate
     );
   }, [animated, pFloat0, pFloat1, pFloat2]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable refs from useSharedValue
   const updateExpression = useCallback((expr: Expression) => {
     const config = EXPRESSION_CONFIGS[expr];
     const spring = springConfigs.snappy;
@@ -365,7 +364,12 @@ export function AnimatedFace({ size, animated = true, interval = 2500 }: Animate
         true,
       );
     }
-  }, []);
+  }, [angryShake, containerRotate, containerScale, eyeOpacity, eyeRx, eyeRy,
+    eyebrowOpacity, flatOpacity, frownOpacity, gaspOpacity, glowColorIndex,
+    glowOpacity, glowScale, heartEyeOpacity, heartPulse, impactLineOpacity,
+    pAngryOpacity, pCoolOpacity, pHappyOpacity, pLoveOpacity, pSadOpacity,
+    pShockedOpacity, pupilCy, pupilOpacity, sadBrowOpacity, smallSmileOpacity,
+    smileOpacity, sparkleOpacity, sparklePulse, sunglassesOpacity]);
 
   // Expression cycling
   useEffect(() => {

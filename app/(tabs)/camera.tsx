@@ -31,7 +31,7 @@ export default function CameraScreen() {
   const recordingIntentRef = useRef(false);
   const modeSwitchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
-  const [micPermission, requestMicPermission] = useMicrophonePermissions();
+  const [, requestMicPermission] = useMicrophonePermissions();
   const {
     cameraRef,
     facing,

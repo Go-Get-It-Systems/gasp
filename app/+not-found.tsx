@@ -29,7 +29,7 @@ export default function NotFoundScreen() {
           marginBottom: 24,
         }}
       >
-        The page you're looking for doesn't exist.
+        {"The page you're looking for doesn't exist."}
       </Text>
       <Link href="/" style={{ color: '#7C3AED', fontSize: 16 }}>
         Go back home

@@ -35,7 +35,7 @@ export function InlineVideo({
       }
     });
     return () => sub.remove();
-  }, [player]);
+  }, [player, paused]);
 
   useEffect(() => {
     if (paused) {

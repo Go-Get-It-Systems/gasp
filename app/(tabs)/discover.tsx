@@ -20,7 +20,6 @@ import {
   type RequestStatus,
 } from '@/components/discover/UserSearchResult';
 import { useInboxStore } from '@/stores/inboxStore';
-import { useAuthStore } from '@/stores/authStore';
 import { useSendFriendRequest, usePendingFriendRequests, useAcceptFriendRequest, useRejectFriendRequest } from '@/hooks/queries/useFriends';
 import * as usersApi from '@/services/api/users';
 import * as discoverApi from '@/services/api/discover';
@@ -30,7 +29,6 @@ import { Users, Trophy, UserX } from 'lucide-react-native';
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
-  const currentUser = useAuthStore((s) => s.user);
   const friends = useInboxStore((s) => s.friends);
   const sendFriendRequestMutation = useSendFriendRequest();
   const acceptMutation = useAcceptFriendRequest();

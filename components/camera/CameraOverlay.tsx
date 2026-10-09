@@ -51,7 +51,7 @@ export function CameraOverlay({
   // Animated progress bar — fills from 0 to 1 over MAX_RECORD_DURATION_S while recording
   const progress = useSharedValue(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [remainingS, setRemainingS] = useState(MAX_RECORD_DURATION_S);
+  const [_remainingS, setRemainingS] = useState(MAX_RECORD_DURATION_S);
 
   useEffect(() => {
     if (isRecording) {

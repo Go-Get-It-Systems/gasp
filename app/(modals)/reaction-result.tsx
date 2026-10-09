@@ -59,7 +59,7 @@ export default function ReactionResultScreen() {
     }
   }, [originalImageUri]);
 
-  const handleShare = useCallback(async () => {
+  const _handleShare = useCallback(async () => {
     try {
       // TODO: wire compositeUrl once available in screen params
       const uri = originalImageUri ?? '';
