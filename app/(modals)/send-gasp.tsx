@@ -21,6 +21,7 @@ import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
 import { uploadWithRetry } from '@/services/uploadQueue';
 import { compressImage } from '@/services/imageCompression';
 import { compressVideo } from '@/services/videoCompression';
+import { generatePreviewBlurhash } from '@/services/blurhash';
 import { colors } from '@/constants/colors';
 
 type SendErrorKind = 'server' | 'network' | 'rateLimit' | 'upload' | 'generic';
@@ -113,7 +114,7 @@ export default function SendGaspScreen() {
   const [replayable, setReplayable] = useState(false);
   const [errorState, setErrorState] = useState<SendErrorState | null>(null);
   // Preserva a mídia já uploadada para reaproveitar no retry — evita refazer compress + upload.
-  const uploadedMediaRef = useRef<{ downloadUrl: string } | null>(null);
+  const uploadedMediaRef = useRef<{ downloadUrl: string; blurhash?: string } | null>(null);
 
   const filteredFriends = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -146,7 +147,7 @@ export default function SendGaspScreen() {
   }, [friends, selectedIds.size]);
 
   const submitMetadata = useCallback(
-    async (downloadUrl: string) => {
+    async (downloadUrl: string, blurhash?: string) => {
       const recipientArray = Array.from(selectedIds);
       const { sendMessage } = useChatStore.getState();
 
@@ -154,6 +155,7 @@ export default function SendGaspScreen() {
         recipientIds: recipientArray,
         imageUrl: downloadUrl,
         ...(isVideoMode && { mediaType: 'video' as const }),
+        ...(blurhash && { blurhash }),
         ...(textOverlay && { textOverlay }),
         replayable,
       });
@@ -199,12 +201,16 @@ export default function SendGaspScreen() {
           ? await compressVideo(imageUri)
           : await compressImage(imageUri);
 
-        // 2. Upload to Firebase Storage
-        const result = await uploadWithRetry(compressedUri, 'gasps', userId, ({ progress }) => {
-          setUploadProgress(0.1 + progress * 0.7); // 10-80% for upload
-        });
+        // 2. Upload to Firebase Storage, computing the privacy-safe preview
+        //    hash in parallel (photos only for now).
+        const [result, blurhash] = await Promise.all([
+          uploadWithRetry(compressedUri, 'gasps', userId, ({ progress }) => {
+            setUploadProgress(0.1 + progress * 0.7); // 10-80% for upload
+          }),
+          isVideoMode ? Promise.resolve(undefined) : generatePreviewBlurhash(compressedUri),
+        ]);
         downloadUrl = result.downloadUrl;
-        uploadedMediaRef.current = { downloadUrl };
+        uploadedMediaRef.current = { downloadUrl, blurhash };
       } else {
         // Já uploadou em uma tentativa anterior — pula direto pro metadata save
         setUploadProgress(0.85);
@@ -212,7 +218,7 @@ export default function SendGaspScreen() {
 
       // 3. Save gasp metadata to backend
       setUploadProgress(0.9);
-      await submitMetadata(downloadUrl);
+      await submitMetadata(downloadUrl, uploadedMediaRef.current?.blurhash);
 
       setUploadProgress(1);
       uploadedMediaRef.current = null;
