@@ -48,13 +48,21 @@ export function OpenNowRail({ gasps, isLoading, isError, loadingId, onOpen, onCa
             <Text variant="caption" style={styles.stateSubtitle}>{t('gasps.pulse.openEmptyBody')}</Text>
           </View>
         </Pressable>
+      ) : gasps.length === 1 ? (
+        <View style={styles.featuredCard}>
+          <OpenNowItem
+            gasp={gasps[0]}
+            featured
+            isLoading={loadingId === gasps[0].id}
+            onPress={onOpen}
+          />
+        </View>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
           {gasps.map((gasp) => (
             <OpenNowItem
               key={gasp.id}
               gasp={gasp}
-              featured={gasps.length === 1}
               isLoading={loadingId === gasp.id}
               onPress={onOpen}
             />
@@ -66,6 +74,7 @@ export function OpenNowRail({ gasps, isLoading, isError, loadingId, onOpen, onCa
 }
 
 const styles = StyleSheet.create({
+  featuredCard: { width: '100%' },
   rail: { paddingHorizontal: 20, gap: 12 },
   skeletonRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 12 },
   stateCard: {

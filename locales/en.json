@@ -78,6 +78,8 @@
       "reactedToMoment": "reacted to your moment",
       "reactionsForYou": "REACTIONS FOR YOU",
       "reactionsError": "Could not load reactions. Tap to retry.",
+      "showAllReactions": "View all {{count}} reactions",
+      "showFewerReactions": "Show fewer",
       "loadMore": "Load more reactions",
       "activity": "ACTIVITY"
     }

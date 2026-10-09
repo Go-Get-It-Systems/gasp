@@ -1,6 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { LatestMomentCard } from '@/components/inbox/LatestMomentCard';
 import { OpenNowItem } from '@/components/inbox/OpenNowItem';
+import { OpenNowRail } from '@/components/inbox/OpenNowRail';
 import type { Gasp, LatestMoment } from '@/services/api/schemas/gasp.schema';
 
 jest.mock('expo-image', () => ({ Image: 'Image' }));
@@ -65,6 +66,47 @@ const moment: LatestMoment = {
 };
 
 describe('Gasps Social Pulse components', () => {
+  const railProps = {
+    isLoading: false,
+    isError: false,
+    loadingId: null,
+    onCapture: jest.fn(),
+    onRetry: jest.fn(),
+  };
+
+  it('stretches a single featured card and keeps its media private before opening', () => {
+    const onOpen = jest.fn();
+    const screen = render(<OpenNowRail {...railProps} gasps={[gasp]} onOpen={onOpen} />);
+    const card = screen.getByRole('button', { name: `Open Gasp from ${longName}` });
+
+    expect(card).toHaveStyle({ alignSelf: 'stretch', marginHorizontal: 20 });
+    expect(JSON.stringify(screen.toJSON())).not.toContain(gasp.imageUrl);
+    fireEvent.press(card);
+    expect(onOpen).toHaveBeenCalledWith(gasp);
+  });
+
+  it('keeps multiple cards compact and opens the selected sender', () => {
+    const secondGasp = { ...gasp, id: 'gasp-2', senderName: 'Bi' };
+    const onOpen = jest.fn();
+    const screen = render(<OpenNowRail {...railProps} gasps={[gasp, secondGasp]} onOpen={onOpen} />);
+    const secondCard = screen.getByRole('button', { name: 'Open Gasp from Bi' });
+
+    expect(secondCard).toHaveStyle({ width: 154 });
+    fireEvent.press(secondCard);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(secondGasp);
+  });
+
+  it('prevents opening the featured card again while it is loading', () => {
+    const onOpen = jest.fn();
+    const screen = render(<OpenNowRail {...railProps} gasps={[gasp]} loadingId={gasp.id} onOpen={onOpen} />);
+    const card = screen.getByRole('button', { name: `Open Gasp from ${longName}` });
+
+    expect(card).toBeDisabled();
+    fireEvent.press(card);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
   it('keeps a long sender name accessible and opens only the pressed Gasp', () => {
     const onPress = jest.fn();
     const screen = render(<OpenNowItem gasp={gasp} isLoading={false} onPress={onPress} />);

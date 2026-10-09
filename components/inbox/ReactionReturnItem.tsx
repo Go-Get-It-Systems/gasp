@@ -47,39 +47,50 @@ export function ReactionReturnItem({ reaction }: ReactionReturnItemProps) {
       accessibilityRole="button"
       accessibilityLabel={t('gasps.pulse.reactionFrom', { name: reaction.reactor.displayName })}
     >
-      <View style={styles.avatarWrap}>
-        <Avatar uri={reaction.reactor.avatarUrl} size={46} initials={reaction.reactor.displayName} />
-        <View style={styles.playBadge}><Play size={10} fill="#FFFFFF" color="#FFFFFF" /></View>
+      <View style={styles.row}>
+        <View style={styles.avatarWrap}>
+          <Avatar uri={reaction.reactor.avatarUrl} size={46} initials={reaction.reactor.displayName} />
+          <View style={styles.playBadge}><Play size={10} fill="#FFFFFF" color="#FFFFFF" /></View>
+        </View>
+        <View style={styles.copy}>
+          <Text variant="body" weight="700" numberOfLines={1} style={styles.name}>{reaction.reactor.displayName}</Text>
+          <Text variant="caption" numberOfLines={1} style={styles.subtitle}>{t('gasps.pulse.reactedToMoment')}</Text>
+        </View>
+        <View style={styles.trailing}>
+          <Text variant="caption" numberOfLines={1} style={styles.time}>{formatRelativeTime(reaction.capturedAt).toLowerCase()}</Text>
+          {isOpening ? <ActivityIndicator size="small" color={colors.primaryLight} /> : <ChevronRight size={19} color={colors.textTertiary} />}
+        </View>
       </View>
-      <View style={styles.copy}>
-        <Text variant="body" weight="700" numberOfLines={1} style={styles.name}>{reaction.reactor.displayName}</Text>
-        <Text variant="caption" numberOfLines={1} style={styles.subtitle}>{t('gasps.pulse.reactedToMoment')}</Text>
-      </View>
-      <Text variant="caption" style={styles.time}>{formatRelativeTime(reaction.capturedAt).toLowerCase()}</Text>
-      {isOpening ? <ActivityIndicator size="small" color={colors.primaryLight} /> : <ChevronRight size={19} color={colors.textTertiary} />}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 72,
+    alignSelf: 'stretch',
     marginHorizontal: 20,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
     borderRadius: 20,
     borderCurve: 'continuous',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
   },
   pressed: { opacity: 0.78 },
-  avatarWrap: { position: 'relative' },
+  row: {
+    width: '100%',
+    minHeight: 76,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  avatarWrap: { position: 'relative', width: 46, height: 46, flexShrink: 0 },
   playBadge: { position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentPink, borderWidth: 2, borderColor: colors.surface },
-  copy: { flex: 1, gap: 1 },
+  copy: { flex: 1, minWidth: 0, gap: 1 },
   name: { fontSize: 14, color: colors.textPrimary },
   subtitle: { fontSize: 12, color: colors.textSecondary },
-  time: { fontSize: 10, color: colors.textTertiary },
+  trailing: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  time: { maxWidth: 52, fontSize: 10, color: colors.textTertiary },
 });
