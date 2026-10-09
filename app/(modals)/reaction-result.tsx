@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { StyleSheet, View, Alert, Share } from 'react-native';
+import { StyleSheet, View, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as MediaLibrary from 'expo-media-library';
@@ -56,16 +56,6 @@ export default function ReactionResultScreen() {
     } catch (e) {
       Sentry.captureException(e);
       Alert.alert('Save failed', 'Could not save this media.');
-    }
-  }, [originalImageUri]);
-
-  const _handleShare = useCallback(async () => {
-    try {
-      // TODO: wire compositeUrl once available in screen params
-      const uri = originalImageUri ?? '';
-      await Share.share({ url: uri });
-    } catch (e) {
-      Sentry.captureException(e);
     }
   }, [originalImageUri]);
 

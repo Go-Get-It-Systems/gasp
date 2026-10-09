@@ -5,6 +5,10 @@ Use a short-lived feature/fix branch and open a pull request into `main`. The
 Jest suite, icon validation, and JavaScript/Hermes exports for iOS and Android.
 The same workflow runs after a merge to `main`.
 
+For the current solo workflow, `main` requires a PR, an up-to-date branch,
+successful GitHub Actions `CI`, and resolved conversations, but no approval
+from another account. Administrators must also follow these rules.
+
 Run locally with Node 22:
 
 ```sh

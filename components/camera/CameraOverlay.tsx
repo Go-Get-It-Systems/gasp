@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, Easing } from 'react-native-reanimated';
@@ -50,34 +50,17 @@ export function CameraOverlay({
 
   // Animated progress bar — fills from 0 to 1 over MAX_RECORD_DURATION_S while recording
   const progress = useSharedValue(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [_remainingS, setRemainingS] = useState(MAX_RECORD_DURATION_S);
 
   useEffect(() => {
     if (isRecording) {
-      setRemainingS(MAX_RECORD_DURATION_S);
       progress.value = 0;
       progress.value = withTiming(1, {
         duration: MAX_RECORD_DURATION_S * 1000,
         easing: Easing.linear,
       });
-      intervalRef.current = setInterval(() => {
-        setRemainingS((prev) => {
-          if (prev <= 1) {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
     } else {
       progress.value = withTiming(0, { duration: 200 });
-      setRemainingS(MAX_RECORD_DURATION_S);
-      if (intervalRef.current) clearInterval(intervalRef.current);
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
   }, [isRecording, progress]);
 
   const progressBarStyle = useAnimatedStyle(() => ({
