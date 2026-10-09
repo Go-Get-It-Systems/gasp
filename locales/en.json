@@ -206,7 +206,9 @@
     "recordingFailedTitle": "Recording failed",
     "recordingFailedBody": "Could not capture your reaction. Please try again.",
     "holdToView": "Hold to view",
-    "recordingHint": "Your reaction is recorded while you hold"
+    "recordingHint": "Your reaction is recorded while you hold",
+    "unavailableTitle": "Gasp unavailable",
+    "unavailableBody": "This gasp was already opened or has expired."
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",

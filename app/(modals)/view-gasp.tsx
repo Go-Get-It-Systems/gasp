@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Pressable, Alert } from 'react-native';
+import { StyleSheet, View, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
@@ -17,6 +17,7 @@ import { useViewGasp } from '@/hooks/useViewGasp';
 import { useGaspStore } from '@/stores/gaspStore';
 import { useAppStore } from '@/stores/appStore';
 import { useOpenGasp, usePendingGasps } from '@/hooks/queries/useGasps';
+import { findPendingGasp } from '@/hooks/queries/useGasps.helpers';
 import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
 import { colors } from '@/constants/colors';
 import { ReportSheet } from '@/components/safety/ReportSheet';
@@ -40,13 +41,16 @@ export default function ViewGaspScreen() {
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
-  const { data: pendingGasps = [] } = usePendingGasps();
+  const pendingQuery = usePendingGasps();
+  const pendingGasps = pendingQuery.data ?? [];
   const openGaspMutation = useOpenGasp();
   const getOrCreateConversationMutation = useGetOrCreateConversation();
 
-  const gasp = params.gaspId
-    ? pendingGasps.find((g) => g.id === params.gaspId) ?? pendingGasps[0]
-    : null;
+  // Never fall back to another pending gasp: a notification for gasp A must
+  // not open gasp B (and consume it) when A is missing from the list.
+  const gasp = findPendingGasp(pendingGasps, params.gaspId);
+  // On a cold start from a push the pending list may still be loading.
+  const isResolvingGasp = !!params.gaspId && !params.chatImageUri && !pendingQuery.isFetched;
 
   const imageUri = params.chatImageUri || gasp?.imageUri;
   const senderName = params.chatSenderName || gasp?.senderName || '';
@@ -175,10 +179,20 @@ export default function ViewGaspScreen() {
   }, [requestCameraPermission, requestMicPermission]);
 
   useEffect(() => {
-    if (!imageUri) router.back();
-  }, [imageUri]);
+    if (imageUri || isResolvingGasp) return;
+    if (params.gaspId) {
+      Alert.alert(t('viewGasp.unavailableTitle'), t('viewGasp.unavailableBody'));
+    }
+    router.back();
+  }, [imageUri, isResolvingGasp, params.gaspId, t]);
 
-  if (!imageUri) return null;
+  if (!imageUri) {
+    return isResolvingGasp ? (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator color={colors.textPrimary} />
+      </View>
+    ) : null;
+  }
 
   if (!cameraPermission?.granted || !micPermission?.granted) {
     return (
@@ -251,6 +265,7 @@ export default function ViewGaspScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  centered: { justifyContent: 'center', alignItems: 'center' },
   gestureArea: { flex: 1 },
   closeButton: {
     position: 'absolute', right: 20, width: 40, height: 40, borderRadius: 20,

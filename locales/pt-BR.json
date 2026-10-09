@@ -207,7 +207,9 @@
     "recordingFailedTitle": "Falha na gravação",
     "recordingFailedBody": "Não foi possível capturar sua reação. Tente novamente.",
     "holdToView": "Segure para ver",
-    "recordingHint": "Sua reação é gravada enquanto você segura"
+    "recordingHint": "Sua reação é gravada enquanto você segura",
+    "unavailableTitle": "Gasp indisponível",
+    "unavailableBody": "Este gasp já foi aberto ou expirou."
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",
