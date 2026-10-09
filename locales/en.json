@@ -246,7 +246,13 @@
       "save": "Save changes",
       "saving": "Saving…",
       "saveErrorTitle": "Couldn't save profile"
-    }
+    },
+    "streak": "Streak",
+    "streakDays_one": "{{count}} day",
+    "streakDays_other": "{{count}} days",
+    "streakStart": "Start today!",
+    "reactionsReceived": "Reactions received",
+    "memberSince": "Member since"
   },
   "settings": {
     "title": "Settings",

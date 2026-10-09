@@ -247,7 +247,13 @@
       "save": "Salvar alterações",
       "saving": "Salvando…",
       "saveErrorTitle": "Não foi possível salvar o perfil"
-    }
+    },
+    "streak": "Sequência",
+    "streakDays_one": "{{count}} dia",
+    "streakDays_other": "{{count}} dias",
+    "streakStart": "Comece hoje!",
+    "reactionsReceived": "Reações recebidas",
+    "memberSince": "Membro desde"
   },
   "settings": {
     "title": "Configurações",
