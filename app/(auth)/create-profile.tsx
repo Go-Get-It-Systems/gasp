@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   StyleSheet,
   View,
+  ScrollView,
   Pressable,
   TextInput,
   Alert,
@@ -57,7 +58,7 @@ export default function CreateProfileScreen() {
       style={[styles.container, { paddingTop: insets.top + 20 }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="title" style={styles.title}>
           {'Create your profile'}
         </Text>
@@ -119,7 +120,7 @@ export default function CreateProfileScreen() {
             </Text>
           )}
         </Pressable>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
