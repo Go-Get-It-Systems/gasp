@@ -227,6 +227,14 @@ beforeEach(() => {
 // ── Tests ────────────────────────────────────────────────────────────────────────
 
 describe('useSocketListeners', () => {
+  it('removes an expired business delivery from its separate inbox immediately', () => {
+    const key = queryKeys.business.inbox('user-123');
+    queryCache[JSON.stringify(key)] = [{ id: 'expired-campaign-gasp' }, { id: 'other-campaign-gasp' }];
+    renderHook(() => useSocketListeners());
+    capturedHandlers['gasp:expired']({ gaspId: 'expired-campaign-gasp' });
+    expect(queryCache[JSON.stringify(key)]).toEqual([{ id: 'other-campaign-gasp' }]);
+    expect(mockEnqueueToast).not.toHaveBeenCalled();
+  });
   describe('gasp:received event', () => {
     it('keeps business campaigns out of the personal cache and waits for the routed notification event', () => {
       renderHook(() => useSocketListeners());

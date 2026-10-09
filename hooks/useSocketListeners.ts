@@ -22,6 +22,7 @@ import {
     onPresenceUserOnline,
 } from '@/services/socket';
 import type { NotificationEvent } from '@/services/socket';
+import type { CampaignInboxItem } from '@/services/api/schemas/business.schema';
 import { resolveNotificationRoute, resolveBusinessNotificationRoute } from '@/services/notificationRouting';
 import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -158,6 +159,13 @@ export function useSocketListeners() {
 
     cleanups.push(
       onGaspExpired(({ gaspId }) => {
+        const actor = useAuthStore.getState().user?.id;
+        if (actor) {
+          const key = queryKeys.business.inbox(actor);
+          if (queryClient.getQueryData<CampaignInboxItem[]>(key)?.some((item) => item.id === gaspId)) {
+            queryClient.setQueryData<CampaignInboxItem[]>(key, (old) => old?.filter((item) => item.id !== gaspId));
+          }
+        }
         queryClient.setQueryData<Gasp[]>(queryKeys.gasps.pending, (old) =>
           old?.filter((g) => g.id !== gaspId) ?? [],
         );
