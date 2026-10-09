@@ -111,7 +111,6 @@ export default function ViewGaspScreen() {
     handleCountdownComplete,
     handleRelease,
     handleSend,
-    handleReRecord,
     handleDiscard,
   } = useViewGasp({
     gasp,
@@ -238,7 +237,7 @@ export default function ViewGaspScreen() {
       {previewUri !== null && (
         <View style={styles.previewOverlay}>
           <ReactionPreview originalImageUri={imageUri} originalMediaType={mediaType} reactionVideoUri={previewUri}
-            senderName={senderName} onSend={handleSend} onReRecord={handleReRecord}
+            senderName={senderName} onSend={handleSend}
             onDiscard={handleDiscard} isSending={isSending} />
         </View>
       )}

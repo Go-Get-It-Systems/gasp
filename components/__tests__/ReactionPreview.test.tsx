@@ -103,6 +103,17 @@ describe('ReactionPreview', () => {
       expect(flatStyle?.opacity).toBe(0.82);
     });
 
+    it('offers no Re-record in the live flow (no onRetake)', () => {
+      const { queryByRole } = render(<ReactionPreview {...DEFAULT_PROPS} />);
+      expect(queryByRole('button', { name: 'Re-record' })).toBeNull();
+    });
+
+    it('shows Re-record only when a retake handler is provided', () => {
+      const onRetake = jest.fn();
+      const { getByRole } = render(<ReactionPreview {...DEFAULT_PROPS} onRetake={onRetake} />);
+      expect(getByRole('button', { name: 'Re-record' })).toBeTruthy();
+    });
+
     it('passes panel labels to ReactionComposite', () => {
       const { UNSAFE_getByType } = render(
         <ReactionPreview {...DEFAULT_PROPS} />,

@@ -99,7 +99,6 @@ describe('useViewGasp', () => {
       expect(typeof result.current.handleCountdownComplete).toBe('function');
       expect(typeof result.current.handleRelease).toBe('function');
       expect(typeof result.current.handleSend).toBe('function');
-      expect(typeof result.current.handleReRecord).toBe('function');
       expect(typeof result.current.handleDiscard).toBe('function');
       expect(result.current.MAX_REACTION_DURATION_S).toBe(30);
     });
@@ -302,30 +301,6 @@ describe('useViewGasp', () => {
 
       expect(result.current.isCountingDown).toBe(true);
       expect(onReveal).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  // ── handleReRecord (Option A: full reset) ─────────────────────────────────────
-
-  describe('handleReRecord', () => {
-    it('clears previewUri', () => {
-      const { result } = renderHook(() => useViewGasp(defaultProps));
-
-      act(() => {
-        result.current.handleReRecord();
-      });
-
-      expect(result.current.previewUri).toBeNull();
-    });
-
-    it('calls resetProgress', () => {
-      const { result } = renderHook(() => useViewGasp(defaultProps));
-
-      act(() => {
-        result.current.handleReRecord();
-      });
-
-      expect(defaultProps.resetProgress).toHaveBeenCalledTimes(1);
     });
   });
 

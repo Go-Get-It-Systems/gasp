@@ -378,15 +378,6 @@ export function useViewGasp({
     resolveConversationId,
   ]);
 
-  // Option A: full reset — user goes back through 3-2-1 for an authentic reaction
-  const handleReRecord = useCallback(() => {
-    setPreviewUri(null);
-    isRevealed.value = withTiming(0, { duration: 200 });
-    resetProgress();
-    releasedRef.current = false;
-    revealedRef.current = false;
-  }, [isRevealed, resetProgress]);
-
   /**
    * handleDiscard — cancel everything in-flight (Requirement 6.x)
    *
@@ -421,7 +412,6 @@ export function useViewGasp({
     handleCountdownComplete,
     handleRelease,
     handleSend,
-    handleReRecord,
     handleDiscard,
     MAX_REACTION_DURATION_S,
   };
