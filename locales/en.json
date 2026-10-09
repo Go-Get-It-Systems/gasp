@@ -16,7 +16,12 @@
     "invalidPhone": "Invalid phone number. Please check and try again.",
     "tooManyAttempts": "Too many attempts. Please try again later.",
     "appVerificationFailed": "App verification failed. Please try again.",
-    "couldNotSendCode": "Could not send verification code. Please try again."
+    "couldNotSendCode": "Could not send verification code. Please try again.",
+    "didntGetCode": "Didn't receive a code? ",
+    "resend": "Resend",
+    "resendIn": "Resend in {{seconds}}s",
+    "codeResentTitle": "Code sent",
+    "codeResentBody": "We sent a new code to {{phone}}."
   },
   "camera": {
     "cameraAccess": "Camera Access",
