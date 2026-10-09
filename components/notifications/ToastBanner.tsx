@@ -19,6 +19,8 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BANNER_HEIGHT = 76;
+// Long enough to read who sent it and reach for the banner before it hides.
+export const TOAST_VISIBLE_MS = 6000;
 export function ToastBanner() {
   const insets = useSafeAreaInsets();
   const activeToast = useNotificationStore((s) => s.activeToast);
@@ -49,7 +51,7 @@ export function ToastBanner() {
         damping: 18,
         stiffness: 200,
       });
-      timerRef.current = setTimeout(slideOut, 4000);
+      timerRef.current = setTimeout(slideOut, TOAST_VISIBLE_MS);
     } else {
       translateYSv.value = hiddenY;
     }

@@ -65,7 +65,7 @@ afterEach(() => {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("ToastBanner", () => {
-  it("calls dequeueToast after 4 seconds auto-dismiss", () => {
+  it("calls dequeueToast after 6 seconds auto-dismiss", () => {
     const toast = makeToast();
     useNotificationStore.setState({ activeToast: toast });
 
@@ -73,7 +73,7 @@ describe("ToastBanner", () => {
 
     // Before 4 seconds, activeToast should still be set
     act(() => {
-      jest.advanceTimersByTime(3999);
+      jest.advanceTimersByTime(5999);
     });
     expect(useNotificationStore.getState().activeToast).toEqual(toast);
 
@@ -210,7 +210,7 @@ describe("ToastBanner", () => {
 
     // Let the 4-second auto-dismiss fire
     act(() => {
-      jest.advanceTimersByTime(4000);
+      jest.advanceTimersByTime(6000);
     });
 
     // After dismiss, activeToast is cleared
