@@ -93,6 +93,12 @@ export default function ViewGaspScreen() {
     return conversation.id;
   }, [conversationId, gasp?.senderId, getOrCreateConversationMutation]);
 
+  // The gasp is consumed (chat bubble marked viewed, inbox gasp opened on the
+  // server) only once the media is actually revealed — never on screen mount,
+  // so a failed or abandoned attempt keeps the gasp available.
+  const revealRef = useRef<() => void>(() => {});
+  const handleReveal = useCallback(() => revealRef.current(), []);
+
   const {
     reactionCameraRef,
     gaspIdRef,
@@ -119,7 +125,21 @@ export default function ViewGaspScreen() {
     onStopGaspVideo: stableStopVideo,
     gaspUrl,
     resolveConversationId,
+    onReveal: handleReveal,
   });
+
+  useEffect(() => {
+    revealRef.current = () => {
+      if (messageId && imageUri) {
+        useGaspStore.getState().markChatGaspViewed(messageId, imageUri);
+      }
+      if (gasp && !openedRef.current) {
+        openedRef.current = true;
+        gaspIdRef.current = gasp.id;
+        openGaspMutation.mutate(gasp.id);
+      }
+    };
+  }, [messageId, imageUri, gasp, openGaspMutation, openedRef, gaspIdRef]);
 
   const { gesture, isHolding, holdProgress, startProgressAnimation, resetProgress } =
     useHoldGesture({
@@ -143,22 +163,6 @@ export default function ViewGaspScreen() {
     startProgressRef.current = startProgressAnimation;
     resetProgressRef.current = resetProgress;
   }, [startProgressAnimation, resetProgress]);
-
-  // Mark chat gasp viewed locally (UI only)
-  useEffect(() => {
-    if (messageId && imageUri) {
-      useGaspStore.getState().markChatGaspViewed(messageId, imageUri);
-    }
-  }, [messageId, imageUri]);
-
-  // Open gasp on mount (inbox-mode only)
-  useEffect(() => {
-    if (gasp && !openedRef.current) {
-      openedRef.current = true;
-      gaspIdRef.current = gasp.id;
-      openGaspMutation.mutate(gasp.id);
-    }
-  }, [gasp, openGaspMutation, openedRef, gaspIdRef]);
 
   const handleClose = useCallback(() => { router.back(); }, []);
 

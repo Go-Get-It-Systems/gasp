@@ -174,10 +174,14 @@ describe('useViewGasp', () => {
       expect(result.current.isCountingDown).toBe(false);
     });
 
-    it('shows an error alert when no video was captured (instead of silently navigating back)', async () => {
+    it('shows an error alert when the media was revealed but no video was captured', async () => {
       const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
       const { result } = renderHook(() => useViewGasp(defaultProps));
 
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCountdownComplete();
+      });
       await act(async () => {
         await result.current.handleRelease();
       });
@@ -189,6 +193,65 @@ describe('useViewGasp', () => {
       );
       expect(mockRouter.back).not.toHaveBeenCalled();
       alertSpy.mockRestore();
+    });
+  });
+
+  // ── Consumption only on reveal ────────────────────────────────────────────────
+
+  describe('gasp consumption', () => {
+    it('calls onReveal when the countdown completes', () => {
+      const onReveal = jest.fn();
+      const { result } = renderHook(() => useViewGasp({ ...defaultProps, onReveal }));
+
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCountdownComplete();
+      });
+
+      expect(onReveal).toHaveBeenCalledTimes(1);
+    });
+
+    it('releasing during the countdown resets quietly without consuming the gasp', async () => {
+      const onReveal = jest.fn();
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+      const { result } = renderHook(() => useViewGasp({ ...defaultProps, onReveal }));
+
+      act(() => {
+        result.current.handleHoldStart();
+      });
+      await act(async () => {
+        await result.current.handleRelease();
+      });
+      // A late countdown tick after release must not reveal the gasp either.
+      act(() => {
+        result.current.handleCountdownComplete();
+      });
+
+      expect(onReveal).not.toHaveBeenCalled();
+      expect(alertSpy).not.toHaveBeenCalled();
+      expect(mockRouter.back).not.toHaveBeenCalled();
+      expect(defaultProps.resetProgress).toHaveBeenCalledTimes(1);
+      expect(result.current.isCountingDown).toBe(false);
+      alertSpy.mockRestore();
+    });
+
+    it('allows holding again after an early release', async () => {
+      const onReveal = jest.fn();
+      const { result } = renderHook(() => useViewGasp({ ...defaultProps, onReveal }));
+
+      act(() => {
+        result.current.handleHoldStart();
+      });
+      await act(async () => {
+        await result.current.handleRelease();
+      });
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCountdownComplete();
+      });
+
+      expect(result.current.isCountingDown).toBe(true);
+      expect(onReveal).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -41,6 +41,8 @@ interface UseViewGaspProps {
   onStopGaspVideo?: () => void;
   /** Remote CDN URL of the original gasp — retained for diagnostics */
   gaspUrl: string;
+  /** Called once when the media is actually revealed — the only point where the gasp is consumed */
+  onReveal?: () => void;
   resolveConversationId?: () => Promise<string | null>;
 }
 
@@ -62,6 +64,7 @@ export function useViewGasp({
   onStopGaspVideo,
   gaspUrl,
   resolveConversationId,
+  onReveal,
 }: UseViewGaspProps) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -73,6 +76,7 @@ export function useViewGasp({
   const reactionCameraRef = useRef<CameraView>(null);
   const recordingPromiseRef = useRef<Promise<{ uri: string } | undefined> | null>(null);
   const releasedRef = useRef(false);
+  const revealedRef = useRef(false);
   const isRecordingRef = useRef(false);
   const isMountedRef = useRef(true);
   const gaspIdRef = useRef<string | null>(null);
@@ -156,8 +160,11 @@ export function useViewGasp({
   // 2. Start the progress ring animation (gasp media duration)
   // 3. Start recording for exactly the gasp media duration (capped at MAX_REACTION_DURATION_S)
   const handleCountdownComplete = useCallback(() => {
+    if (releasedRef.current) return;
+    revealedRef.current = true;
     isRevealed.value = withTiming(1, { duration: 300 });
     startProgressAnimation();
+    onReveal?.();
     if (!reactionCameraRef.current) return;
     const reactionDurationS = Math.min(holdDurationS, MAX_REACTION_DURATION_S);
 
@@ -194,7 +201,7 @@ export function useViewGasp({
     // Use a separate signal — NOT isRecording — to avoid remounting the reaction camera.
     onStopGaspVideo?.();
     setTimeout(startRecording, AVCAPTURE_SETTLE_MS);
-  }, [isRevealed, startProgressAnimation, holdDurationS, onStopGaspVideo]);
+  }, [isRevealed, startProgressAnimation, holdDurationS, onStopGaspVideo, onReveal]);
 
   const handleRelease = useCallback(async () => {
     if (releasedRef.current) return;
@@ -222,6 +229,13 @@ export function useViewGasp({
 
     if (!isMountedRef.current) return;
 
+    // Released during the 3-2-1 countdown: nothing was revealed, so the gasp is
+    // still unopened. Reset quietly so the viewer can hold again.
+    if (!revealedRef.current) {
+      resetProgress();
+      return;
+    }
+
     if (videoUri) {
       // Start background upload immediately so it's ready when user taps Send
       const userId = user?.id ?? 'guest';
@@ -242,7 +256,7 @@ export function useViewGasp({
         [{ text: t('common.ok'), onPress: () => router.back() }],
       );
     }
-  }, [t, user]);
+  }, [t, user, resetProgress]);
 
   /**
    * handleSend — composite flow (Requirement 2.2, 3.5, 4.1, 5.x, 8.x)
@@ -374,6 +388,7 @@ export function useViewGasp({
     isRevealed.value = withTiming(0, { duration: 200 });
     resetProgress();
     releasedRef.current = false;
+    revealedRef.current = false;
   }, [isRevealed, resetProgress]);
 
   /**
