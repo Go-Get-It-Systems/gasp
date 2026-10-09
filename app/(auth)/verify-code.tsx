@@ -1,24 +1,56 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { StyleSheet, View, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
-import { getAuth, signInWithCredential, PhoneAuthProvider, getIdToken } from '@react-native-firebase/auth';
+import { getAuth, signInWithCredential, signInWithPhoneNumber, PhoneAuthProvider, getIdToken } from '@react-native-firebase/auth';
+import * as Sentry from '@sentry/react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
 import { OtpInput } from '@/components/auth/OtpInput';
 import { useAuthStore } from '@/stores/authStore';
 import { getApiErrorMessage } from '@/services/api';
 import { colors } from '@/constants/colors';
 
+const RESEND_COOLDOWN_S = 30;
+
 export default function VerifyCodeScreen() {
   const insets = useSafeAreaInsets();
-  const { phoneNumber, verificationId } = useLocalSearchParams<{
+  const { t } = useTranslation();
+  const params = useLocalSearchParams<{
     phoneNumber: string;
     verificationId: string;
   }>();
+  const { phoneNumber } = params;
   const { login } = useAuthStore();
   const [isVerifying, setIsVerifying] = useState(false);
+  // A resend issues a new verificationId; codes from the old one stop working.
+  const [verificationId, setVerificationId] = useState(params.verificationId);
+  const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_S);
+  const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResend = async () => {
+    if (!phoneNumber || resendCooldown > 0 || isResending) return;
+    setIsResending(true);
+    try {
+      const confirmation = await signInWithPhoneNumber(getAuth(), phoneNumber, undefined, true);
+      if (confirmation.verificationId) setVerificationId(confirmation.verificationId);
+      setResendCooldown(RESEND_COOLDOWN_S);
+      Alert.alert(t('auth.codeResentTitle'), t('auth.codeResentBody', { phone: phoneNumber }));
+    } catch (error: unknown) {
+      Sentry.captureException(error, { extra: { context: 'verify-code.resend' } });
+      Alert.alert(t('common.error'), t('auth.couldNotSendCode'));
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleComplete = async (code: string) => {
     if (!verificationId || isVerifying) return;
@@ -89,11 +121,20 @@ export default function VerifyCodeScreen() {
           )}
         </View>
 
-        <Pressable style={styles.resendButton}>
+        <Pressable
+          style={styles.resendButton}
+          onPress={handleResend}
+          disabled={resendCooldown > 0 || isResending}
+          accessibilityRole="button"
+          accessibilityLabel={resendCooldown > 0
+            ? t('auth.resendIn', { seconds: resendCooldown })
+            : t('auth.resend')}
+          accessibilityState={{ disabled: resendCooldown > 0 || isResending }}
+        >
           <Text variant="body" style={styles.resendText}>
-            {"Didn't receive a code? "}
-            <Text variant="body" style={styles.resendLink}>
-              {'Resend'}
+            {t('auth.didntGetCode')}
+            <Text variant="body" style={resendCooldown > 0 ? styles.resendDisabled : styles.resendLink}>
+              {resendCooldown > 0 ? t('auth.resendIn', { seconds: resendCooldown }) : t('auth.resend')}
             </Text>
           </Text>
         </Pressable>
@@ -151,6 +192,10 @@ const styles = StyleSheet.create({
   },
   resendLink: {
     color: colors.primary,
+    fontWeight: '600',
+  },
+  resendDisabled: {
+    color: colors.textTertiary,
     fontWeight: '600',
   },
 });

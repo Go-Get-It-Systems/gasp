@@ -106,3 +106,39 @@ describe('compositeService', () => {
     });
   });
 });
+
+describe('reveal offset and fallback', () => {
+  const { resolveReactionMediaUrl } = jest.requireActual('../compositeService') as typeof import('../compositeService');
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('includes a clamped, rounded revealOffsetMs when given', () => {
+    expect(buildCompositePayload('r', 'g', 2999.6).revealOffsetMs).toBe(3000);
+    expect(buildCompositePayload('r', 'g', -5).revealOffsetMs).toBe(0);
+    expect(buildCompositePayload('r', 'g', 60_000).revealOffsetMs).toBe(10_000);
+    expect(buildCompositePayload('r', 'g')).not.toHaveProperty('revealOffsetMs');
+  });
+
+  it('returns the composite URL when the server composes the reaction', async () => {
+    mockedApiPost.mockResolvedValueOnce({ data: { compositeUrl: 'https://cdn/composites/c.mp4' } } as never);
+    await expect(resolveReactionMediaUrl('https://cdn/reactions/r.mp4', 'https://cdn/gasps/g.jpg', 3000))
+      .resolves.toBe('https://cdn/composites/c.mp4');
+    expect(mockedApiPost).toHaveBeenCalledWith(
+      '/reactions/composite',
+      expect.objectContaining({ revealOffsetMs: 3000, gaspUrl: 'https://cdn/gasps/g.jpg' }),
+      expect.anything(),
+    );
+  });
+
+  it('falls back to the raw reaction when compositing fails', async () => {
+    mockedApiPost.mockRejectedValueOnce(new Error('403'));
+    await expect(resolveReactionMediaUrl('https://cdn/reactions/r.mp4', 'https://cdn/gasps/g.jpg'))
+      .resolves.toBe('https://cdn/reactions/r.mp4');
+  });
+
+  it('skips compositing when the gasp URL is a local file', async () => {
+    await expect(resolveReactionMediaUrl('https://cdn/reactions/r.mp4', 'file:///cache/g.jpg'))
+      .resolves.toBe('https://cdn/reactions/r.mp4');
+    expect(mockedApiPost).not.toHaveBeenCalled();
+  });
+});

@@ -99,7 +99,6 @@ describe('useViewGasp', () => {
       expect(typeof result.current.handleCountdownComplete).toBe('function');
       expect(typeof result.current.handleRelease).toBe('function');
       expect(typeof result.current.handleSend).toBe('function');
-      expect(typeof result.current.handleReRecord).toBe('function');
       expect(typeof result.current.handleDiscard).toBe('function');
       expect(result.current.MAX_REACTION_DURATION_S).toBe(30);
     });
@@ -132,27 +131,77 @@ describe('useViewGasp', () => {
       expect(defaultProps.startProgressAnimation).toHaveBeenCalledTimes(1);
     });
 
-    it('sets isRecording to true (when cameraRef is available)', () => {
-      jest.useFakeTimers();
+    it('starts recording at the reveal when the camera was not ready during the countdown', () => {
       const { result } = renderHook(() => useViewGasp(defaultProps));
-
-      // Simulate camera ref being available
+      const recordAsync = jest.fn(() => Promise.resolve({ uri: 'file://video.mp4' }));
       result.current.reactionCameraRef.current = {
-        recordAsync: jest.fn(() => Promise.resolve({ uri: 'file://video.mp4' })),
+        recordAsync,
         stopRecording: jest.fn(),
       } as unknown as CameraView;
 
       act(() => {
+        result.current.handleHoldStart();
         result.current.handleCountdownComplete();
       });
 
-      // B3 fix: recordAsync is called after AVCAPTURE_SETTLE_MS (2000ms) delay
+      expect(recordAsync).toHaveBeenCalledTimes(1);
+      expect(result.current.isRecording).toBe(true);
+    });
+  });
+
+  describe('handleCameraReady', () => {
+    const mockCamera = () => ({
+      recordAsync: jest.fn(() => new Promise<{ uri: string }>(() => {})),
+      stopRecording: jest.fn(),
+    });
+
+    it('starts recording during the countdown, before the reveal', () => {
+      const { result } = renderHook(() => useViewGasp(defaultProps));
+      const camera = mockCamera();
+      result.current.reactionCameraRef.current = camera as unknown as CameraView;
+
       act(() => {
-        jest.advanceTimersByTime(2000);
+        result.current.handleHoldStart();
+        result.current.handleCameraReady();
       });
 
+      expect(camera.recordAsync).toHaveBeenCalledTimes(1);
+      // 5s gasp + 3s countdown + 1s slack
+      expect(camera.recordAsync).toHaveBeenCalledWith({ maxDuration: 9 });
       expect(result.current.isRecording).toBe(true);
-      jest.useRealTimers();
+      expect(defaultProps.startProgressAnimation).not.toHaveBeenCalled();
+    });
+
+    it('does not start a second recording at the reveal', () => {
+      const { result } = renderHook(() => useViewGasp(defaultProps));
+      const camera = mockCamera();
+      result.current.reactionCameraRef.current = camera as unknown as CameraView;
+
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCameraReady();
+        result.current.handleCountdownComplete();
+      });
+
+      expect(camera.recordAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not record after the hold was released', async () => {
+      const { result } = renderHook(() => useViewGasp(defaultProps));
+      const camera = mockCamera();
+
+      act(() => {
+        result.current.handleHoldStart();
+      });
+      await act(async () => {
+        await result.current.handleRelease();
+      });
+      result.current.reactionCameraRef.current = camera as unknown as CameraView;
+      act(() => {
+        result.current.handleCameraReady();
+      });
+
+      expect(camera.recordAsync).not.toHaveBeenCalled();
     });
   });
 
@@ -174,10 +223,14 @@ describe('useViewGasp', () => {
       expect(result.current.isCountingDown).toBe(false);
     });
 
-    it('shows an error alert when no video was captured (instead of silently navigating back)', async () => {
+    it('shows an error alert when the media was revealed but no video was captured', async () => {
       const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
       const { result } = renderHook(() => useViewGasp(defaultProps));
 
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCountdownComplete();
+      });
       await act(async () => {
         await result.current.handleRelease();
       });
@@ -192,27 +245,62 @@ describe('useViewGasp', () => {
     });
   });
 
-  // ── handleReRecord (Option A: full reset) ─────────────────────────────────────
+  // ── Consumption only on reveal ────────────────────────────────────────────────
 
-  describe('handleReRecord', () => {
-    it('clears previewUri', () => {
-      const { result } = renderHook(() => useViewGasp(defaultProps));
+  describe('gasp consumption', () => {
+    it('calls onReveal when the countdown completes', () => {
+      const onReveal = jest.fn();
+      const { result } = renderHook(() => useViewGasp({ ...defaultProps, onReveal }));
 
       act(() => {
-        result.current.handleReRecord();
+        result.current.handleHoldStart();
+        result.current.handleCountdownComplete();
       });
 
-      expect(result.current.previewUri).toBeNull();
+      expect(onReveal).toHaveBeenCalledTimes(1);
     });
 
-    it('calls resetProgress', () => {
-      const { result } = renderHook(() => useViewGasp(defaultProps));
+    it('releasing during the countdown resets quietly without consuming the gasp', async () => {
+      const onReveal = jest.fn();
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+      const { result } = renderHook(() => useViewGasp({ ...defaultProps, onReveal }));
 
       act(() => {
-        result.current.handleReRecord();
+        result.current.handleHoldStart();
+      });
+      await act(async () => {
+        await result.current.handleRelease();
+      });
+      // A late countdown tick after release must not reveal the gasp either.
+      act(() => {
+        result.current.handleCountdownComplete();
       });
 
+      expect(onReveal).not.toHaveBeenCalled();
+      expect(alertSpy).not.toHaveBeenCalled();
+      expect(mockRouter.back).not.toHaveBeenCalled();
       expect(defaultProps.resetProgress).toHaveBeenCalledTimes(1);
+      expect(result.current.isCountingDown).toBe(false);
+      alertSpy.mockRestore();
+    });
+
+    it('allows holding again after an early release', async () => {
+      const onReveal = jest.fn();
+      const { result } = renderHook(() => useViewGasp({ ...defaultProps, onReveal }));
+
+      act(() => {
+        result.current.handleHoldStart();
+      });
+      await act(async () => {
+        await result.current.handleRelease();
+      });
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCountdownComplete();
+      });
+
+      expect(result.current.isCountingDown).toBe(true);
+      expect(onReveal).toHaveBeenCalledTimes(1);
     });
   });
 

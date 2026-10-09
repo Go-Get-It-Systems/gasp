@@ -6,6 +6,8 @@ import { colors } from '@/constants/colors';
 
 interface PreviewBottomBarProps {
   onRetake: () => void;
+  /** "Retake" for camera captures, "Choose another" for gallery picks */
+  retakeLabel?: string;
   onSend: () => void;
   onOpenText: () => void;
   onSave?: () => void;
@@ -13,17 +15,17 @@ interface PreviewBottomBarProps {
   bottomInset: number;
 }
 
-export function PreviewBottomBar({ onRetake, onSend, onOpenText, onSave, isSending, bottomInset }: PreviewBottomBarProps) {
+export function PreviewBottomBar({ onRetake, retakeLabel = 'Retake', onSend, onOpenText, onSave, isSending, bottomInset }: PreviewBottomBarProps) {
   return (
     <Animated.View
       entering={FadeInUp.duration(400).delay(200)}
       style={[styles.bottomBar, { paddingBottom: bottomInset + 16 }]}
     >
-      <Pressable onPress={onRetake} style={styles.bottomAction} accessibilityLabel="Retake" accessibilityRole="button">
+      <Pressable onPress={onRetake} style={styles.bottomAction} accessibilityLabel={retakeLabel} accessibilityRole="button">
         <View style={styles.actionCircle}>
           <RotateCcw size={22} color="#FFFFFF" />
         </View>
-        <Text variant="caption" style={styles.actionLabel}>Retake</Text>
+        <Text variant="caption" style={styles.actionLabel}>{retakeLabel}</Text>
       </Pressable>
 
       {onSave && (

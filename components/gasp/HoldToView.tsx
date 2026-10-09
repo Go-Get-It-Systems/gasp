@@ -1,8 +1,10 @@
 import { useCallback, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Sentry from '@sentry/react-native';
+import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/Text';
 import { parseTextOverlay, TextOverlayRenderer } from './TextOverlayRenderer';
 import { GaspTimer } from './GaspTimer';
@@ -29,10 +31,6 @@ interface HoldToViewProps {
   holdProgress: SharedValue<number>;
   isRevealed: SharedValue<number>;
   onVideoLoad?: (durationMs: number) => void;
-  /** When true, mutes/pauses the video player to free AVCapture for reaction recording */
-  isRecording?: boolean;
-  /** Callback ref — call to stop video and free AVCapture session */
-  onStopVideoRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export function HoldToView({
@@ -45,9 +43,9 @@ export function HoldToView({
   holdProgress,
   isRevealed,
   onVideoLoad,
-  isRecording = false,
-  onStopVideoRef,
 }: HoldToViewProps) {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const isVideo = mediaType === 'video';
   const textOverlay = textOverlayJson ? parseTextOverlay(textOverlayJson) : null;
   // Use cached local path if available, otherwise use the URI as-is
@@ -106,6 +104,9 @@ export function HoldToView({
     };
   }, [isVideo, videoPlayer, onVideoLoad]);
 
+  // The gasp video plays (with sound) while the reaction is recorded. This
+  // relies on patches/expo-video+*.patch: stock expo-video switches
+  // AVAudioSession to .playback on play, which would cut the recording's mic.
   const startVideo = useCallback(() => {
     if (!isVideo) return;
     try {
@@ -115,33 +116,6 @@ export function HoldToView({
       Sentry.captureException(e, { extra: { context: 'HoldToView.startVideo' } });
     }
   }, [videoPlayer, isVideo]);
-
-  // Expose stop function via ref so parent can stop video before recording starts
-  const [isVideoStopped, setIsVideoStopped] = useState(false);
-  useEffect(() => {
-    if (onStopVideoRef) {
-      onStopVideoRef.current = () => {
-        try { videoPlayer.pause(); } catch {}
-        setIsVideoStopped(true);
-      };
-    }
-    return () => {
-      if (onStopVideoRef) onStopVideoRef.current = null;
-    };
-  }, [videoPlayer, onStopVideoRef]);
-
-  // Pause video during reaction recording to free AVCapture session
-  useEffect(() => {
-    if (!isVideo) return;
-    if (isRecording) {
-      try { videoPlayer.pause(); } catch {}
-    } else {
-      // Resume only if revealed
-      if (isRevealed.get() === 1) {
-        try { videoPlayer.play(); } catch {}
-      }
-    }
-  }, [isRecording, isVideo, videoPlayer, isRevealed]);
 
   const pauseVideo = useCallback(() => {
     if (!isVideo) return;
@@ -211,7 +185,7 @@ export function HoldToView({
 
       {/* Revealed media (visible on hold) */}
       <Animated.View style={[styles.revealedContainer, imageStyle]}>
-        {isVideo && videoPlayer && !isVideoStopped ? (
+        {isVideo && videoPlayer ? (
           <VideoView
             player={videoPlayer}
             style={styles.revealedImage}
@@ -219,13 +193,24 @@ export function HoldToView({
             nativeControls={false}
           />
         ) : (
-          <Image
-            source={{ uri: resolvedUri }}
-            style={styles.revealedImage}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            transition={200}
-          />
+          <>
+            {/* Full image (contain) over a blurred fill of itself, so photos
+                that don't match the screen ratio don't get black bars. */}
+            <Image
+              source={{ uri: resolvedUri }}
+              style={styles.revealedImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              blurRadius={40}
+            />
+            <Image
+              source={{ uri: resolvedUri }}
+              style={styles.revealedImage}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+          </>
         )}
         {textOverlay && <TextOverlayRenderer data={textOverlay} />}
       </Animated.View>
@@ -237,12 +222,15 @@ export function HoldToView({
           {senderName}
         </Text>
         <Text variant="caption" style={styles.instruction}>
-          {'TAP TO VIEW'}
+          {t('viewGasp.holdToView').toUpperCase()}
+        </Text>
+        <Text variant="caption" style={styles.recordingHint}>
+          {t('viewGasp.recordingHint')}
         </Text>
       </Animated.View>
 
       {/* Timer during hold */}
-      <Animated.View style={[styles.timerContainer, timerStyle]}>
+      <Animated.View style={[styles.timerContainer, { top: insets.top + 12 }, timerStyle]}>
         <GaspTimer progress={holdProgress} size={60} strokeWidth={3} />
       </Animated.View>
     </View>
@@ -285,9 +273,15 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     letterSpacing: 3,
   },
+  recordingHint: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: -8,
+  },
+  // Top-left: the top-right corner holds the close/report buttons and the
+  // default self-view position.
   timerContainer: {
     position: 'absolute',
-    top: 60,
-    right: 20,
+    left: 20,
   },
 });

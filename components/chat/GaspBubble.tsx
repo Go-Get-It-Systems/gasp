@@ -3,8 +3,11 @@ import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, EyeOff } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
 import { useGaspStore } from '@/stores/gaspStore';
+import { usePendingGasps } from '@/hooks/queries/useGasps';
+import { findPendingGaspByMedia, isChatGaspOpenable } from '@/hooks/queries/useGasps.helpers';
 import { openGaspViewer } from '@/services/navigation';
 import { parseTextOverlay, TextOverlayRenderer } from '@/components/gasp/TextOverlayRenderer';
 import { getCachedUri } from '@/services/mediaCache';
@@ -19,6 +22,7 @@ interface GaspBubbleProps {
 }
 
 export function GaspBubble({ message, isOwnMessage, otherParticipantName }: GaspBubbleProps) {
+  const { t } = useTranslation();
   const rawMediaUri = message.mediaUrl || message.content;
   const resolvedMediaUri = rawMediaUri ? (getCachedUri(rawMediaUri) ?? rawMediaUri) : rawMediaUri;
 
@@ -26,20 +30,25 @@ export function GaspBubble({ message, isOwnMessage, otherParticipantName }: Gasp
   const gaspMediaType: 'image' | 'video' =
     message.content === '[VideoGasp]' || textOverlay?.mediaType === 'video' ? 'video' : 'image';
 
-  const isGaspViewed = useGaspStore((s) =>
+  const viewedLocally = useGaspStore((s) =>
     !!s.viewedChatGaspIds[message.id] ||
     !!(message.mediaUrl && s.viewedGaspUrls[message.mediaUrl])
   );
+  // Received gasps follow the server's pending list (shared with the Gasps
+  // tab), so opening in either place, on any device, and replayable
+  // settings are reflected here.
+  const pendingQuery = usePendingGasps(!isOwnMessage);
+  const pendingMatch = findPendingGaspByMedia(pendingQuery.data, message.mediaUrl);
+  const isGaspViewed = !isOwnMessage && !isChatGaspOpenable({
+    pendingLoaded: pendingQuery.isFetched,
+    pendingMatch,
+    viewedLocally,
+  });
 
   const [isPreloading, setIsPreloading] = useState(false);
 
   const handleGaspPress = useCallback(async () => {
-    if (isOwnMessage || isPreloading) return;
-    const state = useGaspStore.getState();
-    if (
-      state.viewedChatGaspIds[message.id] ||
-      (message.mediaUrl && state.viewedGaspUrls[message.mediaUrl])
-    ) return;
+    if (isOwnMessage || isPreloading || isGaspViewed) return;
 
     setIsPreloading(true);
     await openGaspViewer({
@@ -51,7 +60,7 @@ export function GaspBubble({ message, isOwnMessage, otherParticipantName }: Gasp
       textOverlay: textOverlay ? message.content : undefined,
     });
     setIsPreloading(false);
-  }, [message, otherParticipantName, isOwnMessage, isPreloading, gaspMediaType, textOverlay]);
+  }, [message, otherParticipantName, isOwnMessage, isPreloading, isGaspViewed, gaspMediaType, textOverlay]);
 
   const gaspAccessibilityLabel = isOwnMessage
     ? 'Your gasp'
@@ -96,7 +105,7 @@ export function GaspBubble({ message, isOwnMessage, otherParticipantName }: Gasp
             /* Viewed state — compact, dimmed */
             <View style={styles.viewedOverlay}>
               <EyeOff size={20} color="rgba(255,255,255,0.5)" />
-              <Text variant="caption" style={styles.viewedLabel}>Opened</Text>
+              <Text variant="caption" style={styles.viewedLabel}>{t('chat.gaspBubble.opened')}</Text>
             </View>
           ) : (
             /* Unviewed state — inviting gradient overlay */
@@ -108,16 +117,16 @@ export function GaspBubble({ message, isOwnMessage, otherParticipantName }: Gasp
               {isPreloading ? (
                 <>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text variant="body" style={styles.tapText}>Loading...</Text>
+                  <Text variant="body" style={styles.tapText}>{t('chat.gaspBubble.loading')}</Text>
                 </>
               ) : (
                 <>
                   <View style={styles.eyeCircle}>
                     <Eye size={26} color="#FFFFFF" />
                   </View>
-                  <Text variant="body" style={styles.tapText}>Tap to view</Text>
+                  <Text variant="body" style={styles.tapText}>{t('chat.gaspBubble.tapToOpen')}</Text>
                   <Text variant="caption" style={styles.tapHint}>
-                    from {otherParticipantName}
+                    {t('chat.gaspBubble.from', { name: otherParticipantName })}
                   </Text>
                 </>
               )}

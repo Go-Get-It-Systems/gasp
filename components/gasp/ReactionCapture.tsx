@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Dimensions } from 'react-native';
 import { CameraView } from 'expo-camera';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { selectionHaptic } from '@/utils/haptics';
 import { PIP_WIDTH, PIP_HEIGHT, MARGIN } from './pipPosition';
 
@@ -26,12 +27,20 @@ const BORDER_WIDTH = 2.5;
 const RADIUS = (Math.min(PIP_WIDTH, PIP_HEIGHT) / 2) - BORDER_WIDTH;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-const CORNERS = [
-  { x: MARGIN, y: MARGIN + 60 },
-  { x: SCREEN_WIDTH - PIP_WIDTH - MARGIN, y: MARGIN + 60 },
-  { x: MARGIN, y: SCREEN_HEIGHT - PIP_HEIGHT - MARGIN - 100 },
-  { x: SCREEN_WIDTH - PIP_WIDTH - MARGIN, y: SCREEN_HEIGHT - PIP_HEIGHT - MARGIN - 100 },
-] as const;
+// view-gasp places its close/report buttons (40pt) at insets.top + 12, so the
+// top corners start below them instead of covering them.
+const TOP_CONTROLS_HEIGHT = 12 + 40 + MARGIN;
+
+export function buildPipCorners(topInset: number) {
+  const top = topInset + TOP_CONTROLS_HEIGHT;
+  const bottom = SCREEN_HEIGHT - PIP_HEIGHT - MARGIN - 100;
+  return [
+    { x: MARGIN, y: top },
+    { x: SCREEN_WIDTH - PIP_WIDTH - MARGIN, y: top },
+    { x: MARGIN, y: bottom },
+    { x: SCREEN_WIDTH - PIP_WIDTH - MARGIN, y: bottom },
+  ];
+}
 
 const DEFAULT_CORNER = 1;
 
@@ -54,6 +63,7 @@ interface ReactionCaptureProps {
   maxDurationS?: number;
   cameraRef?: React.RefObject<CameraView | null>;
   onCornerChange?: (cornerIndex: number) => void;
+  onCameraReady?: () => void;
 }
 
 export function ReactionCapture({
@@ -63,9 +73,13 @@ export function ReactionCapture({
   maxDurationS = 30,
   cameraRef,
   onCornerChange,
+  onCameraReady,
 }: ReactionCaptureProps) {
-  const translateX = useSharedValue(CORNERS[DEFAULT_CORNER].x);
-  const translateY = useSharedValue(CORNERS[DEFAULT_CORNER].y);
+  const insets = useSafeAreaInsets();
+  const corners = useMemo(() => buildPipCorners(insets.top), [insets.top]);
+  const minY = corners[0].y;
+  const translateX = useSharedValue(corners[DEFAULT_CORNER].x);
+  const translateY = useSharedValue(corners[DEFAULT_CORNER].y);
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
   const recordingScale = useSharedValue(1);
@@ -77,10 +91,10 @@ export function ReactionCapture({
 
   useEffect(() => {
     loadCorner().then((idx) => {
-      translateX.value = CORNERS[idx].x;
-      translateY.value = CORNERS[idx].y;
+      translateX.value = corners[idx].x;
+      translateY.value = corners[idx].y;
     });
-  }, [translateX, translateY]);
+  }, [corners, translateX, translateY]);
 
   // Progress ring + spring entry on recording start
   useEffect(() => {
@@ -106,12 +120,12 @@ export function ReactionCapture({
     'worklet';
     let nearestIdx = 0;
     let nearestD = Infinity;
-    for (let i = 0; i < CORNERS.length; i++) {
-      const d = Math.hypot(CORNERS[i].x - x, CORNERS[i].y - y);
+    for (let i = 0; i < corners.length; i++) {
+      const d = Math.hypot(corners[i].x - x, corners[i].y - y);
       if (d < nearestD) { nearestD = d; nearestIdx = i; }
     }
-    translateX.value = withSpring(CORNERS[nearestIdx].x, SPRING_CFG);
-    translateY.value = withSpring(CORNERS[nearestIdx].y, SPRING_CFG);
+    translateX.value = withSpring(corners[nearestIdx].x, SPRING_CFG);
+    translateY.value = withSpring(corners[nearestIdx].y, SPRING_CFG);
     runOnJS(selectionHaptic)();
     runOnJS(persistCorner)(nearestIdx);
     if (onCornerChange) runOnJS(onCornerChange)(nearestIdx);
@@ -124,7 +138,7 @@ export function ReactionCapture({
     })
     .onUpdate((e) => {
       translateX.value = Math.max(MARGIN, Math.min(SCREEN_WIDTH - PIP_WIDTH - MARGIN, startX.value + e.translationX));
-      translateY.value = Math.max(MARGIN, Math.min(SCREEN_HEIGHT - PIP_HEIGHT - MARGIN, startY.value + e.translationY));
+      translateY.value = Math.max(minY, Math.min(SCREEN_HEIGHT - PIP_HEIGHT - MARGIN, startY.value + e.translationY));
     })
     .onEnd(() => {
       snapToNearestCorner(translateX.value, translateY.value);
@@ -177,7 +191,8 @@ export function ReactionCapture({
         )}
         <Animated.View style={[styles.cameraWrapper, borderAnimatedStyle]}>
           {isCameraActive && (
-            <CameraView ref={cameraRef} style={styles.camera} facing="front" mode="video" />
+            <CameraView ref={cameraRef} style={styles.camera} facing="front" mode="video"
+              onCameraReady={onCameraReady} />
           )}
           <View style={styles.dragHandle} />
         </Animated.View>

@@ -16,7 +16,12 @@
     "invalidPhone": "Invalid phone number. Please check and try again.",
     "tooManyAttempts": "Too many attempts. Please try again later.",
     "appVerificationFailed": "App verification failed. Please try again.",
-    "couldNotSendCode": "Could not send verification code. Please try again."
+    "couldNotSendCode": "Could not send verification code. Please try again.",
+    "didntGetCode": "Didn't receive a code? ",
+    "resend": "Resend",
+    "resendIn": "Resend in {{seconds}}s",
+    "codeResentTitle": "Code sent",
+    "codeResentBody": "We sent a new code to {{phone}}."
   },
   "camera": {
     "cameraAccess": "Camera Access",
@@ -145,6 +150,12 @@
       "findFriends": "Find friends",
       "conversationAccessibility": "{{name}}, {{preview}}",
       "conversationUnreadAccessibility": "{{name}}, {{preview}}, {{count}} unread messages"
+    },
+    "gaspBubble": {
+      "tapToOpen": "Tap to open",
+      "from": "from {{name}}",
+      "loading": "Loading...",
+      "opened": "Opened"
     }
   },
   "discover": {
@@ -174,7 +185,14 @@
     "errorUploadTitle": "Couldn't upload media",
     "errorUploadMessage": "Your photo or video didn't make it. Try again from the camera.",
     "errorGenericTitle": "Couldn't send",
-    "errorGenericMessage": "Please try again or pick another friend."
+    "errorGenericMessage": "Please try again or pick another friend.",
+    "sentTitle": "Gasp sent",
+    "sentToOne": "to {{name}}",
+    "sentToMany": "to {{count}} friends",
+    "allowReplays": "Allow replays",
+    "allowReplaysOn": "Can replay until it expires",
+    "allowReplaysOff": "Play once — disappears after viewing",
+    "allowReplaysA11y": "Allow the recipient to replay this gasp"
   },
   "viewGasp": {
     "cameraMicRequired": "Camera & Microphone Required",
@@ -186,7 +204,11 @@
     "missingConversationTitle": "Could not send reaction",
     "missingConversationBody": "We could not find the chat for this gasp. Please try again from the conversation.",
     "recordingFailedTitle": "Recording failed",
-    "recordingFailedBody": "Could not capture your reaction. Please try again."
+    "recordingFailedBody": "Could not capture your reaction. Please try again.",
+    "holdToView": "Hold to view",
+    "recordingHint": "Your reaction is recorded while you hold",
+    "unavailableTitle": "Gasp unavailable",
+    "unavailableBody": "This gasp was already opened or has expired."
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",
@@ -231,7 +253,13 @@
       "save": "Save changes",
       "saving": "Saving…",
       "saveErrorTitle": "Couldn't save profile"
-    }
+    },
+    "streak": "Streak",
+    "streakDays_one": "{{count}} day",
+    "streakDays_other": "{{count}} days",
+    "streakStart": "Start today!",
+    "reactionsReceived": "Reactions received",
+    "memberSince": "Member since"
   },
   "settings": {
     "title": "Settings",
@@ -363,5 +391,9 @@
       "in_progress": "In progress",
       "coming_soon": "Coming soon"
     }
+  },
+  "cameraPreview": {
+    "retake": "Retake",
+    "chooseAnother": "Choose another"
   }
 }

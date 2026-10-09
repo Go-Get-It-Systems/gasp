@@ -16,7 +16,12 @@
     "invalidPhone": "Invalid phone number. Please check and try again.",
     "tooManyAttempts": "Too many attempts. Please try again later.",
     "appVerificationFailed": "App verification failed. Please try again.",
-    "couldNotSendCode": "Could not send verification code. Please try again."
+    "couldNotSendCode": "Could not send verification code. Please try again.",
+    "didntGetCode": "Não recebeu o código? ",
+    "resend": "Reenviar",
+    "resendIn": "Reenviar em {{seconds}}s",
+    "codeResentTitle": "Código enviado",
+    "codeResentBody": "Enviamos um novo código para {{phone}}."
   },
   "camera": {
     "cameraAccess": "Camera Access",
@@ -146,6 +151,12 @@
       "findFriends": "Encontrar amigos",
       "conversationAccessibility": "{{name}}, {{preview}}",
       "conversationUnreadAccessibility": "{{name}}, {{preview}}, {{count}} mensagens não lidas"
+    },
+    "gaspBubble": {
+      "tapToOpen": "Toque para abrir",
+      "from": "de {{name}}",
+      "loading": "Carregando...",
+      "opened": "Aberto"
     }
   },
   "discover": {
@@ -175,7 +186,14 @@
     "errorUploadTitle": "Não foi possível enviar a mídia",
     "errorUploadMessage": "Sua foto ou vídeo não chegou. Tente novamente pela câmera.",
     "errorGenericTitle": "Não foi possível enviar",
-    "errorGenericMessage": "Tente novamente ou escolha outro amigo."
+    "errorGenericMessage": "Tente novamente ou escolha outro amigo.",
+    "sentTitle": "Gasp enviado",
+    "sentToOne": "para {{name}}",
+    "sentToMany": "para {{count}} amigos",
+    "allowReplays": "Permitir replay",
+    "allowReplaysOn": "Pode rever até expirar",
+    "allowReplaysOff": "Ver uma vez — some depois de visto",
+    "allowReplaysA11y": "Permitir que o destinatário reveja este gasp"
   },
   "viewGasp": {
     "cameraMicRequired": "Camera & Microphone Required",
@@ -187,7 +205,11 @@
     "missingConversationTitle": "Não foi possível enviar a reação",
     "missingConversationBody": "Não encontramos a conversa deste gasp. Tente novamente pela conversa.",
     "recordingFailedTitle": "Falha na gravação",
-    "recordingFailedBody": "Não foi possível capturar sua reação. Tente novamente."
+    "recordingFailedBody": "Não foi possível capturar sua reação. Tente novamente.",
+    "holdToView": "Segure para ver",
+    "recordingHint": "Sua reação é gravada enquanto você segura",
+    "unavailableTitle": "Gasp indisponível",
+    "unavailableBody": "Este gasp já foi aberto ou expirou."
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",
@@ -232,7 +254,13 @@
       "save": "Salvar alterações",
       "saving": "Salvando…",
       "saveErrorTitle": "Não foi possível salvar o perfil"
-    }
+    },
+    "streak": "Sequência",
+    "streakDays_one": "{{count}} dia",
+    "streakDays_other": "{{count}} dias",
+    "streakStart": "Comece hoje!",
+    "reactionsReceived": "Reações recebidas",
+    "memberSince": "Membro desde"
   },
   "settings": {
     "title": "Configurações",
@@ -364,5 +392,9 @@
       "in_progress": "Em desenvolvimento",
       "coming_soon": "Em breve"
     }
+  },
+  "cameraPreview": {
+    "retake": "Refazer",
+    "chooseAnother": "Escolher outra"
   }
 }

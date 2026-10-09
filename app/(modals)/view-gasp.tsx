@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Pressable, Alert } from 'react-native';
+import { StyleSheet, View, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
@@ -17,6 +17,7 @@ import { useViewGasp } from '@/hooks/useViewGasp';
 import { useGaspStore } from '@/stores/gaspStore';
 import { useAppStore } from '@/stores/appStore';
 import { useOpenGasp, usePendingGasps } from '@/hooks/queries/useGasps';
+import { findPendingGasp, findPendingGaspByMedia } from '@/hooks/queries/useGasps.helpers';
 import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
 import { colors } from '@/constants/colors';
 import { ReportSheet } from '@/components/safety/ReportSheet';
@@ -40,13 +41,19 @@ export default function ViewGaspScreen() {
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
-  const { data: pendingGasps = [] } = usePendingGasps();
+  const pendingQuery = usePendingGasps();
+  const pendingGasps = pendingQuery.data ?? [];
   const openGaspMutation = useOpenGasp();
   const getOrCreateConversationMutation = useGetOrCreateConversation();
 
-  const gasp = params.gaspId
-    ? pendingGasps.find((g) => g.id === params.gaspId) ?? pendingGasps[0]
-    : null;
+  // Never fall back to another pending gasp: a notification for gasp A must
+  // not open gasp B (and consume it) when A is missing from the list.
+  // A gasp opened from the chat is the same server gasp as in the Gasps tab
+  // (same media URL); linking them keeps both views and the server in sync.
+  const gasp = findPendingGasp(pendingGasps, params.gaspId)
+    ?? findPendingGaspByMedia(pendingGasps, params.chatGaspUrl);
+  // On a cold start from a push the pending list may still be loading.
+  const isResolvingGasp = !!params.gaspId && !params.chatImageUri && !pendingQuery.isFetched;
 
   const imageUri = params.chatImageUri || gasp?.imageUri;
   const senderName = params.chatSenderName || gasp?.senderName || '';
@@ -84,14 +91,21 @@ export default function ViewGaspScreen() {
   const resetProgressRef = useRef<() => void>(() => {});
   const stableStartProgress = useCallback(() => startProgressRef.current(), []);
   const stableResetProgress = useCallback(() => resetProgressRef.current(), []);
-  const stopVideoRef = useRef<(() => void) | null>(null);
-  const stableStopVideo = useCallback(() => stopVideoRef.current?.(), []);
   const resolveConversationId = useCallback(async () => {
     if (conversationId) return conversationId;
     if (!gasp?.senderId) return null;
     const conversation = await getOrCreateConversationMutation.mutateAsync(gasp.senderId);
     return conversation.id;
   }, [conversationId, gasp?.senderId, getOrCreateConversationMutation]);
+
+  // The gasp is consumed (chat bubble marked viewed, inbox gasp opened on the
+  // server) only once the media is actually revealed — never on screen mount,
+  // so a failed or abandoned attempt keeps the gasp available.
+  const revealRef = useRef<() => void>(() => {});
+  const handleReveal = useCallback(() => {
+    revealRef.current();
+    setRevealTick((n) => n + 1);
+  }, []);
 
   const {
     reactionCameraRef,
@@ -103,10 +117,10 @@ export default function ViewGaspScreen() {
     isSending,
     reactionDurationS,
     handleHoldStart,
+    handleCameraReady,
     handleCountdownComplete,
     handleRelease,
     handleSend,
-    handleReRecord,
     handleDiscard,
   } = useViewGasp({
     gasp,
@@ -116,10 +130,34 @@ export default function ViewGaspScreen() {
     isRevealed,
     startProgressAnimation: stableStartProgress,
     resetProgress: stableResetProgress,
-    onStopGaspVideo: stableStopVideo,
     gaspUrl,
     resolveConversationId,
+    onReveal: handleReveal,
   });
+
+  const hasRevealedRef = useRef(false);
+  useEffect(() => {
+    revealRef.current = () => {
+      hasRevealedRef.current = true;
+      if (messageId && imageUri) {
+        useGaspStore.getState().markChatGaspViewed(messageId, imageUri);
+      }
+      const mediaUrl = params.chatGaspUrl || gasp?.imageUrl;
+      if (mediaUrl) useGaspStore.getState().markGaspMediaViewed(mediaUrl);
+    };
+  }, [messageId, imageUri, gasp, params.chatGaspUrl]);
+
+  // Tell the server once the media was revealed. Also covers a chat gasp
+  // whose server record resolves after the reveal (pending list still
+  // loading), so the server never keeps a gasp the viewer already saw.
+  const [revealTick, setRevealTick] = useState(0);
+  useEffect(() => {
+    if (hasRevealedRef.current && gasp && !openedRef.current) {
+      openedRef.current = true;
+      gaspIdRef.current = gasp.id;
+      openGaspMutation.mutate(gasp.id);
+    }
+  }, [gasp, revealTick, openGaspMutation, openedRef, gaspIdRef]);
 
   const { gesture, isHolding, holdProgress, startProgressAnimation, resetProgress } =
     useHoldGesture({
@@ -144,22 +182,6 @@ export default function ViewGaspScreen() {
     resetProgressRef.current = resetProgress;
   }, [startProgressAnimation, resetProgress]);
 
-  // Mark chat gasp viewed locally (UI only)
-  useEffect(() => {
-    if (messageId && imageUri) {
-      useGaspStore.getState().markChatGaspViewed(messageId, imageUri);
-    }
-  }, [messageId, imageUri]);
-
-  // Open gasp on mount (inbox-mode only)
-  useEffect(() => {
-    if (gasp && !openedRef.current) {
-      openedRef.current = true;
-      gaspIdRef.current = gasp.id;
-      openGaspMutation.mutate(gasp.id);
-    }
-  }, [gasp, openGaspMutation, openedRef, gaspIdRef]);
-
   const handleClose = useCallback(() => { router.back(); }, []);
 
   // Signal main camera to release AVCapture session while this screen is open
@@ -174,10 +196,20 @@ export default function ViewGaspScreen() {
   }, [requestCameraPermission, requestMicPermission]);
 
   useEffect(() => {
-    if (!imageUri) router.back();
-  }, [imageUri]);
+    if (imageUri || isResolvingGasp) return;
+    if (params.gaspId) {
+      Alert.alert(t('viewGasp.unavailableTitle'), t('viewGasp.unavailableBody'));
+    }
+    router.back();
+  }, [imageUri, isResolvingGasp, params.gaspId, t]);
 
-  if (!imageUri) return null;
+  if (!imageUri) {
+    return isResolvingGasp ? (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator color={colors.textPrimary} />
+      </View>
+    ) : null;
+  }
 
   if (!cameraPermission?.granted || !micPermission?.granted) {
     return (
@@ -218,14 +250,13 @@ export default function ViewGaspScreen() {
           <HoldToView imageUri={imageUri} mediaType={mediaType} blurhash={blurhash}
             senderName={senderName} textOverlayJson={params.chatTextOverlay}
             isHolding={isHolding} holdProgress={holdProgress} isRevealed={isRevealed}
-            isRecording={isRecording} onStopVideoRef={stopVideoRef}
             onVideoLoad={handleVideoLoad} />
         </View>
       </GestureDetector>
       <ReactionCapture isActive={isCameraNeeded}
         isVisible={!!(cameraPermission?.granted && micPermission?.granted)}
         isRecording={isRecording} maxDurationS={reactionDurationS}
-        cameraRef={reactionCameraRef} />
+        cameraRef={reactionCameraRef} onCameraReady={handleCameraReady} />
       <RecordingCountdown isActive={isCountingDown} onCountdownComplete={handleCountdownComplete} />
       <Pressable onPress={handleClose} accessibilityRole="button"
         accessibilityLabel="Close gasp viewer" style={[styles.closeButton, { top: insets.top + 12 }]}>
@@ -237,7 +268,7 @@ export default function ViewGaspScreen() {
       {previewUri !== null && (
         <View style={styles.previewOverlay}>
           <ReactionPreview originalImageUri={imageUri} originalMediaType={mediaType} reactionVideoUri={previewUri}
-            senderName={senderName} onSend={handleSend} onReRecord={handleReRecord}
+            senderName={senderName} onSend={handleSend}
             onDiscard={handleDiscard} isSending={isSending} />
         </View>
       )}
@@ -251,6 +282,7 @@ export default function ViewGaspScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  centered: { justifyContent: 'center', alignItems: 'center' },
   gestureArea: { flex: 1 },
   closeButton: {
     position: 'absolute', right: 20, width: 40, height: 40, borderRadius: 20,

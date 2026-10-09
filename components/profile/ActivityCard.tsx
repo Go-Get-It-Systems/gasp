@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Flame, MessageCircle, Calendar } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
+import { useTranslation } from 'react-i18next';
 
 interface ActivityCardProps {
   streak: number;
@@ -16,24 +17,25 @@ function formatMemberSince(dateStr: string): string {
 }
 
 export function ActivityCard({ streak, reactionsReceived, memberSince }: ActivityCardProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <ActivityRow
         icon={<Flame size={18} color="#F97316" />}
-        label="Streak"
-        value={streak > 0 ? `${streak} days` : 'Start today!'}
+        label={t('profile.streak')}
+        value={streak > 0 ? t('profile.streakDays', { count: streak }) : t('profile.streakStart')}
         accent={streak > 0}
       />
       <View style={styles.separator} />
       <ActivityRow
         icon={<MessageCircle size={18} color={colors.accentCyan} />}
-        label="Reactions received"
+        label={t('profile.reactionsReceived')}
         value={reactionsReceived.toString()}
       />
       <View style={styles.separator} />
       <ActivityRow
         icon={<Calendar size={18} color={colors.primaryLight} />}
-        label="Member since"
+        label={t('profile.memberSince')}
         value={formatMemberSince(memberSince)}
       />
     </View>

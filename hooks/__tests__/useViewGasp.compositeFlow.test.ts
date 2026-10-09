@@ -21,8 +21,17 @@ jest.mock('@/services/uploadQueue', () => ({
   enqueueUpload: jest.fn(),
   removeFromQueue: jest.fn(),
 }));
+const mockResolveReactionMediaUrl = jest.fn();
 jest.mock('@/services/compositeService', () => ({
   buildCompositePayload: jest.requireActual('@/services/compositeService').buildCompositePayload,
+  resolveReactionMediaUrl: (...args: unknown[]) => mockResolveReactionMediaUrl(...args),
+}));
+const mockSendMessageREST = jest.fn((..._args: unknown[]) => Promise.resolve());
+jest.mock('@/services/api/messages', () => ({
+  sendMessage: (...args: unknown[]) => mockSendMessageREST(...args),
+}));
+jest.mock('@/services/videoCompression', () => ({
+  compressVideo: jest.fn((uri: string) => Promise.resolve(uri)),
 }));
 jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
@@ -60,7 +69,6 @@ const DEFAULT_HOOK_PROPS = {
   isRevealed: makeSharedValue(0) as any,
   startProgressAnimation: jest.fn(),
   resetProgress: jest.fn(),
-  onStopGaspVideo: jest.fn(),
   gaspUrl: 'https://cdn.example.com/gasp.jpg',
 };
 
@@ -71,6 +79,7 @@ beforeEach(() => {
   mockedEnqueueUpload.mockResolvedValue('queue-id-1');
   mockedRemoveFromQueue.mockResolvedValue(undefined as any);
   mockedUploadWithRetry.mockResolvedValue({ downloadUrl: 'https://cdn.example.com/reaction.mp4' } as any);
+  mockResolveReactionMediaUrl.mockImplementation((reactionUrl: string) => Promise.resolve(reactionUrl));
 });
 
 afterEach(() => {
@@ -272,6 +281,60 @@ describe('useViewGasp composite flow', () => {
           },
         ),
         { numRuns: 100 },
+      );
+    });
+  });
+
+  describe('server composite', () => {
+    beforeEach(() => {
+      // Earlier tests queue *Once values they never consume; start clean.
+      mockedUploadWithRetry.mockReset();
+      mockedUploadWithRetry.mockResolvedValue({ downloadUrl: 'https://cdn.example.com/reaction.mp4' } as never);
+    });
+
+    async function recordRevealAndSend(result: { current: ReturnType<typeof useViewGasp> }) {
+      const camera = {
+        recordAsync: jest.fn(() => Promise.resolve({ uri: 'file://reaction.mov' })),
+        stopRecording: jest.fn(),
+      };
+      result.current.reactionCameraRef.current = camera as never;
+      jest.setSystemTime(new Date('2026-10-10T10:00:00.000Z'));
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCameraReady();
+      });
+      jest.setSystemTime(new Date('2026-10-10T10:00:03.000Z'));
+      act(() => { result.current.handleCountdownComplete(); });
+      await act(async () => { await result.current.handleRelease(); });
+      await act(async () => { result.current.handleSend(); });
+      await waitFor(() => expect(mockSendMessageREST).toHaveBeenCalled());
+    }
+
+    it('sends the composite URL with the countdown offset when compositing succeeds', async () => {
+      mockResolveReactionMediaUrl.mockResolvedValue('https://cdn.example.com/composites/c.mp4');
+      const { result } = renderHook(() => useViewGasp(DEFAULT_HOOK_PROPS));
+
+      await recordRevealAndSend(result);
+
+      expect(mockResolveReactionMediaUrl).toHaveBeenCalledWith(
+        'https://cdn.example.com/reaction.mp4',
+        DEFAULT_HOOK_PROPS.gaspUrl,
+        3000,
+      );
+      expect(mockSendMessageREST).toHaveBeenCalledWith(
+        'conv-1',
+        expect.objectContaining({ mediaUrl: 'https://cdn.example.com/composites/c.mp4', replyToId: 'msg-1' }),
+      );
+    });
+
+    it('still sends the raw reaction when the composite falls back', async () => {
+      const { result } = renderHook(() => useViewGasp(DEFAULT_HOOK_PROPS));
+
+      await recordRevealAndSend(result);
+
+      expect(mockSendMessageREST).toHaveBeenCalledWith(
+        'conv-1',
+        expect.objectContaining({ mediaUrl: 'https://cdn.example.com/reaction.mp4' }),
       );
     });
   });

@@ -11,6 +11,8 @@ import axios from 'axios';
 import { Text } from '@/components/ui/Text';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { useInboxStore } from '@/stores/inboxStore';
+import { useNotificationStore } from '@/stores/notificationStore';
+import { successHaptic } from '@/utils/haptics';
 import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
 import type { InboxFriend } from '@/stores/inboxStore';
@@ -19,6 +21,7 @@ import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
 import { uploadWithRetry } from '@/services/uploadQueue';
 import { compressImage } from '@/services/imageCompression';
 import { compressVideo } from '@/services/videoCompression';
+import { generatePreviewBlurhash } from '@/services/blurhash';
 import { colors } from '@/constants/colors';
 
 type SendErrorKind = 'server' | 'network' | 'rateLimit' | 'upload' | 'generic';
@@ -111,7 +114,7 @@ export default function SendGaspScreen() {
   const [replayable, setReplayable] = useState(false);
   const [errorState, setErrorState] = useState<SendErrorState | null>(null);
   // Preserva a mídia já uploadada para reaproveitar no retry — evita refazer compress + upload.
-  const uploadedMediaRef = useRef<{ downloadUrl: string } | null>(null);
+  const uploadedMediaRef = useRef<{ downloadUrl: string; blurhash?: string } | null>(null);
 
   const filteredFriends = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -144,7 +147,7 @@ export default function SendGaspScreen() {
   }, [friends, selectedIds.size]);
 
   const submitMetadata = useCallback(
-    async (downloadUrl: string) => {
+    async (downloadUrl: string, blurhash?: string) => {
       const recipientArray = Array.from(selectedIds);
       const { sendMessage } = useChatStore.getState();
 
@@ -152,12 +155,15 @@ export default function SendGaspScreen() {
         recipientIds: recipientArray,
         imageUrl: downloadUrl,
         ...(isVideoMode && { mediaType: 'video' as const }),
+        ...(blurhash && { blurhash }),
         ...(textOverlay && { textOverlay }),
         replayable,
       });
 
-      // Fire-and-forget socket chat messages so they visually populate the conversation stream
-      for (const friendId of recipientArray) {
+      // Fire-and-forget chat messages so they populate each conversation. Not
+      // awaited: the gasp itself is already delivered by sendBatch, and doing
+      // this serially per recipient kept the progress bar stuck at 90%.
+      void Promise.allSettled(recipientArray.map(async (friendId) => {
         try {
           const conv = await getOrCreateMutation.mutateAsync(friendId);
           let content: string;
@@ -172,7 +178,7 @@ export default function SendGaspScreen() {
         } catch (e) {
           Sentry.captureException(e, { extra: { context: 'send-gasp.fanOutChatMessage', friendId } });
         }
-      }
+      }));
     },
     [selectedIds, isVideoMode, textOverlay, replayable, sendBatchMutation, getOrCreateMutation],
   );
@@ -195,12 +201,16 @@ export default function SendGaspScreen() {
           ? await compressVideo(imageUri)
           : await compressImage(imageUri);
 
-        // 2. Upload to Firebase Storage
-        const result = await uploadWithRetry(compressedUri, 'gasps', userId, ({ progress }) => {
-          setUploadProgress(0.1 + progress * 0.7); // 10-80% for upload
-        });
+        // 2. Upload to Firebase Storage, computing the privacy-safe preview
+        //    hash in parallel (photos only for now).
+        const [result, blurhash] = await Promise.all([
+          uploadWithRetry(compressedUri, 'gasps', userId, ({ progress }) => {
+            setUploadProgress(0.1 + progress * 0.7); // 10-80% for upload
+          }),
+          isVideoMode ? Promise.resolve(undefined) : generatePreviewBlurhash(compressedUri),
+        ]);
         downloadUrl = result.downloadUrl;
-        uploadedMediaRef.current = { downloadUrl };
+        uploadedMediaRef.current = { downloadUrl, blurhash };
       } else {
         // Já uploadou em uma tentativa anterior — pula direto pro metadata save
         setUploadProgress(0.85);
@@ -208,10 +218,22 @@ export default function SendGaspScreen() {
 
       // 3. Save gasp metadata to backend
       setUploadProgress(0.9);
-      await submitMetadata(downloadUrl);
+      await submitMetadata(downloadUrl, uploadedMediaRef.current?.blurhash);
 
       setUploadProgress(1);
       uploadedMediaRef.current = null;
+      successHaptic();
+      const recipients = friends.filter((f) => selectedIds.has(f.id));
+      useNotificationStore.getState().enqueueToast({
+        id: `gasp-sent-${Date.now()}`,
+        kind: 'gasp.sent',
+        title: t('sendGasp.sentTitle'),
+        body: recipients.length === 1
+          ? t('sendGasp.sentToOne', { name: recipients[0].name })
+          : t('sendGasp.sentToMany', { count: recipients.length }),
+        route: '',
+        actorAvatarUrl: recipients.length === 1 ? recipients[0].avatarUrl ?? undefined : undefined,
+      });
       router.dismissAll();
       router.replace('/(tabs)/camera');
     } catch (error) {
@@ -231,7 +253,7 @@ export default function SendGaspScreen() {
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [imageUri, isUploading, user?.id, isVideoMode, selectedIds.size, submitMetadata]);
+  }, [imageUri, isUploading, user?.id, isVideoMode, selectedIds, submitMetadata, friends, t]);
 
   const handleRetry = useCallback(() => {
     setErrorState(null);
@@ -361,20 +383,20 @@ export default function SendGaspScreen() {
         <Pressable
           onPress={() => setReplayable((v) => !v)}
           accessibilityRole="switch"
-          accessibilityLabel="Allow recipient to replay this gasp"
+          accessibilityLabel={t('sendGasp.allowReplaysA11y')}
           accessibilityState={{ checked: replayable }}
           style={styles.replayableRow}
         >
           <View style={styles.replayableLeft}>
             <Repeat size={18} color={replayable ? colors.primary : colors.textSecondary} />
             <View style={styles.replayableTextWrap}>
+              {/* Fixed label so the switch position alone says on/off; it used to
+                  read "Play once" while switched off, which looked inverted. */}
               <Text variant="label" style={styles.replayableTitle}>
-                {replayable ? 'Replayable' : 'Play once'}
+                {t('sendGasp.allowReplays')}
               </Text>
               <Text variant="caption" style={styles.replayableSubtitle}>
-                {replayable
-                  ? 'Recipient can replay until it expires'
-                  : 'Single view, disappears after viewing'}
+                {replayable ? t('sendGasp.allowReplaysOn') : t('sendGasp.allowReplaysOff')}
               </Text>
             </View>
           </View>
