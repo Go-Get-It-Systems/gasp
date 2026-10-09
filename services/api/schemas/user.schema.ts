@@ -11,6 +11,7 @@ export const FriendshipStatusForUserSchema = z.enum([
 export type FriendshipStatusForUser = z.infer<typeof FriendshipStatusForUserSchema>;
 
 export const UserSchema = z.object({
+  accountType: z.enum(['personal', 'business']).optional(),
   id: z.string(),
   displayName: z.string(),
   username: z.string(),

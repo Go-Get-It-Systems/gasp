@@ -15,7 +15,7 @@ export type PaginatedResponse<T> = {
   hasMore: boolean;
 };
 
-export function validateResponse<T>(schema: z.ZodType<T>, data: unknown, context: string): T {
+export function validateResponse<T>(schema: z.ZodType<T>, data: unknown, context: string, includePayload = true): T {
   const result = schema.safeParse(data);
   if (result.success) return result.data;
 
@@ -23,7 +23,7 @@ export function validateResponse<T>(schema: z.ZodType<T>, data: unknown, context
     level: 'warning',
     extra: {
       errors: result.error.issues,
-      data: JSON.stringify(data).slice(0, 500),
+      ...(includePayload ? { data: JSON.stringify(data).slice(0, 500) } : {}),
     },
   });
 

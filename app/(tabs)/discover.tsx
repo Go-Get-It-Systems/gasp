@@ -26,6 +26,7 @@ import * as discoverApi from '@/services/api/discover';
 import type { User } from '@/services/api/schemas/user.schema';
 import { colors } from '@/constants/colors';
 import { Users, Trophy, UserX } from 'lucide-react-native';
+import { BusinessDirectorySection } from '@/components/business/BusinessEntries';
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
@@ -150,6 +151,7 @@ export default function DiscoverScreen() {
 
             {!isShowingSearch && (
               <View style={styles.recommendationsContainer}>
+                <BusinessDirectorySection />
                 {topGaspers.length > 0 && (
                   <RecommendedSection
                     title="Top Gaspers"

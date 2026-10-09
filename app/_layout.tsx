@@ -2,6 +2,7 @@ import "@/global.css";
 import "@/lib/i18n";
 import "react-native-reanimated";
 import { getSentryPrivacyOptions } from "@/lib/sentryPrivacy";
+import { useBusinessRefresh } from "@/hooks/useBusinessRefresh";
 
 if (__DEV__) {
   require("../reactotron.config");
@@ -71,6 +72,7 @@ function RootContent() {
 
   // Register all Socket.IO listeners for real-time updates
   useSocketListeners();
+  useBusinessRefresh();
 
   // Fetch friends & pending gasps on auth
   useOnlineStatus();

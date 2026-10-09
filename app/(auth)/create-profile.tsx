@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   StyleSheet,
   View,
+  ScrollView,
   Pressable,
   TextInput,
   Alert,
@@ -15,6 +16,7 @@ import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/stores/authStore';
 import { getApiErrorMessage } from '@/services/api';
 import { colors } from '@/constants/colors';
+import { AccountTypeChoice } from '@/components/business/AccountTypeChoice';
 
 export default function CreateProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -26,6 +28,7 @@ export default function CreateProfileScreen() {
 
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
+  const [accountType, setAccountType] = useState<'personal' | 'business'>('personal');
 
   const isValid =
     displayName.trim().length >= 1 &&
@@ -42,6 +45,7 @@ export default function CreateProfileScreen() {
         firebaseToken,
         displayName: displayName.trim(),
         username: username.trim().toLowerCase(),
+        accountType,
       });
       router.replace('/(tabs)/camera');
     } catch (error) {
@@ -54,7 +58,7 @@ export default function CreateProfileScreen() {
       style={[styles.container, { paddingTop: insets.top + 20 }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="title" style={styles.title}>
           {'Create your profile'}
         </Text>
@@ -99,6 +103,7 @@ export default function CreateProfileScreen() {
           )}
         </View>
 
+        <AccountTypeChoice value={accountType} onChange={setAccountType} disabled={isLoading} />
         <Pressable
           onPress={handleCreate}
           disabled={!isValid || isLoading}
@@ -115,7 +120,7 @@ export default function CreateProfileScreen() {
             </Text>
           )}
         </Pressable>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

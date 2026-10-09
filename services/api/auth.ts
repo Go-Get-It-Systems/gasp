@@ -14,6 +14,7 @@ export async function register(data: {
   firebaseToken: string;
   displayName: string;
   username: string;
+  accountType?: 'personal' | 'business';
 }): Promise<AuthResponse> {
   const res = await api.post<AuthResponse>('/auth/register', data);
   return res.data;

@@ -12,6 +12,7 @@ function invalidateSafetySurfaces(queryClient: ReturnType<typeof useQueryClient>
   // blocked relationship. Remove it rather than briefly rendering stale cache.
   queryClient.removeQueries({ queryKey: queryKeys.conversations.all });
   queryClient.removeQueries({ queryKey: ['messages'] });
+  queryClient.removeQueries({ queryKey: queryKeys.business.all });
   queryClient.invalidateQueries({ queryKey: queryKeys.gasps.pending });
   queryClient.invalidateQueries({ queryKey: queryKeys.gasps.sent });
   queryClient.invalidateQueries({ queryKey: queryKeys.discover.recommended });

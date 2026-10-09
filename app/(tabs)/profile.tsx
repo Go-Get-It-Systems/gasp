@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfileStats, calculateGaspScore } from '@/hooks/queries/useProfile';
 import { colors } from '@/constants/colors';
+import { BusinessStudioEntry } from '@/components/business/BusinessEntries';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -55,6 +56,7 @@ export default function ProfileScreen() {
         onEditProfilePress={() => router.push('/(modals)/edit-profile')}
       />
 
+      <BusinessStudioEntry />
       <QueryState
         data={stats}
         isLoading={isLoading}

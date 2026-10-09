@@ -35,6 +35,7 @@ interface AuthState {
     firebaseToken: string;
     displayName: string;
     username: string;
+    accountType?: 'personal' | 'business';
   }) => Promise<User>;
 
   /** Restore session on app launch. Returns true if session is valid. */
