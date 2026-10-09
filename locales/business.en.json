@@ -32,7 +32,7 @@
   "permissionTitle": "Camera and microphone access", "permissionBody": "Allow camera and microphone access to record a reaction.",
   "error": "Could not complete this action. Please try again.", "permissionError": "Camera or media-library permission is required.",
   "invalidCampaign": "Choose media and enter a title (1–120 characters).", "unavailable": "This campaign is no longer available.",
-  "back": "Back", "loading": "Loading business content", "viewReaction": "Watch reaction from {{name}}",
+  "back": "Back", "loading": "Loading business content", "loadMore": "Load more reactions", "mediaPreview": "Media preview", "viewReaction": "Watch reaction from {{name}}",
   "personalAccount": "Personal", "businessAccount": "Business", "accountType": "Account type",
   "accountHint": "Business Studio is available only to approved pilot owners; this selection does not grant access."
 }

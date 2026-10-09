@@ -18,12 +18,14 @@ export default function CampaignViewer() {
   const delivery = useCampaignDelivery(workspaceId, campaignId);
   const campaign = campaigns.data?.find((c) => c.id === campaignId);
   const recipient = inbox.data?.some((item) => item.workspaceId === workspaceId && item.campaignId === campaignId);
-  const opened = useRef(false);
+  const opened = useRef<string | null>(null);
   useEffect(() => {
-    if (!focused || !campaign || !recipient || opened.current) return;
-    opened.current = true;
-    delivery.mutate('opened', { onError: () => { opened.current = false; } });
-  }, [focused, campaign, recipient, delivery]);
+    const key = `${workspaceId}:${campaignId}`;
+    if (!focused || !campaign || !recipient || campaigns.isError || inbox.isError || opened.current === key) return;
+    // A failed open must not trigger a mutation/render retry loop. User completion can retry explicitly.
+    opened.current = key;
+    delivery.mutate('opened');
+  }, [focused, campaign, recipient, campaigns.isError, inbox.isError, workspaceId, campaignId, delivery]);
   return <BusinessScreen title={campaign?.title ?? t('business.campaigns')}>
     <BusinessQuery query={campaigns} empty={t('business.unavailable')}>{() => campaign ? <>
       <CampaignMedia uri={campaign.mediaUrl} mediaType={campaign.mediaType} />

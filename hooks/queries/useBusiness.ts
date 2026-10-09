@@ -54,7 +54,7 @@ export function useMyCampaignReaction(w: string, c: string) {
 }
 export function useMyCampaignReactions() {
   const actor = useBusinessActor();
-  return useInfiniteQuery({ queryKey: queryKeys.business.receipts(actor),
+  return useInfiniteQuery({ queryKey: queryKeys.business.myReactions(actor),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) => api.getMyCampaignReactions(pageParam),
     getNextPageParam: (page) => page.hasMore ? page.nextCursor ?? undefined : undefined,

@@ -25,6 +25,6 @@ export default function MyCampaignReactions() {
   const query = useMyCampaignReactions();
   return <BusinessScreen title={t('business.myReactions')}>
     <BusinessQuery query={{ ...query, data: query.data?.pages.flatMap((page) => page.data) }} empty={t('business.emptyReceipts')}>{(rows) => rows.map((reaction) => <OwnReaction key={reaction.id} reaction={reaction} />)}</BusinessQuery>
-    {query.hasNextPage && <BusinessButton label={t('common.loading')} disabled={query.isFetchingNextPage} onPress={() => { void query.fetchNextPage(); }} />}
+    {query.hasNextPage && <BusinessButton label={t(query.isFetchingNextPage ? 'common.loading' : 'business.loadMore')} disabled={query.isFetchingNextPage} onPress={() => { void query.fetchNextPage(); }} />}
   </BusinessScreen>;
 }

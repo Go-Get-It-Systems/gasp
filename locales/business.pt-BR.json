@@ -32,7 +32,7 @@
   "permissionTitle": "Acesso à câmera e ao microfone", "permissionBody": "Permita o acesso à câmera e ao microfone para gravar uma reação.",
   "error": "Não foi possível concluir esta ação. Tente novamente.", "permissionError": "É necessário permitir o acesso à câmera ou à biblioteca de mídia.",
   "invalidCampaign": "Escolha uma mídia e informe um título (1–120 caracteres).", "unavailable": "Esta campanha não está mais disponível.",
-  "back": "Voltar", "loading": "Carregando conteúdo de empresas", "viewReaction": "Assistir à reação de {{name}}",
+  "back": "Voltar", "loading": "Carregando conteúdo de empresas", "loadMore": "Carregar mais reações", "mediaPreview": "Prévia da mídia", "viewReaction": "Assistir à reação de {{name}}",
   "personalAccount": "Pessoal", "businessAccount": "Empresarial", "accountType": "Tipo de conta",
   "accountHint": "O Business Studio está disponível somente para proprietários aprovados no piloto; esta escolha não concede acesso."
 }

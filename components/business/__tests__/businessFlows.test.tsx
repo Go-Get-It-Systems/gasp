@@ -82,8 +82,17 @@ describe('Business user flows', () => {
   it('records opened only for a real inbox delivery, then viewed on completion', () => {
     mockRecipient = true;
     const screen = render(<CampaignViewer />);
-    expect(mockDelivery).toHaveBeenCalledWith('opened', expect.any(Object));
+    expect(mockDelivery).toHaveBeenCalledWith('opened');
     fireEvent.press(screen.getByRole('button', { name: 'business.finishViewing' }));
     expect(mockDelivery).toHaveBeenCalledWith('viewed', expect.any(Object));
+  });
+  it('does not retry opened automatically on mutation rerenders or stale query errors', () => {
+    mockRecipient = true;
+    const screen = render(<CampaignViewer />);
+    screen.rerender(<CampaignViewer />);
+    expect(mockDelivery).toHaveBeenCalledTimes(1);
+    mockQueryError = true;
+    screen.rerender(<CampaignViewer />);
+    expect(mockDelivery).toHaveBeenCalledTimes(1);
   });
 });
