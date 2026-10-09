@@ -145,6 +145,12 @@
       "findFriends": "Find friends",
       "conversationAccessibility": "{{name}}, {{preview}}",
       "conversationUnreadAccessibility": "{{name}}, {{preview}}, {{count}} unread messages"
+    },
+    "gaspBubble": {
+      "tapToOpen": "Tap to open",
+      "from": "from {{name}}",
+      "loading": "Loading...",
+      "opened": "Opened"
     }
   },
   "discover": {
@@ -186,7 +192,9 @@
     "missingConversationTitle": "Could not send reaction",
     "missingConversationBody": "We could not find the chat for this gasp. Please try again from the conversation.",
     "recordingFailedTitle": "Recording failed",
-    "recordingFailedBody": "Could not capture your reaction. Please try again."
+    "recordingFailedBody": "Could not capture your reaction. Please try again.",
+    "holdToView": "Hold to view",
+    "recordingHint": "Your reaction is recorded while you hold"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",

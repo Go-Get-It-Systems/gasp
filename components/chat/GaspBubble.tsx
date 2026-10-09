@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, EyeOff } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
 import { useGaspStore } from '@/stores/gaspStore';
 import { openGaspViewer } from '@/services/navigation';
@@ -19,6 +20,7 @@ interface GaspBubbleProps {
 }
 
 export function GaspBubble({ message, isOwnMessage, otherParticipantName }: GaspBubbleProps) {
+  const { t } = useTranslation();
   const rawMediaUri = message.mediaUrl || message.content;
   const resolvedMediaUri = rawMediaUri ? (getCachedUri(rawMediaUri) ?? rawMediaUri) : rawMediaUri;
 
@@ -96,7 +98,7 @@ export function GaspBubble({ message, isOwnMessage, otherParticipantName }: Gasp
             /* Viewed state — compact, dimmed */
             <View style={styles.viewedOverlay}>
               <EyeOff size={20} color="rgba(255,255,255,0.5)" />
-              <Text variant="caption" style={styles.viewedLabel}>Opened</Text>
+              <Text variant="caption" style={styles.viewedLabel}>{t('chat.gaspBubble.opened')}</Text>
             </View>
           ) : (
             /* Unviewed state — inviting gradient overlay */
@@ -108,16 +110,16 @@ export function GaspBubble({ message, isOwnMessage, otherParticipantName }: Gasp
               {isPreloading ? (
                 <>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text variant="body" style={styles.tapText}>Loading...</Text>
+                  <Text variant="body" style={styles.tapText}>{t('chat.gaspBubble.loading')}</Text>
                 </>
               ) : (
                 <>
                   <View style={styles.eyeCircle}>
                     <Eye size={26} color="#FFFFFF" />
                   </View>
-                  <Text variant="body" style={styles.tapText}>Tap to view</Text>
+                  <Text variant="body" style={styles.tapText}>{t('chat.gaspBubble.tapToOpen')}</Text>
                   <Text variant="caption" style={styles.tapHint}>
-                    from {otherParticipantName}
+                    {t('chat.gaspBubble.from', { name: otherParticipantName })}
                   </Text>
                 </>
               )}

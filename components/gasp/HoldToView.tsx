@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Sentry from '@sentry/react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
 import { parseTextOverlay, TextOverlayRenderer } from './TextOverlayRenderer';
 import { GaspTimer } from './GaspTimer';
@@ -45,6 +46,7 @@ export function HoldToView({
   onVideoLoad,
   isRecording = false,
 }: HoldToViewProps) {
+  const { t } = useTranslation();
   const isVideo = mediaType === 'video';
   const textOverlay = textOverlayJson ? parseTextOverlay(textOverlayJson) : null;
   // Use cached local path if available, otherwise use the URI as-is
@@ -227,7 +229,10 @@ export function HoldToView({
           {senderName}
         </Text>
         <Text variant="caption" style={styles.instruction}>
-          {'TAP TO VIEW'}
+          {t('viewGasp.holdToView').toUpperCase()}
+        </Text>
+        <Text variant="caption" style={styles.recordingHint}>
+          {t('viewGasp.recordingHint')}
         </Text>
       </Animated.View>
 
@@ -274,6 +279,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.7)',
     letterSpacing: 3,
+  },
+  recordingHint: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: -8,
   },
   timerContainer: {
     position: 'absolute',

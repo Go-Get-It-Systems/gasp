@@ -146,6 +146,12 @@
       "findFriends": "Encontrar amigos",
       "conversationAccessibility": "{{name}}, {{preview}}",
       "conversationUnreadAccessibility": "{{name}}, {{preview}}, {{count}} mensagens não lidas"
+    },
+    "gaspBubble": {
+      "tapToOpen": "Toque para abrir",
+      "from": "de {{name}}",
+      "loading": "Carregando...",
+      "opened": "Aberto"
     }
   },
   "discover": {
@@ -187,7 +193,9 @@
     "missingConversationTitle": "Não foi possível enviar a reação",
     "missingConversationBody": "Não encontramos a conversa deste gasp. Tente novamente pela conversa.",
     "recordingFailedTitle": "Falha na gravação",
-    "recordingFailedBody": "Não foi possível capturar sua reação. Tente novamente."
+    "recordingFailedBody": "Não foi possível capturar sua reação. Tente novamente.",
+    "holdToView": "Segure para ver",
+    "recordingHint": "Sua reação é gravada enquanto você segura"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",
