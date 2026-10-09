@@ -68,8 +68,8 @@ export default function PhoneLoginScreen() {
           verificationId: confirmation.verificationId,
         },
       });
-    } catch (error: any) {
-      const code = error?.code ?? '';
+    } catch (error: unknown) {
+      const code = (error as { code?: string } | null)?.code ?? '';
       const message =
         code === 'auth/invalid-phone-number'
           ? 'Invalid phone number. Please check and try again.'

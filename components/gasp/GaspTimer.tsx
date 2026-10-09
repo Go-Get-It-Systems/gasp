@@ -1,7 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedProps,
-  useDerivedValue,
   type SharedValue,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';

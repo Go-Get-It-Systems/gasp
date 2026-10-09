@@ -1,6 +1,7 @@
 import "@/global.css";
 import "@/lib/i18n";
 import "react-native-reanimated";
+import { getSentryPrivacyOptions } from "@/lib/sentryPrivacy";
 
 if (__DEV__) {
   require("../reactotron.config");
@@ -36,22 +37,18 @@ LogBox.ignoreLogs([
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? "",
-  enabled: true, //!__DEV__,
+  ...getSentryPrivacyOptions(__DEV__),
   tracesSampleRate: 0.2,
-  attachScreenshot: true,
   enableAutoSessionTracking: true,
   // Propagate `sentry-trace` and `baggage` headers on outgoing requests so
   // client errors and backend errors land in the same trace in Sentry.
   // The backend (@sentry/node) picks up these headers automatically.
-  integrations: [
-    Sentry.reactNativeTracingIntegration({
-      tracePropagationTargets: [
-        "gasp-backend-production.up.railway.app",
-        /^https:\/\/gasp-backend-production\.up\.railway\.app/,
-        "localhost",
-      ],
-    } as any),
+  tracePropagationTargets: [
+    "gasp-backend-production.up.railway.app",
+    /^https:\/\/gasp-backend-production\.up\.railway\.app/,
+    "localhost",
   ],
+  integrations: [Sentry.reactNativeTracingIntegration()],
 });
 
 // Keep splash screen visible while we initialize auth
