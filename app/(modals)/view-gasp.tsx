@@ -115,7 +115,6 @@ export default function ViewGaspScreen() {
     isRecording,
     previewUri,
     isSending,
-    reactionDurationS,
     handleHoldStart,
     handleCameraReady,
     handleCountdownComplete,
@@ -256,7 +255,7 @@ export default function ViewGaspScreen() {
       </GestureDetector>
       <ReactionCapture isActive={isCameraNeeded}
         isVisible={!!(cameraPermission?.granted && micPermission?.granted)}
-        isRecording={isRecording} maxDurationS={reactionDurationS}
+        isRecording={isRecording}
         cameraRef={reactionCameraRef} onCameraReady={handleCameraReady} />
       <RecordingCountdown isActive={isCountingDown} onCountdownComplete={handleCountdownComplete}
         touchX={touchX} touchY={touchY} />

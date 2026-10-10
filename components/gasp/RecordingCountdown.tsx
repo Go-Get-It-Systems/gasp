@@ -13,7 +13,6 @@ import { Text } from '@/components/ui/Text';
 import { mediumHaptic, heavyHaptic, successHaptic } from '@/utils/haptics';
 import { useContainerSize } from '@/hooks/useContainerSize';
 import { CountdownRing } from './CountdownRing';
-import { RecordingDot } from './RecordingDot';
 
 /** Diameter of the countdown ring. The gasp starts opening from this circle. */
 export const COUNTDOWN_RING_SIZE = 160;
@@ -42,7 +41,6 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
   // Sized to the container (a modal sheet), not the window.
   const { width, height, onLayout } = useContainerSize();
   const [count, setCount] = useState<number | null>(null);
-  const [showDot, setShowDot] = useState(false);
   const [showReleaseHint, setShowReleaseHint] = useState(false);
   const onCountdownCompleteRef = useRef(onCountdownComplete);
   onCountdownCompleteRef.current = onCountdownComplete;
@@ -79,7 +77,6 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
       const releasedEarly = countdownStartedRef.current && !completedRef.current;
       countdownStartedRef.current = false;
       setCount(null);
-      setShowDot(false);
       cancelAnimation(ringProgress);
       // Let go before 0: the ring drains back instead of vanishing.
       ringProgress.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
@@ -95,7 +92,6 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
     completedRef.current = false;
 
     setCount(COUNTDOWN_S);
-    setShowDot(false);
     setShowReleaseHint(false);
     ringOpacity.value = withTiming(1, { duration: 150 });
     ringProgress.value = 0;
@@ -112,7 +108,6 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
         clearInterval(interval);
         completedRef.current = true;
         setCount(null);
-        setShowDot(true);
         // The ring hands over to the circle the gasp opens through.
         ringOpacity.value = withTiming(0, { duration: 250 });
         successHaptic();
@@ -159,7 +154,7 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
     opacity: numberOpacity.get(),
   }));
 
-  if (!isActive && !showDot && !showReleaseHint) return null;
+  if (!isActive && !showReleaseHint) return null;
 
   const label = count !== null ? t('viewGasp.keepHolding') : showReleaseHint ? t('viewGasp.keepHoldingToOpen') : null;
 
@@ -176,7 +171,6 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
           <Text style={styles.label} onLayout={(e) => labelWidth.set(e.nativeEvent.layout.width)}>{label}</Text>
         </Animated.View>
       )}
-      {showDot && <RecordingDot />}
     </View>
   );
 }

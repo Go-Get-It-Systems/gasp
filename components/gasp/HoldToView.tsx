@@ -3,17 +3,14 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Sentry from '@sentry/react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { parseTextOverlay, TextOverlayRenderer } from './TextOverlayRenderer';
-import { GaspTimer } from './GaspTimer';
 import { CircleReveal } from './CircleReveal';
 import { HoldIntro } from './HoldIntro';
+import { RecordingHud } from './RecordingHud';
 import { COUNTDOWN_RING_SIZE } from './RecordingCountdown';
-import Animated, {
-  useAnimatedStyle,
+import {
   useAnimatedReaction,
   runOnJS,
-  interpolate,
   type SharedValue,
 } from 'react-native-reanimated';
 import { colors } from '@/constants/colors';
@@ -53,7 +50,6 @@ export function HoldToView({
   durationS,
   onVideoLoad,
 }: HoldToViewProps) {
-  const insets = useSafeAreaInsets();
   const isVideo = mediaType === 'video';
   const textOverlay = textOverlayJson ? parseTextOverlay(textOverlayJson) : null;
   // Use cached local path if available, otherwise use the URI as-is
@@ -146,11 +142,6 @@ export function HoldToView({
     },
   );
 
-  // Ring timer: visible once revealed (recording in progress)
-  const timerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(isRevealed.get(), [0, 1], [0, 1]),
-  }));
-
   return (
     <View style={styles.container}>
       {/* Blurred preview (always visible) */}
@@ -218,10 +209,8 @@ export function HoldToView({
       <HoldIntro senderName={senderName} mediaType={mediaType} durationS={durationS}
         isHolding={isHolding} isRevealed={isRevealed} />
 
-      {/* Timer during hold */}
-      <Animated.View style={[styles.timerContainer, { top: insets.top + 12 }, timerStyle]}>
-        <GaspTimer progress={holdProgress} size={60} strokeWidth={3} />
-      </Animated.View>
+      {/* While open and recording: one HUD (progress bar + REC timer) */}
+      <RecordingHud progress={holdProgress} isRevealed={isRevealed} isHolding={isHolding} />
     </View>
   );
 }
@@ -240,11 +229,5 @@ const styles = StyleSheet.create({
   },
   revealedImage: {
     ...StyleSheet.absoluteFillObject,
-  },
-  // Top-left: the top-right corner holds the close/report buttons and the
-  // default self-view position.
-  timerContainer: {
-    position: 'absolute',
-    left: 20,
   },
 });

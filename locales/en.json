@@ -213,6 +213,8 @@
     "photo": "Photo",
     "video": "Video",
     "pressAndHold": "Press & hold to open",
+    "letGoToFinish": "Let go to finish",
+    "recordingElapsed": "Recording, {{seconds}} seconds",
     "unavailableTitle": "Gasp unavailable",
     "unavailableBody": "This gasp was already opened or has expired."
   },

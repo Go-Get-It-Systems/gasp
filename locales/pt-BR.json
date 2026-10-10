@@ -214,6 +214,8 @@
     "photo": "Foto",
     "video": "Vídeo",
     "pressAndHold": "Segure para abrir",
+    "letGoToFinish": "Solte para finalizar",
+    "recordingElapsed": "Gravando, {{seconds}} segundos",
     "unavailableTitle": "Gasp indisponível",
     "unavailableBody": "Este gasp já foi aberto ou expirou."
   },
