@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react';
+import { Dimensions } from 'react-native';
 import {
   useSharedValue,
   withTiming,
@@ -7,7 +8,7 @@ import {
 } from 'react-native-reanimated';
 import { Gesture } from 'react-native-gesture-handler';
 import { HOLD_DURATION_MS } from '@/constants/animations';
-import { heavyHaptic, successHaptic } from '@/utils/haptics';
+import { lightHaptic, successHaptic } from '@/utils/haptics';
 
 interface UseHoldGestureProps {
   onHoldStart?: () => void;
@@ -28,6 +29,10 @@ export function useHoldGesture({
   const holdProgress = useSharedValue(0);
   const holdCompleteRef = useRef(false);
   const durationSV = useSharedValue(duration);
+  // Where the finger landed (gesture-area coordinates). The countdown ring is
+  // drawn here and the gasp opens from this point. Defaults to screen center.
+  const touchX = useSharedValue(Dimensions.get('window').width / 2);
+  const touchY = useSharedValue(Dimensions.get('window').height / 2);
 
   useEffect(() => {
     durationSV.value = duration;
@@ -35,7 +40,8 @@ export function useHoldGesture({
 
   const handleHoldStart = useCallback(() => {
     holdCompleteRef.current = false;
-    heavyHaptic();
+    // Light on touch-down: the countdown ramps the haptics up from here.
+    lightHaptic();
     onHoldStart?.();
   }, [onHoldStart]);
 
@@ -72,7 +78,9 @@ export function useHoldGesture({
   const gesture = Gesture.LongPress()
     .minDuration(0)
     .maxDistance(60)
-    .onStart(() => {
+    .onStart((e) => {
+      touchX.set(e.x);
+      touchY.set(e.y);
       isHolding.set(1);
       // Ring starts only after countdown via startProgressAnimation().
       runOnJS(handleHoldStart)();
@@ -88,6 +96,8 @@ export function useHoldGesture({
     gesture,
     isHolding,
     holdProgress,
+    touchX,
+    touchY,
     startProgressAnimation,
     resetProgress,
   };

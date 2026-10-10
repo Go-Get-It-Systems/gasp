@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { CameraView } from 'expo-camera';
-import { withTiming, type SharedValue } from 'react-native-reanimated';
+import { Easing, withTiming, type SharedValue } from 'react-native-reanimated';
 import * as Sentry from '@sentry/react-native';
 import { useAuthStore } from '@/stores/authStore';
 import { useCloseViewGasp, useCreateReaction } from '@/hooks/queries/useGasps';
@@ -200,7 +200,8 @@ export function useViewGasp({
     if (releasedRef.current) return;
     revealedRef.current = true;
     revealedAtRef.current = Date.now();
-    isRevealed.value = withTiming(1, { duration: 300 });
+    // Drives the circle the gasp opens through (see CircleReveal).
+    isRevealed.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
     startProgressAnimation();
     onReveal?.();
     startRecording();

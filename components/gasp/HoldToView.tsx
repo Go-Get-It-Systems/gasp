@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/Text';
 import { parseTextOverlay, TextOverlayRenderer } from './TextOverlayRenderer';
 import { GaspTimer } from './GaspTimer';
+import { CircleReveal } from './CircleReveal';
+import { COUNTDOWN_RING_SIZE } from './RecordingCountdown';
 import Animated, {
   useAnimatedStyle,
   useAnimatedReaction,
@@ -30,6 +32,9 @@ interface HoldToViewProps {
   isHolding: SharedValue<number>;
   holdProgress: SharedValue<number>;
   isRevealed: SharedValue<number>;
+  /** Where the finger landed; the gasp opens in a circle from this point. */
+  touchX: SharedValue<number>;
+  touchY: SharedValue<number>;
   onVideoLoad?: (durationMs: number) => void;
 }
 
@@ -42,6 +47,8 @@ export function HoldToView({
   isHolding,
   holdProgress,
   isRevealed,
+  touchX,
+  touchY,
   onVideoLoad,
 }: HoldToViewProps) {
   const { t } = useTranslation();
@@ -129,18 +136,14 @@ export function HoldToView({
   useAnimatedReaction(
     () => isRevealed.get(),
     (current, previous) => {
-      if (current === 1 && previous !== 1) {
+      // Start as soon as the circle begins to open, not when it finishes.
+      if (current > 0 && (previous ?? 0) === 0) {
         runOnJS(startVideo)();
       } else if (current === 0 && previous !== 0) {
         runOnJS(pauseVideo)();
       }
     },
   );
-
-  // Media opacity: fade in when isRevealed transitions to 1
-  const imageStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(isRevealed.get(), [0, 1], [0, 1]),
-  }));
 
   // Instruction overlay: hide as soon as user starts holding (isHolding),
   // so the countdown is visible without the "HOLD TO VIEW" text in the way
@@ -183,14 +186,18 @@ export function HoldToView({
         </>
       )}
 
-      {/* Revealed media (visible on hold) */}
-      <Animated.View style={[styles.revealedContainer, imageStyle]}>
+      {/* Revealed media: opens through a circle that grows from the finger */}
+      <CircleReveal progress={isRevealed} originX={touchX} originY={touchY}
+        startRadius={COUNTDOWN_RING_SIZE / 2}>
         {isVideo && videoPlayer ? (
           <VideoView
             player={videoPlayer}
             style={styles.revealedImage}
             contentFit="contain"
             nativeControls={false}
+            // Android: a TextureView is clipped by the reveal circle; the
+            // default SurfaceView would draw over it. Ignored on iOS.
+            surfaceType="textureView"
           />
         ) : (
           <>
@@ -213,7 +220,7 @@ export function HoldToView({
           </>
         )}
         {textOverlay && <TextOverlayRenderer data={textOverlay} />}
-      </Animated.View>
+      </CircleReveal>
 
       {/* Hold instruction overlay */}
       <Animated.View style={[styles.instructionOverlay, instructionStyle]}>
@@ -248,9 +255,6 @@ const styles = StyleSheet.create({
   blurOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
-  },
-  revealedContainer: {
-    ...StyleSheet.absoluteFillObject,
   },
   revealedImage: {
     ...StyleSheet.absoluteFillObject,

@@ -208,6 +208,8 @@
     "recordingFailedBody": "Não foi possível capturar sua reação. Tente novamente.",
     "holdToView": "Segure para ver",
     "recordingHint": "Sua reação é gravada enquanto você segura",
+    "keepHolding": "Continue segurando…",
+    "keepHoldingToOpen": "Continue segurando para abrir",
     "unavailableTitle": "Gasp indisponível",
     "unavailableBody": "Este gasp já foi aberto ou expirou."
   },

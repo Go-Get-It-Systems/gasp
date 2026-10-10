@@ -159,7 +159,7 @@ export default function ViewGaspScreen() {
     }
   }, [gasp, revealTick, openGaspMutation, openedRef, gaspIdRef]);
 
-  const { gesture, isHolding, holdProgress, startProgressAnimation, resetProgress } =
+  const { gesture, isHolding, holdProgress, touchX, touchY, startProgressAnimation, resetProgress } =
     useHoldGesture({
       onHoldStart: useCallback(() => {
         isCameraNeeded.value = 1;
@@ -216,7 +216,7 @@ export default function ViewGaspScreen() {
       <View style={styles.container}>
         <HoldToView imageUri={imageUri} mediaType={mediaType} blurhash={blurhash}
           senderName={senderName} isHolding={isHolding} holdProgress={holdProgress}
-          isRevealed={isRevealed} />
+          isRevealed={isRevealed} touchX={touchX} touchY={touchY} />
         <View style={styles.permissionOverlay}>
           <View style={styles.permissionCard}>
             <Camera size={40} color={colors.primary} />
@@ -250,14 +250,15 @@ export default function ViewGaspScreen() {
           <HoldToView imageUri={imageUri} mediaType={mediaType} blurhash={blurhash}
             senderName={senderName} textOverlayJson={params.chatTextOverlay}
             isHolding={isHolding} holdProgress={holdProgress} isRevealed={isRevealed}
-            onVideoLoad={handleVideoLoad} />
+            touchX={touchX} touchY={touchY} onVideoLoad={handleVideoLoad} />
         </View>
       </GestureDetector>
       <ReactionCapture isActive={isCameraNeeded}
         isVisible={!!(cameraPermission?.granted && micPermission?.granted)}
         isRecording={isRecording} maxDurationS={reactionDurationS}
         cameraRef={reactionCameraRef} onCameraReady={handleCameraReady} />
-      <RecordingCountdown isActive={isCountingDown} onCountdownComplete={handleCountdownComplete} />
+      <RecordingCountdown isActive={isCountingDown} onCountdownComplete={handleCountdownComplete}
+        touchX={touchX} touchY={touchY} />
       <Pressable onPress={handleClose} accessibilityRole="button"
         accessibilityLabel="Close gasp viewer" style={[styles.closeButton, { top: insets.top + 12 }]}>
         <X size={24} color="#FFFFFF" />
