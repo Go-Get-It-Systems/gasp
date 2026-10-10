@@ -23,6 +23,12 @@ const LABEL_OFFSET = COUNTDOWN_RING_SIZE / 2 + 18;
 const COUNTDOWN_S = 3;
 const RELEASE_HINT_MS = 1600;
 
+function clampLabelCenter(cx: number, labelWidth: number, width: number) {
+  'worklet';
+  const half = labelWidth / 2 + EDGE_MARGIN;
+  return Math.min(Math.max(cx, half), width - half);
+}
+
 interface RecordingCountdownProps {
   isActive: boolean;
   onCountdownComplete: () => void;
@@ -42,6 +48,7 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
   onCountdownCompleteRef.current = onCountdownComplete;
 
   const ringProgress = useSharedValue(0);
+  const labelWidth = useSharedValue(0);
   const ringOpacity = useSharedValue(0);
   const numberScale = useSharedValue(0);
   const numberOpacity = useSharedValue(0);
@@ -141,8 +148,9 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
     const below = cy + LABEL_OFFSET + 40 < height;
     return {
       top: below ? cy + LABEL_OFFSET : cy - LABEL_OFFSET - 24,
-      // The label row spans the screen; shift it so it centers under the ring.
-      transform: [{ translateX: cx - width / 2 }],
+      // The label row spans the screen; shift it so it centers under the ring,
+      // but never past the screen edge (longer translations, e.g. pt-BR).
+      transform: [{ translateX: clampLabelCenter(cx, labelWidth.get(), width) - width / 2 }],
     };
   });
 
@@ -165,7 +173,7 @@ export function RecordingCountdown({ isActive, onCountdownComplete, touchX, touc
       </Animated.View>
       {label && (
         <Animated.View style={[styles.labelContainer, labelStyle]}>
-          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.label} onLayout={(e) => labelWidth.set(e.nativeEvent.layout.width)}>{label}</Text>
         </Animated.View>
       )}
       {showDot && <RecordingDot />}
