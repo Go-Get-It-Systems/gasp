@@ -3,16 +3,14 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Sentry from '@sentry/react-native';
-import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text } from '@/components/ui/Text';
 import { parseTextOverlay, TextOverlayRenderer } from './TextOverlayRenderer';
-import { GaspTimer } from './GaspTimer';
-import Animated, {
-  useAnimatedStyle,
+import { CircleReveal } from './CircleReveal';
+import { HoldIntro } from './HoldIntro';
+import { RecordingHud } from './RecordingHud';
+import { COUNTDOWN_RING_SIZE } from './RecordingCountdown';
+import {
   useAnimatedReaction,
   runOnJS,
-  interpolate,
   type SharedValue,
 } from 'react-native-reanimated';
 import { colors } from '@/constants/colors';
@@ -30,6 +28,11 @@ interface HoldToViewProps {
   isHolding: SharedValue<number>;
   holdProgress: SharedValue<number>;
   isRevealed: SharedValue<number>;
+  /** Where the finger landed; the gasp opens in a circle from this point. */
+  touchX: SharedValue<number>;
+  touchY: SharedValue<number>;
+  /** Gasp length in seconds, shown before holding (null while a video loads). */
+  durationS?: number | null;
   onVideoLoad?: (durationMs: number) => void;
 }
 
@@ -42,10 +45,11 @@ export function HoldToView({
   isHolding,
   holdProgress,
   isRevealed,
+  touchX,
+  touchY,
+  durationS,
   onVideoLoad,
 }: HoldToViewProps) {
-  const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const isVideo = mediaType === 'video';
   const textOverlay = textOverlayJson ? parseTextOverlay(textOverlayJson) : null;
   // Use cached local path if available, otherwise use the URI as-is
@@ -129,32 +133,14 @@ export function HoldToView({
   useAnimatedReaction(
     () => isRevealed.get(),
     (current, previous) => {
-      if (current === 1 && previous !== 1) {
+      // Start as soon as the circle begins to open, not when it finishes.
+      if (current > 0 && (previous ?? 0) === 0) {
         runOnJS(startVideo)();
       } else if (current === 0 && previous !== 0) {
         runOnJS(pauseVideo)();
       }
     },
   );
-
-  // Media opacity: fade in when isRevealed transitions to 1
-  const imageStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(isRevealed.get(), [0, 1], [0, 1]),
-  }));
-
-  // Instruction overlay: hide as soon as user starts holding (isHolding),
-  // so the countdown is visible without the "HOLD TO VIEW" text in the way
-  const instructionStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(isHolding.get(), [0, 1], [1, 0]),
-    transform: [
-      { scale: interpolate(isHolding.get(), [0, 1], [1, 0.9]) },
-    ],
-  }));
-
-  // Ring timer: visible once revealed (recording in progress)
-  const timerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(isRevealed.get(), [0, 1], [0, 1]),
-  }));
 
   return (
     <View style={styles.container}>
@@ -183,14 +169,18 @@ export function HoldToView({
         </>
       )}
 
-      {/* Revealed media (visible on hold) */}
-      <Animated.View style={[styles.revealedContainer, imageStyle]}>
+      {/* Revealed media: opens through a circle that grows from the finger */}
+      <CircleReveal progress={isRevealed} originX={touchX} originY={touchY}
+        startRadius={COUNTDOWN_RING_SIZE / 2}>
         {isVideo && videoPlayer ? (
           <VideoView
             player={videoPlayer}
             style={styles.revealedImage}
             contentFit="contain"
             nativeControls={false}
+            // Android: a TextureView is clipped by the reveal circle; the
+            // default SurfaceView would draw over it. Ignored on iOS.
+            surfaceType="textureView"
           />
         ) : (
           <>
@@ -213,26 +203,14 @@ export function HoldToView({
           </>
         )}
         {textOverlay && <TextOverlayRenderer data={textOverlay} />}
-      </Animated.View>
+      </CircleReveal>
 
-      {/* Hold instruction overlay */}
-      <Animated.View style={[styles.instructionOverlay, instructionStyle]}>
-        <GaspTimer progress={holdProgress} size={100} strokeWidth={3} />
-        <Text variant="subtitle" style={styles.senderName}>
-          {senderName}
-        </Text>
-        <Text variant="caption" style={styles.instruction}>
-          {t('viewGasp.holdToView').toUpperCase()}
-        </Text>
-        <Text variant="caption" style={styles.recordingHint}>
-          {t('viewGasp.recordingHint')}
-        </Text>
-      </Animated.View>
+      {/* Before holding: who sent it, where to hold, camera notice */}
+      <HoldIntro senderName={senderName} mediaType={mediaType} durationS={durationS}
+        isHolding={isHolding} isRevealed={isRevealed} />
 
-      {/* Timer during hold */}
-      <Animated.View style={[styles.timerContainer, { top: insets.top + 12 }, timerStyle]}>
-        <GaspTimer progress={holdProgress} size={60} strokeWidth={3} />
-      </Animated.View>
+      {/* While open and recording: one HUD (progress bar + REC timer) */}
+      <RecordingHud progress={holdProgress} isRevealed={isRevealed} isHolding={isHolding} />
     </View>
   );
 }
@@ -249,39 +227,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
   },
-  revealedContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
   revealedImage: {
     ...StyleSheet.absoluteFillObject,
-  },
-  instructionOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    gap: 16,
-  },
-  senderName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  instruction: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
-    letterSpacing: 3,
-  },
-  recordingHint: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: -8,
-  },
-  // Top-left: the top-right corner holds the close/report buttons and the
-  // default self-view position.
-  timerContainer: {
-    position: 'absolute',
-    left: 20,
   },
 });

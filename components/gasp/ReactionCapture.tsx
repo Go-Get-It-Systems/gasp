@@ -4,17 +4,14 @@ import { CameraView } from 'expo-camera';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
-  useAnimatedProps,
   useSharedValue,
   withSpring,
   withTiming,
   interpolate,
-  interpolateColor,
   runOnJS,
   useAnimatedReaction,
   type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { selectionHaptic } from '@/utils/haptics';
@@ -24,8 +21,6 @@ const STORAGE_KEY = '@gasp/reaction-pip-corner';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SPRING_CFG = { damping: 15, stiffness: 200, mass: 0.8 };
 const BORDER_WIDTH = 2.5;
-const RADIUS = (Math.min(PIP_WIDTH, PIP_HEIGHT) / 2) - BORDER_WIDTH;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 // view-gasp places its close/report buttons (40pt) at insets.top + 12, so the
 // top corners start below them instead of covering them.
@@ -54,13 +49,10 @@ function persistCorner(idx: number) {
   AsyncStorage.setItem(STORAGE_KEY, String(idx)).catch(() => {});
 }
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
 interface ReactionCaptureProps {
   isActive: SharedValue<number>;
   isVisible?: boolean;
   isRecording?: boolean;
-  maxDurationS?: number;
   cameraRef?: React.RefObject<CameraView | null>;
   onCornerChange?: (cornerIndex: number) => void;
   onCameraReady?: () => void;
@@ -70,7 +62,6 @@ export function ReactionCapture({
   isActive,
   isVisible = false,
   isRecording = false,
-  maxDurationS = 30,
   cameraRef,
   onCornerChange,
   onCameraReady,
@@ -87,7 +78,8 @@ export function ReactionCapture({
   // Restored from main: mount/unmount based on isActive to manage AVCapture session
   const [isCameraActive, setIsCameraActive] = useState(false);
 
-  const ringProgress = useSharedValue(0);
+  // 1 while recording: the frame border turns red (the only REC cue on the camera).
+  const recordingTint = useSharedValue(0);
 
   useEffect(() => {
     loadCorner().then((idx) => {
@@ -96,17 +88,16 @@ export function ReactionCapture({
     });
   }, [corners, translateX, translateY]);
 
-  // Progress ring + spring entry on recording start
+  // Spring entry + red border on recording start
   useEffect(() => {
     if (isRecording) {
       recordingScale.value = 0.85;
       recordingScale.value = withSpring(1, SPRING_CFG);
-      ringProgress.value = 0;
-      ringProgress.value = withTiming(1, { duration: maxDurationS * 1000 });
+      recordingTint.value = withTiming(1, { duration: 200 });
     } else {
-      ringProgress.value = withTiming(0, { duration: 200 });
+      recordingTint.value = withTiming(0, { duration: 200 });
     }
-  }, [isRecording, maxDurationS, ringProgress, recordingScale]);
+  }, [isRecording, recordingScale, recordingTint]);
 
   // Restored from main: mount on isActive=1, unmount on isActive=0
   useAnimatedReaction(
@@ -150,7 +141,9 @@ export function ReactionCapture({
   const animatedStyle = useAnimatedStyle(() => {
     const visible = isVisibleSV.get();
     const active = isActive.get();
-    const opacity = visible === 0 ? 0 : interpolate(active, [0, 1], [0.85, 1]);
+    // Hidden until the hold starts: an empty camera frame before then reads as
+    // an unexplained box. It pops in with the live camera when holding.
+    const opacity = visible === 0 ? 0 : interpolate(active, [0, 1], [0, 1]);
     const scale = (visible === 0 ? 0 : interpolate(active, [0, 1], [0.9, 1])) * recordingScale.get();
     return {
       opacity,
@@ -162,33 +155,13 @@ export function ReactionCapture({
     };
   });
 
-  const borderAnimatedStyle = useAnimatedStyle(() => {
-    const color = interpolateColor(
-      ringProgress.get(),
-      [0, 0.7, 1],
-      ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.4)', '#EF4444'],
-    );
-    return { borderColor: color };
-  });
-
-  const ringAnimatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: ringProgress.get() * CIRCUMFERENCE,
+  const borderAnimatedStyle = useAnimatedStyle(() => ({
+    borderColor: recordingTint.get() > 0.5 ? '#EF4444' : 'rgba(255,255,255,0.4)',
   }));
-
-  const cx = PIP_WIDTH / 2;
-  const cy = PIP_HEIGHT / 2;
 
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.container, animatedStyle]}>
-        {isRecording && (
-          <Svg width={PIP_WIDTH} height={PIP_HEIGHT} style={StyleSheet.absoluteFill}>
-            <Circle cx={cx} cy={cy} r={RADIUS} stroke="rgba(255,255,255,0.15)" strokeWidth={BORDER_WIDTH} fill="none" />
-            <AnimatedCircle cx={cx} cy={cy} r={RADIUS} stroke="#EF4444" strokeWidth={BORDER_WIDTH} fill="none"
-              strokeLinecap="round" strokeDasharray={CIRCUMFERENCE} animatedProps={ringAnimatedProps}
-              rotation="-90" origin={`${cx}, ${cy}`} />
-          </Svg>
-        )}
         <Animated.View style={[styles.cameraWrapper, borderAnimatedStyle]}>
           {isCameraActive && (
             <CameraView ref={cameraRef} style={styles.camera} facing="front" mode="video"
