@@ -34,6 +34,9 @@ interface HoldToViewProps {
   /** Gasp length in seconds, shown before holding (null while a video loads). */
   durationS?: number | null;
   onVideoLoad?: (durationMs: number) => void;
+  /** Reaction recording state, for the REC indicator. */
+  isRecording?: boolean;
+  recordingStartedAt?: number | null;
 }
 
 export function HoldToView({
@@ -49,6 +52,8 @@ export function HoldToView({
   touchY,
   durationS,
   onVideoLoad,
+  isRecording = false,
+  recordingStartedAt = null,
 }: HoldToViewProps) {
   const isVideo = mediaType === 'video';
   const textOverlay = textOverlayJson ? parseTextOverlay(textOverlayJson) : null;
@@ -210,7 +215,8 @@ export function HoldToView({
         isHolding={isHolding} isRevealed={isRevealed} />
 
       {/* While open and recording: one HUD (progress bar + REC timer) */}
-      <RecordingHud progress={holdProgress} isRevealed={isRevealed} isHolding={isHolding} />
+      <RecordingHud progress={holdProgress} isRevealed={isRevealed} isHolding={isHolding}
+        isRecording={isRecording} recordingStartedAt={recordingStartedAt} />
     </View>
   );
 }

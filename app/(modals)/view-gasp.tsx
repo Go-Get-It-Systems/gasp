@@ -113,6 +113,7 @@ export default function ViewGaspScreen() {
     openedRef,
     isCountingDown,
     isRecording,
+    recordingStartedAt,
     previewUri,
     isSending,
     handleHoldStart,
@@ -250,6 +251,7 @@ export default function ViewGaspScreen() {
             senderName={senderName} textOverlayJson={params.chatTextOverlay}
             isHolding={isHolding} holdProgress={holdProgress} isRevealed={isRevealed}
             touchX={touchX} touchY={touchY} onVideoLoad={handleVideoLoad}
+            isRecording={isRecording} recordingStartedAt={recordingStartedAt}
             durationS={holdDuration ? Math.round(holdDuration / 1000) : null} />
         </View>
       </GestureDetector>

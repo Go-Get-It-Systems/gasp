@@ -420,6 +420,8 @@ export function useViewGasp({
     openedRef,
     isCountingDown,
     isRecording,
+    /** When the current recording started (null when not recording). */
+    recordingStartedAt: isRecording ? recordingStartedAtRef.current : null,
     previewUri,
     isSending,
     /** Reaction recording duration in seconds (= gasp duration capped at 30s, plus the countdown) */
