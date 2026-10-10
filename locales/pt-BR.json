@@ -210,6 +210,10 @@
     "recordingHint": "Sua reação é gravada enquanto você segura",
     "keepHolding": "Continue segurando…",
     "keepHoldingToOpen": "Continue segurando para abrir",
+    "sentYouAGasp": "{{name}} te enviou um gasp",
+    "photo": "Foto",
+    "video": "Vídeo",
+    "pressAndHold": "Segure para abrir",
     "unavailableTitle": "Gasp indisponível",
     "unavailableBody": "Este gasp já foi aberto ou expirou."
   },

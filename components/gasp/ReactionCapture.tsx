@@ -150,7 +150,9 @@ export function ReactionCapture({
   const animatedStyle = useAnimatedStyle(() => {
     const visible = isVisibleSV.get();
     const active = isActive.get();
-    const opacity = visible === 0 ? 0 : interpolate(active, [0, 1], [0.85, 1]);
+    // Hidden until the hold starts: an empty camera frame before then reads as
+    // an unexplained box. It pops in with the live camera when holding.
+    const opacity = visible === 0 ? 0 : interpolate(active, [0, 1], [0, 1]);
     const scale = (visible === 0 ? 0 : interpolate(active, [0, 1], [0.9, 1])) * recordingScale.get();
     return {
       opacity,

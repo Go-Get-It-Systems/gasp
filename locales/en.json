@@ -209,6 +209,10 @@
     "recordingHint": "Your reaction is recorded while you hold",
     "keepHolding": "Keep holding…",
     "keepHoldingToOpen": "Keep holding to open",
+    "sentYouAGasp": "{{name}} sent you a gasp",
+    "photo": "Photo",
+    "video": "Video",
+    "pressAndHold": "Press & hold to open",
     "unavailableTitle": "Gasp unavailable",
     "unavailableBody": "This gasp was already opened or has expired."
   },

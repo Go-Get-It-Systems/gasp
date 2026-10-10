@@ -250,7 +250,8 @@ export default function ViewGaspScreen() {
           <HoldToView imageUri={imageUri} mediaType={mediaType} blurhash={blurhash}
             senderName={senderName} textOverlayJson={params.chatTextOverlay}
             isHolding={isHolding} holdProgress={holdProgress} isRevealed={isRevealed}
-            touchX={touchX} touchY={touchY} onVideoLoad={handleVideoLoad} />
+            touchX={touchX} touchY={touchY} onVideoLoad={handleVideoLoad}
+            durationS={holdDuration ? Math.round(holdDuration / 1000) : null} />
         </View>
       </GestureDetector>
       <ReactionCapture isActive={isCameraNeeded}
