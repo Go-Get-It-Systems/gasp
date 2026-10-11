@@ -36,6 +36,9 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
 ### C3. A gravação começa na contagem
 - Assim que a câmera frontal fica pronta durante a contagem, a gravação
   começa, para que o momento da revelação esteja no vídeo.
+- O expo-camera pode avisar que está pronto antes de conseguir gravar e
+  recusar a primeira tentativa ("Camera is not ready yet"). Enquanto a pessoa
+  segura, o app tenta de novo a cada 150ms, até 10 vezes.
 - Se a câmera não ficou pronta a tempo, a gravação começa na revelação.
 - Existe no máximo uma gravação por vez que a pessoa segura.
 - A duração máxima da gravação é a duração do gasp (até 30s) mais 3s de

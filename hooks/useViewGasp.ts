@@ -21,6 +21,11 @@ const COUNTDOWN_S = 3;
 // Slack so recordAsync's own maxDuration never cuts the clip before the
 // progress ring ends the hold.
 const RECORDING_SLACK_S = 1;
+// expo-camera fires onCameraReady before the movie output is attached, so the
+// first recordAsync can reject with "Camera is not ready yet". Retry while the
+// viewer is still holding: 10 × 150ms covers most of the countdown.
+const RECORD_RETRY_MS = 150;
+const RECORD_MAX_ATTEMPTS = 10;
 
 // Backoff delays for sendMessage retries: immediate, 500ms, 1500ms
 const SEND_RETRY_DELAYS_MS = [0, 500, 1500];
@@ -84,6 +89,7 @@ export function useViewGasp({
   const recordingStartedAtRef = useRef<number | null>(null);
   const revealedAtRef = useRef<number | null>(null);
   const isRecordingRef = useRef(false);
+  const recordRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const gaspIdRef = useRef<string | null>(null);
   const openedRef = useRef(false);
@@ -104,6 +110,7 @@ export function useViewGasp({
     return () => {
       isMountedRef.current = false;
       recordingPromiseRef.current = null;
+      if (recordRetryTimerRef.current) clearTimeout(recordRetryTimerRef.current);
       // Read latest refs on unmount so inbox-mode gasps close only when no reaction succeeded.
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const id = gaspIdRef.current;
@@ -164,29 +171,44 @@ export function useViewGasp({
   const reactionDurationS = Math.min(holdDurationS, MAX_REACTION_DURATION_S);
 
   const startRecording = useCallback(() => {
-    const camera = reactionCameraRef.current;
-    if (!camera || releasedRef.current || isRecordingRef.current) return;
-    try {
-      isRecordingRef.current = true;
-      setIsRecording(true);
-      recordingStartedAtRef.current = Date.now();
-      const maxDuration = reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S;
-      recordingPromiseRef.current = camera.recordAsync({ maxDuration });
-      traceFlow('recording-started', { duringCountdown: !revealedRef.current, maxDuration });
-      recordingPromiseRef.current?.catch((e) => {
-        traceFlow('recording-failed', { error: String(e) });
-        Sentry.captureException(e, { tags: { feature: 'reaction-recording' } });
+    const attempt = (n: number) => {
+      if (recordRetryTimerRef.current) {
+        clearTimeout(recordRetryTimerRef.current);
+        recordRetryTimerRef.current = null;
+      }
+      const camera = reactionCameraRef.current;
+      if (!camera || releasedRef.current || isRecordingRef.current) return;
+
+      const fail = (e: unknown) => {
         isRecordingRef.current = false;
         setIsRecording(false);
         recordingPromiseRef.current = null;
-      });
-    } catch (e) {
-      traceFlow('recording-failed', { error: String(e) });
-      Sentry.captureException(e, { tags: { feature: 'reaction-recording', step: 'start-recording' } });
-      isRecordingRef.current = false;
-      setIsRecording(false);
-      recordingPromiseRef.current = null;
-    }
+        const retry = n < RECORD_MAX_ATTEMPTS && !releasedRef.current;
+        traceFlow('recording-failed', { error: String(e), attempt: n, retry });
+        if (retry) {
+          recordRetryTimerRef.current = setTimeout(() => attempt(n + 1), RECORD_RETRY_MS);
+        } else {
+          Sentry.captureException(e, { tags: { feature: 'reaction-recording' }, extra: { attempts: n } });
+        }
+      };
+
+      try {
+        isRecordingRef.current = true;
+        setIsRecording(true);
+        recordingStartedAtRef.current = Date.now();
+        const maxDuration = reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S;
+        const promise = camera.recordAsync({ maxDuration });
+        recordingPromiseRef.current = promise;
+        traceFlow('recording-started', { duringCountdown: !revealedRef.current, maxDuration, attempt: n });
+        promise?.catch((e) => {
+          // A stale attempt must not clear a newer recording.
+          if (recordingPromiseRef.current === promise) fail(e);
+        });
+      } catch (e) {
+        fail(e);
+      }
+    };
+    attempt(1);
   }, [reactionDurationS]);
 
   const handleHoldStart = useCallback(() => {

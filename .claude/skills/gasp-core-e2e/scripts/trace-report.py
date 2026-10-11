@@ -43,7 +43,12 @@ def first(step):
     return next((e for e in run if e[0] == step), None)
 
 checks = []
-rec, reveal, composite = first('recording-started'), first('reveal'), first('composite')
+def last(step):
+    return next((e for e in reversed(run) if e[0] == step), None)
+
+# Retries are expected (expo-camera can reject the first attempt); judge the
+# attempt that actually recorded, i.e. the last one.
+rec, reveal, composite = last('recording-started'), first('reveal'), first('composite')
 delivered, close = first('reaction-delivered'), first('close-view')
 
 if rec and reveal:
@@ -53,8 +58,11 @@ if rec and reveal:
 else:
     checks.append(('C3 recording starts during the countdown', False,
                    'no recording-started' if not rec else 'no reveal'))
-checks.append(('C4/C5 no recording failure', first('recording-failed') is None and first('no-clip') is None,
-               'recording-failed or no-clip present' if (first('recording-failed') or first('no-clip')) else 'ok'))
+retries = [e for e in run if e[0] == 'recording-failed']
+gave_up = [e for e in retries if e[2].get('retry') != 'true']
+checks.append(('C4/C5 recording kept going', not gave_up and first('no-clip') is None,
+               'gave up: ' + gave_up[0][2].get('error', '') if gave_up else
+               'no clip' if first('no-clip') else f'ok ({len(retries)} not-ready retries)'))
 if composite:
     offset = composite[2].get('revealOffsetMs')
     ok = offset not in (None, 'undefined') and int(offset) >= 1500

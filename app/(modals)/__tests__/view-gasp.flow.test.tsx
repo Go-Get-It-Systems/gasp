@@ -52,6 +52,9 @@ interface FakeCamera {
   recordAsync: jest.Mock<Promise<{ uri: string } | undefined>, [{ maxDuration: number }]>;
   stopRecording: jest.Mock<void, []>;
   failRecording: () => void;
+  /** Rejects this many upcoming recordAsync calls right away, like expo-camera
+   * does when onCameraReady fired before the movie output was attached. */
+  notReadyAttempts: number;
 }
 
 function createFakeCamera(): FakeCamera {
@@ -59,11 +62,17 @@ function createFakeCamera(): FakeCamera {
   let fail: ((reason: Error) => void) | null = null;
   const camera: FakeCamera = {
     clipUri: 'file:///reaction.mov',
-    recordAsync: jest.fn((_opts: { maxDuration: number }) =>
-      new Promise<{ uri: string } | undefined>((resolve, reject) => {
+    notReadyAttempts: 0,
+    recordAsync: jest.fn((_opts: { maxDuration: number }) => {
+      if (camera.notReadyAttempts > 0) {
+        camera.notReadyAttempts -= 1;
+        return Promise.reject(new Error("Camera is not ready yet. Wait for 'onCameraReady' callback"));
+      }
+      return new Promise<{ uri: string } | undefined>((resolve, reject) => {
         finish = resolve;
         fail = reject;
-      })),
+      });
+    }),
     stopRecording: jest.fn(() => finish?.(camera.clipUri ? { uri: camera.clipUri } : undefined)),
     failRecording: () => fail?.(new Error('camera busy')),
   };
@@ -187,6 +196,7 @@ const T0 = new Date('2026-10-11T10:00:00.000Z').getTime();
 const GASP_URL = 'https://cdn.test/gasp.jpg';
 const IMAGE_GASP_S = 10;
 const COUNTDOWN_MS = 3000;
+const RECORD_RETRY_MS = 150;
 
 const serverGasp = {
   id: 'gasp-1',
@@ -372,6 +382,66 @@ describe('gasp view contract', () => {
       expect(mockCamera.recordAsync).not.toHaveBeenCalled();
 
       countdownEnds();
+
+      expect(mockCamera.recordAsync).toHaveBeenCalledTimes(1);
+    });
+
+    // Seen on an iPhone 15 Pro: expo-camera fires onCameraReady before the
+    // movie output exists, so the first recordAsync rejects 14ms later. The
+    // recording then only began at the reveal (REC from 0:00, offset 0).
+    it('retries while holding when the camera was not ready to record yet', async () => {
+      mockCamera.notReadyAttempts = 2;
+      openFromInbox();
+      holdStart();
+      cameraReady();
+      await flush();
+      expect(mockUi.hold!.isRecording).toBe(false);
+
+      act(() => {
+        jest.advanceTimersByTime(RECORD_RETRY_MS);
+      });
+      await flush();
+      act(() => {
+        jest.advanceTimersByTime(RECORD_RETRY_MS);
+      });
+      await flush();
+
+      expect(mockCamera.recordAsync).toHaveBeenCalledTimes(3);
+      expect(mockUi.hold!.isRecording).toBe(true);
+      const startedAt = mockUi.hold!.recordingStartedAt!;
+      expect(startedAt).toBe(T0 + 2 * RECORD_RETRY_MS);
+
+      // The clip still covers the reveal, so the composite lines up with it.
+      act(() => {
+        jest.advanceTimersByTime(COUNTDOWN_MS - 2 * RECORD_RETRY_MS);
+        mockUi.countdown!.onCountdownComplete();
+      });
+      act(() => {
+        jest.advanceTimersByTime(IMAGE_GASP_S * 1000);
+      });
+      await release();
+      await send();
+
+      expect(mockCamera.recordAsync).toHaveBeenCalledTimes(3);
+      expect(mockResolveReactionMediaUrl).toHaveBeenCalledWith(
+        'https://cdn.test/reaction.mp4',
+        GASP_URL,
+        COUNTDOWN_MS - 2 * RECORD_RETRY_MS,
+      );
+      expect(mockServer.status).toBe('reacted');
+    });
+
+    it('stops retrying once the hold is released', async () => {
+      mockCamera.notReadyAttempts = 1;
+      openFromInbox();
+      holdStart();
+      cameraReady();
+      await flush();
+      await release();
+      act(() => {
+        jest.advanceTimersByTime(10 * RECORD_RETRY_MS);
+      });
+      await flush();
 
       expect(mockCamera.recordAsync).toHaveBeenCalledTimes(1);
     });
@@ -574,7 +644,7 @@ describe('gasp view contract', () => {
         'composite',
         'reaction-delivered',
       ]);
-      expect(traceFlow).toHaveBeenCalledWith('recording-started', { duringCountdown: true, maxDuration: 14 });
+      expect(traceFlow).toHaveBeenCalledWith('recording-started', { duringCountdown: true, maxDuration: 14, attempt: 1 });
       expect(traceFlow).toHaveBeenCalledWith('composite', { revealOffsetMs: COUNTDOWN_MS, isComposite: true });
     });
   });
