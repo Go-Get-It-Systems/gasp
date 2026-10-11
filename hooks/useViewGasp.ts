@@ -26,6 +26,9 @@ const RECORDING_SLACK_S = 1;
 // viewer is still holding: 10 × 150ms covers most of the countdown.
 const RECORD_RETRY_MS = 150;
 const RECORD_MAX_ATTEMPTS = 10;
+// Rejections arrive ~15ms after recordAsync, so REC only lights up once an
+// attempt has survived this long; otherwise every retry would flash it.
+const REC_CONFIRM_MS = 300;
 
 // Backoff delays for sendMessage retries: immediate, 500ms, 1500ms
 const SEND_RETRY_DELAYS_MS = [0, 500, 1500];
@@ -90,6 +93,7 @@ export function useViewGasp({
   const revealedAtRef = useRef<number | null>(null);
   const isRecordingRef = useRef(false);
   const recordRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const gaspIdRef = useRef<string | null>(null);
   const openedRef = useRef(false);
@@ -111,6 +115,7 @@ export function useViewGasp({
       isMountedRef.current = false;
       recordingPromiseRef.current = null;
       if (recordRetryTimerRef.current) clearTimeout(recordRetryTimerRef.current);
+      if (recConfirmTimerRef.current) clearTimeout(recConfirmTimerRef.current);
       // Read latest refs on unmount so inbox-mode gasps close only when no reaction succeeded.
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const id = gaspIdRef.current;
@@ -180,6 +185,10 @@ export function useViewGasp({
       if (!camera || releasedRef.current || isRecordingRef.current) return;
 
       const fail = (e: unknown) => {
+        if (recConfirmTimerRef.current) {
+          clearTimeout(recConfirmTimerRef.current);
+          recConfirmTimerRef.current = null;
+        }
         isRecordingRef.current = false;
         setIsRecording(false);
         recordingPromiseRef.current = null;
@@ -194,11 +203,14 @@ export function useViewGasp({
 
       try {
         isRecordingRef.current = true;
-        setIsRecording(true);
         recordingStartedAtRef.current = Date.now();
         const maxDuration = reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S;
         const promise = camera.recordAsync({ maxDuration });
         recordingPromiseRef.current = promise;
+        recConfirmTimerRef.current = setTimeout(() => {
+          recConfirmTimerRef.current = null;
+          if (recordingPromiseRef.current === promise && isRecordingRef.current) setIsRecording(true);
+        }, REC_CONFIRM_MS);
         traceFlow('recording-started', { duringCountdown: !revealedRef.current, maxDuration, attempt: n });
         promise?.catch((e) => {
           // A stale attempt must not clear a newer recording.
@@ -249,6 +261,10 @@ export function useViewGasp({
 
     let videoUri: string | null = null;
     try {
+      if (recConfirmTimerRef.current) {
+        clearTimeout(recConfirmTimerRef.current);
+        recConfirmTimerRef.current = null;
+      }
       if (reactionCameraRef.current && isRecordingRef.current) {
         reactionCameraRef.current.stopRecording();
         isRecordingRef.current = false;

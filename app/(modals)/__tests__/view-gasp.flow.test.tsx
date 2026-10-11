@@ -66,7 +66,10 @@ function createFakeCamera(): FakeCamera {
     recordAsync: jest.fn((_opts: { maxDuration: number }) => {
       if (camera.notReadyAttempts > 0) {
         camera.notReadyAttempts -= 1;
-        return Promise.reject(new Error("Camera is not ready yet. Wait for 'onCameraReady' callback"));
+        // expo-camera rejects ~15ms later, not synchronously.
+        return new Promise((_resolve, reject) => {
+          setTimeout(() => reject(new Error("Camera is not ready yet. Wait for 'onCameraReady' callback")), NOT_READY_MS);
+        });
       }
       return new Promise<{ uri: string } | undefined>((resolve, reject) => {
         finish = resolve;
@@ -87,6 +90,8 @@ interface UiProbes {
   hold?: { isRecording: boolean; recordingStartedAt: number | null };
   capture?: { onCameraReady: () => void };
   countdown?: { onCountdownComplete: () => void };
+  /** isRecording on every HoldToView render, to catch a REC that flashes. */
+  recHistory?: boolean[];
   preview?: { onSend: () => void; onDiscard: () => void; isSending: boolean; reactionVideoUri: string };
 }
 interface HoldProbe {
@@ -136,6 +141,7 @@ jest.mock('@/hooks/useHoldGesture', () => ({
 jest.mock('@/components/gasp/HoldToView', () => ({
   HoldToView: (props: unknown) => {
     mockUi.hold = props as UiProbes['hold'];
+    mockUi.recHistory = [...(mockUi.recHistory ?? []), mockUi.hold!.isRecording];
     return null;
   },
 }));
@@ -197,6 +203,8 @@ const GASP_URL = 'https://cdn.test/gasp.jpg';
 const IMAGE_GASP_S = 10;
 const COUNTDOWN_MS = 3000;
 const RECORD_RETRY_MS = 150;
+const NOT_READY_MS = 15;
+const REC_CONFIRM_MS = 300;
 
 const serverGasp = {
   id: 'gasp-1',
@@ -215,6 +223,16 @@ const serverGasp = {
 
 // ── Viewer actions ──
 
+/** Moves the clock in 5ms steps so promise callbacks (camera rejections)
+ * run at their real time instead of after the whole jump. */
+async function advance(ms: number) {
+  await act(async () => {
+    for (let elapsed = 0; elapsed < ms; elapsed += 5) {
+      jest.advanceTimersByTime(Math.min(5, ms - elapsed));
+      for (let i = 0; i < 5; i += 1) await Promise.resolve();
+    }
+  });
+}
 async function flush() {
   await act(async () => {
     for (let i = 0; i < 25; i += 1) await Promise.resolve();
@@ -394,31 +412,20 @@ describe('gasp view contract', () => {
       openFromInbox();
       holdStart();
       cameraReady();
-      await flush();
-      expect(mockUi.hold!.isRecording).toBe(false);
-
-      act(() => {
-        jest.advanceTimersByTime(RECORD_RETRY_MS);
-      });
-      await flush();
-      act(() => {
-        jest.advanceTimersByTime(RECORD_RETRY_MS);
-      });
-      await flush();
+      await advance(NOT_READY_MS + RECORD_RETRY_MS); // attempt 1 rejected, attempt 2 starts
+      await advance(NOT_READY_MS + RECORD_RETRY_MS); // attempt 2 rejected, attempt 3 starts
+      await advance(REC_CONFIRM_MS);
 
       expect(mockCamera.recordAsync).toHaveBeenCalledTimes(3);
       expect(mockUi.hold!.isRecording).toBe(true);
       const startedAt = mockUi.hold!.recordingStartedAt!;
-      expect(startedAt).toBe(T0 + 2 * RECORD_RETRY_MS);
+      const retriesMs = 2 * (NOT_READY_MS + RECORD_RETRY_MS);
+      expect(startedAt).toBe(T0 + retriesMs);
 
       // The clip still covers the reveal, so the composite lines up with it.
-      act(() => {
-        jest.advanceTimersByTime(COUNTDOWN_MS - 2 * RECORD_RETRY_MS);
-        mockUi.countdown!.onCountdownComplete();
-      });
-      act(() => {
-        jest.advanceTimersByTime(IMAGE_GASP_S * 1000);
-      });
+      await advance(COUNTDOWN_MS - retriesMs - REC_CONFIRM_MS);
+      act(() => mockUi.countdown!.onCountdownComplete());
+      await advance(IMAGE_GASP_S * 1000);
       await release();
       await send();
 
@@ -426,7 +433,7 @@ describe('gasp view contract', () => {
       expect(mockResolveReactionMediaUrl).toHaveBeenCalledWith(
         'https://cdn.test/reaction.mp4',
         GASP_URL,
-        COUNTDOWN_MS - 2 * RECORD_RETRY_MS,
+        COUNTDOWN_MS - retriesMs,
       );
       expect(mockServer.status).toBe('reacted');
     });
@@ -436,7 +443,7 @@ describe('gasp view contract', () => {
       openFromInbox();
       holdStart();
       cameraReady();
-      await flush();
+      await advance(NOT_READY_MS);
       await release();
       act(() => {
         jest.advanceTimersByTime(10 * RECORD_RETRY_MS);
@@ -448,6 +455,19 @@ describe('gasp view contract', () => {
   });
 
   describe('C4. REC shows the real recording', () => {
+    // Seen in the simulator e2e run: each rejected attempt lit "REC 0:00"
+    // for ~15ms before the retry.
+    it('never flashes while recording attempts are being rejected', async () => {
+      mockCamera.notReadyAttempts = 20;
+      openFromInbox();
+      holdStart();
+      cameraReady();
+      await advance(COUNTDOWN_MS);
+
+      expect(mockCamera.recordAsync.mock.calls.length).toBeGreaterThan(1);
+      expect(mockUi.recHistory).not.toContain(true);
+    });
+
     it('is off until recording starts and counts from the recording start', () => {
       openFromInbox();
       holdStart();
@@ -474,6 +494,7 @@ describe('gasp view contract', () => {
       openFromInbox();
       holdStart();
       cameraReady();
+      await advance(REC_CONFIRM_MS);
       expect(mockUi.hold!.isRecording).toBe(true);
 
       act(() => mockCamera.failRecording());

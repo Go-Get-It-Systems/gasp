@@ -139,13 +139,19 @@ describe('useViewGasp', () => {
         stopRecording: jest.fn(),
       } as unknown as CameraView;
 
+      jest.useFakeTimers();
       act(() => {
         result.current.handleHoldStart();
         result.current.handleCountdownComplete();
       });
-
       expect(recordAsync).toHaveBeenCalledTimes(1);
+      // REC lights up once the attempt was not rejected right away.
+      expect(result.current.isRecording).toBe(false);
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
       expect(result.current.isRecording).toBe(true);
+      jest.useRealTimers();
     });
   });
 
@@ -160,6 +166,7 @@ describe('useViewGasp', () => {
       const camera = mockCamera();
       result.current.reactionCameraRef.current = camera as unknown as CameraView;
 
+      jest.useFakeTimers();
       act(() => {
         result.current.handleHoldStart();
         result.current.handleCameraReady();
@@ -168,7 +175,11 @@ describe('useViewGasp', () => {
       expect(camera.recordAsync).toHaveBeenCalledTimes(1);
       // 5s gasp + 3s countdown + 1s slack
       expect(camera.recordAsync).toHaveBeenCalledWith({ maxDuration: 9 });
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
       expect(result.current.isRecording).toBe(true);
+      jest.useRealTimers();
       expect(defaultProps.startProgressAnimation).not.toHaveBeenCalled();
     });
 

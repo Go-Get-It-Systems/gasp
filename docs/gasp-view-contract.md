@@ -50,6 +50,9 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
 - O chip REC aparece somente enquanto a câmera está gravando de verdade.
 - O cronômetro conta a partir do início real da gravação: começa perto de
   0:03 na revelação quando a gravação começou na contagem.
+- O REC acende só depois que uma tentativa de gravar sobreviveu 300ms (as
+  recusas do expo-camera chegam em ~15ms), para nunca piscar durante as
+  novas tentativas. O cronômetro conta desde o início real da tentativa.
 - Se a gravação falhar, o REC some.
 
 ### C5. Soltar depois da revelação
