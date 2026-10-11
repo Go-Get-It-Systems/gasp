@@ -19,6 +19,8 @@ import {
   useRejectFriendRequest,
 } from '@/hooks/queries/useFriends';
 import { useLatestMoment, usePendingGasps, useSentGasps } from '@/hooks/queries/useGasps';
+import { withoutViewedOnceGasps } from '@/hooks/queries/useGasps.helpers';
+import { useGaspStore } from '@/stores/gaspStore';
 import { useReceivedReactions } from '@/hooks/queries/useReactions';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
 import { openGaspViewer } from '@/services/navigation';
@@ -42,7 +44,11 @@ export default function InboxScreen() {
   const rejectMutation = useRejectFriendRequest();
 
   const friendRequests = requestsQuery.data ?? [];
-  const pendingGasps = useMemo(() => sortOpenNow(pendingQuery.data ?? []), [pendingQuery.data]);
+  const viewedGaspUrls = useGaspStore((s) => s.viewedGaspUrls);
+  const pendingGasps = useMemo(
+    () => sortOpenNow(withoutViewedOnceGasps(pendingQuery.data ?? [], viewedGaspUrls)),
+    [pendingQuery.data, viewedGaspUrls],
+  );
   const sentGasps = useMemo(() => (sentQuery.data ?? []).filter((gasp) => !gasp.momentId), [sentQuery.data]);
   const reactionReturns = reactionsQuery.data ?? [];
   const sections = SOCIAL_PULSE_SECTION_ORDER;

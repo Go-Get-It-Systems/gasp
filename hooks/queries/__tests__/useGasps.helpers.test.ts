@@ -1,4 +1,4 @@
-import { findPendingGasp, findPendingGaspByMedia, isChatGaspOpenable, updateGaspInList } from '@/hooks/queries/useGasps.helpers';
+import { findPendingGasp, findPendingGaspByMedia, isChatGaspOpenable, updateGaspInList, withoutViewedOnceGasps } from '@/hooks/queries/useGasps.helpers';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
 
 const gasp = (id: string) => ({ id }) as Gasp;
@@ -57,5 +57,19 @@ describe('updateGaspInList', () => {
     expect(merged.senderName).toBe('Bi');
     expect(merged.senderAvatarUrl).toBe('https://a/bi.jpg');
     expect(merged.blurhash).toBe('LKO2');
+  });
+});
+
+describe('withoutViewedOnceGasps', () => {
+  const pending = (id: string, imageUrl: string, replayable = false) => ({ id, imageUrl, replayable }) as Gasp;
+
+  it('hides a view-once gasp this device already revealed while the server still has it opened', () => {
+    const list = [pending('a', 'https://cdn/a.mp4'), pending('b', 'https://cdn/b.jpg')];
+    expect(withoutViewedOnceGasps(list, { 'https://cdn/a.mp4': true }).map((g) => g.id)).toEqual(['b']);
+  });
+
+  it('keeps replayable gasps openable after they were viewed', () => {
+    const list = [pending('a', 'https://cdn/a.mp4', true)];
+    expect(withoutViewedOnceGasps(list, { 'https://cdn/a.mp4': true }).map((g) => g.id)).toEqual(['a']);
   });
 });

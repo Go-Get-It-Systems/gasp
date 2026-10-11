@@ -28,7 +28,12 @@ jest.mock('@/stores/authStore', () => ({
   ),
 }));
 jest.mock('@/stores/chatStore', () => ({ useChatStore: { getState: () => ({ activeConversationId: null, setTypingUser: jest.fn() }) } }));
-jest.mock('@/stores/gaspStore', () => ({ useGaspStore: { getState: () => ({ markGaspViewed: jest.fn(), addReaction: jest.fn() }) } }));
+jest.mock('@/stores/gaspStore', () => {
+  const state = { markGaspViewed: jest.fn(), addReaction: jest.fn(), viewedGaspUrls: {} };
+  const useGaspStore = (selector: (s: typeof state) => unknown) => selector(state);
+  useGaspStore.getState = () => state;
+  return { useGaspStore };
+});
 jest.mock('@/stores/inboxStore', () => ({ useInboxStore: { getState: () => ({ setBulkOnlineStatus: jest.fn(), setFriendOnlineStatus: jest.fn() }) } }));
 jest.mock('@/stores/notificationStore', () => ({ useNotificationStore: { getState: () => ({ enqueueToast: jest.fn(), setInboxUnreadType: jest.fn(), triggerTabPulse: jest.fn(), setChatHasUnread: jest.fn() }) } }));
 jest.mock('@/hooks/queries/useChat', () => ({ addMessageToCache: jest.fn() }));

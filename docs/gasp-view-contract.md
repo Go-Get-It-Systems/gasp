@@ -26,6 +26,9 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
 - Abrir a tela não consome o gasp.
 - No fim da contagem (revelação): o servidor recebe `open` uma única vez,
   e a bolha do chat e a mídia são marcadas como vistas localmente.
+- Depois da revelação, um gasp de visualização única some da aba Gasps e do
+  chat neste aparelho na hora, mesmo que o servidor ainda o mantenha `opened`
+  enquanto a reação é entregue. Um gasp com replay continua disponível.
 - Se o gasp do servidor só for encontrado depois da revelação, o `open` é
   enviado assim que ele aparecer.
 - Se o `open` falhar por erro transitório (rede ou 5xx), o app tenta de novo
