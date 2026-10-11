@@ -141,3 +141,7 @@ console.warn = (...args) => {
   if (typeof args[0] === 'string' && args[0].includes('Reanimated')) return;
   originalWarn(...args);
 };
+
+// ── Silence the dev-only gasp flow trace (services/__tests__/flowTrace.test.ts
+// covers it). Tests that assert the trace read the mock's calls.
+jest.mock('@/services/flowTrace', () => ({ traceFlow: jest.fn() }));

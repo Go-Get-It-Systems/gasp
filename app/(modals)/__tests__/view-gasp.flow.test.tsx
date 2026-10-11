@@ -15,6 +15,7 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import ViewGaspScreen from '../view-gasp';
 import { uploadWithRetry } from '@/services/uploadQueue';
+import { traceFlow } from '@/services/flowTrace';
 
 const mockReactNative = require('react-native');
 
@@ -552,6 +553,29 @@ describe('gasp view contract', () => {
 
       expect(mockServer.calls).toEqual(['open', 'reaction', 'close-view']);
       expect(mockServer.status).toBe('viewed');
+    });
+  });
+
+  describe('dev flow trace (read by the gasp-core-e2e skill on a device)', () => {
+    it('logs a full reaction in order', async () => {
+      openFromInbox();
+      await watchWholeGasp();
+      await send();
+
+      expect(jest.mocked(traceFlow).mock.calls.map(([step]) => step)).toEqual([
+        'hold-start',
+        'camera-ready',
+        'recording-started',
+        'reveal',
+        'server-open',
+        'release',
+        'preview',
+        'upload-done',
+        'composite',
+        'reaction-delivered',
+      ]);
+      expect(traceFlow).toHaveBeenCalledWith('recording-started', { duringCountdown: true, maxDuration: 14 });
+      expect(traceFlow).toHaveBeenCalledWith('composite', { revealOffsetMs: COUNTDOWN_MS, isComposite: true });
     });
   });
 

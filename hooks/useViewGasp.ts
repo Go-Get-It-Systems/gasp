@@ -10,6 +10,7 @@ import { uploadWithRetry, enqueueUpload, removeFromQueue } from '@/services/uplo
 import { sendMessage as sendMessageREST } from '@/services/api/messages';
 import { compressVideo } from '@/services/videoCompression';
 import { resolveReactionMediaUrl } from '@/services/compositeService';
+import { traceFlow } from '@/services/flowTrace';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
 import { useTranslation } from 'react-i18next';
 
@@ -108,6 +109,7 @@ export function useViewGasp({
       const id = gaspIdRef.current;
       // eslint-disable-next-line react-hooks/exhaustive-deps
       if (id && openedRef.current && !reactionSucceededRef.current && !reactionInFlightRef.current) {
+        traceFlow('close-view', { why: 'unmount' });
         closeViewMutation.mutate(id);
       }
     };
@@ -168,16 +170,18 @@ export function useViewGasp({
       isRecordingRef.current = true;
       setIsRecording(true);
       recordingStartedAtRef.current = Date.now();
-      recordingPromiseRef.current = camera.recordAsync({
-        maxDuration: reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S,
-      });
+      const maxDuration = reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S;
+      recordingPromiseRef.current = camera.recordAsync({ maxDuration });
+      traceFlow('recording-started', { duringCountdown: !revealedRef.current, maxDuration });
       recordingPromiseRef.current?.catch((e) => {
+        traceFlow('recording-failed', { error: String(e) });
         Sentry.captureException(e, { tags: { feature: 'reaction-recording' } });
         isRecordingRef.current = false;
         setIsRecording(false);
         recordingPromiseRef.current = null;
       });
     } catch (e) {
+      traceFlow('recording-failed', { error: String(e) });
       Sentry.captureException(e, { tags: { feature: 'reaction-recording', step: 'start-recording' } });
       isRecordingRef.current = false;
       setIsRecording(false);
@@ -187,6 +191,7 @@ export function useViewGasp({
 
   const handleHoldStart = useCallback(() => {
     releasedRef.current = false;
+    traceFlow('hold-start');
     setIsCountingDown(true);
   }, []);
 
@@ -194,6 +199,7 @@ export function useViewGasp({
   // is ready so the reveal itself is captured (previously recording only began
   // ~2s after the reveal and missed the reaction's first moments).
   const handleCameraReady = useCallback(() => {
+    traceFlow('camera-ready', { released: releasedRef.current });
     if (!releasedRef.current) startRecording();
   }, [startRecording]);
 
@@ -204,6 +210,7 @@ export function useViewGasp({
     if (releasedRef.current) return;
     revealedRef.current = true;
     revealedAtRef.current = Date.now();
+    traceFlow('reveal', { recording: isRecordingRef.current });
     // Drives the circle the gasp opens through (see CircleReveal).
     isRevealed.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
     startProgressAnimation();
@@ -214,6 +221,7 @@ export function useViewGasp({
   const handleRelease = useCallback(async () => {
     if (releasedRef.current) return;
     releasedRef.current = true;
+    traceFlow('release', { revealed: revealedRef.current });
 
     setIsCountingDown(false);
 
@@ -254,8 +262,10 @@ export function useViewGasp({
           tags: { feature: 'super-imposed-reaction', step: 'background-upload-enqueue' },
         });
       });
+      traceFlow('preview');
       setPreviewUri(videoUri);
     } else {
+      traceFlow('no-clip');
       // Recording returned no URI — camera likely wasn't ready.
       // Show an alert so the user knows what happened instead of silently closing.
       Alert.alert(
@@ -323,11 +333,13 @@ export function useViewGasp({
             throw new Error('uploadWithRetry returned empty downloadUrl');
           }
           reactionVideoUrl = result.downloadUrl;
+          traceFlow('upload-done');
         } catch (e) {
           // Upload failed — keep ReactionPreview visible, re-enable Send button
           Sentry.captureException(e, {
             tags: { feature: 'super-imposed-reaction', step: 'upload' },
           });
+          traceFlow('upload-failed', { error: String(e) });
           setIsSending(false);
           showUploadErrorToast();
           return;
@@ -356,6 +368,7 @@ export function useViewGasp({
           ? Math.max(0, revealedAt - startedAt)
           : undefined;
         const reactionMediaUrl = await resolveReactionMediaUrl(reactionVideoUrl, gaspUrl, revealOffsetMs);
+        traceFlow('composite', { revealOffsetMs, isComposite: reactionMediaUrl !== reactionVideoUrl });
 
         try {
           if (messageId) {
@@ -369,13 +382,18 @@ export function useViewGasp({
             await sendMessageREST(resolvedConversationId, buildReactionMessagePayload(reactionMediaUrl));
           }
           reactionSucceededRef.current = true;
+          traceFlow('reaction-delivered', { via: messageId ? 'chat' : currentGaspId ? 'reactions' : 'message' });
         } catch (sendError: unknown) {
           Sentry.captureException(sendError, {
             tags: { feature: 'super-imposed-reaction', step: 'send-reaction-message' },
           });
           // The reaction never landed: close the view the unmount skipped.
+          traceFlow('reaction-failed', { error: String(sendError) });
           const id = gaspIdRef.current;
-          if (id && openedRef.current) closeViewMutation.mutate(id);
+          if (id && openedRef.current) {
+            traceFlow('close-view', { why: 'delivery-failed' });
+            closeViewMutation.mutate(id);
+          }
         } finally {
           reactionInFlightRef.current = false;
           setIsSending(false);
@@ -421,7 +439,10 @@ export function useViewGasp({
       bgUploadQueueIdRef.current = null;
     }
     const id = gaspIdRef.current;
-    if (id) closeViewMutation.mutate(id);                      // inbox mode only
+    if (id) {
+      traceFlow('close-view', { why: 'discard' });
+      closeViewMutation.mutate(id);                            // inbox mode only
+    }
   }, [closeViewMutation]);
 
   return {

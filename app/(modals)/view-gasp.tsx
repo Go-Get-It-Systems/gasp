@@ -21,6 +21,7 @@ import { findPendingGasp, findPendingGaspByMedia } from '@/hooks/queries/useGasp
 import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
 import { colors } from '@/constants/colors';
 import { ReportSheet } from '@/components/safety/ReportSheet';
+import { traceFlow } from '@/services/flowTrace';
 
 export default function ViewGaspScreen() {
   const insets = useSafeAreaInsets();
@@ -155,6 +156,7 @@ export default function ViewGaspScreen() {
     if (hasRevealedRef.current && gasp && !openedRef.current) {
       openedRef.current = true;
       gaspIdRef.current = gasp.id;
+      traceFlow('server-open', { gaspId: gasp.id });
       openGaspMutation.mutate(gasp.id);
     }
   }, [gasp, revealTick, openGaspMutation, openedRef, gaspIdRef]);
