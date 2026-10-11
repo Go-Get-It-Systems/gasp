@@ -28,6 +28,8 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
   e a bolha do chat e a mídia são marcadas como vistas localmente.
 - Se o gasp do servidor só for encontrado depois da revelação, o `open` é
   enviado assim que ele aparecer.
+- Se o `open` falhar por erro transitório (rede ou 5xx), o app tenta de novo
+  (500ms, 1,5s, 3s).
 
 ### C2. Soltar durante a contagem não custa nada
 - Nada é consumido, nenhum alerta aparece, nenhum `open` ou `close-view` é
@@ -87,6 +89,12 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
   Se o gasp foi ligado ao do servidor, ele fica em `opened` e continua
   aparecendo na aba Gasps até expirar. O teste de fluxo documenta esse
   comportamento atual para que uma mudança aqui seja intencional.
+
+- **`open` que falha em todas as tentativas.** Se o servidor recusar as
+  quatro tentativas, o gasp continua `pending`: o `close-view` não muda um
+  gasp `pending` (decisão em `gasps.transitions.ts`), e o gasp volta para a
+  lista de quem já o viu. Fechar essa brecha exige decidir se `close-view`
+  deve marcar `viewed` também a partir de `pending`.
 
 ## Checklist no aparelho antes de cada PR que toca este fluxo
 

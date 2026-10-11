@@ -74,10 +74,17 @@ export function useSendBatchGasp() {
  * Marca gasp como `opened` no backend (janela de reação iniciada).
  * Mantém o gasp no cache pendente (vai sair apenas quando close-view ou reacted).
  */
+export const OPEN_RETRY_DELAYS_MS = [500, 1500, 3000];
+
 export function useOpenGasp() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (gaspId: string) => gaspsApi.openGasp(gaspId),
+    // The viewer already saw the media when this fires; if the server never
+    // records the open, the gasp stays "pending" and comes back to the list.
+    // Opening is idempotent server-side, so transient failures are retried.
+    retry: (failureCount, error) => failureCount < OPEN_RETRY_DELAYS_MS.length && isTransientError(error),
+    retryDelay: (attempt) => OPEN_RETRY_DELAYS_MS[attempt] ?? OPEN_RETRY_DELAYS_MS[OPEN_RETRY_DELAYS_MS.length - 1],
     onSuccess: (updated) => {
       queryClient.setQueryData<Gasp[]>(queryKeys.gasps.pending, (old) =>
         updateGaspInList(old, updated),
