@@ -69,6 +69,9 @@ Sender = Bi simulator, receiver = Iaco simulator.
    (`kill -INT`). Expect: the gasp revealed after 3s through the circle, the
    gasp leaves the list, and "Recording failed" (no camera). REC must **not**
    be shown at all in the simulator (no recording ever started).
+   Prove it: extract frames every 0.1s (`swift scripts/frames.swift <file>.mp4
+   <dir> 0.1`) and run `python3 scripts/find-rec.py <dir>`; it must report
+   `0 of N frames show REC`. A flash lasts ~15ms, so screenshots miss it.
 5. Repeat 1 + 4 with the **video** (fresh send). Extract frames:
    `swift scripts/frames.swift <file>.mp4 <frames-dir> 0.5` and
    `python3 scripts/contact-sheet.py <frames-dir> <sheet>.jpg`. Read the sheet:
