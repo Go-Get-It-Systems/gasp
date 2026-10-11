@@ -21,7 +21,10 @@ export type FlowStep =
   | 'composite'
   | 'reaction-delivered'
   | 'reaction-failed'
-  | 'close-view';
+  | 'close-view'
+  | 'camera-mount-error'
+  | 'video-play'
+  | 'video-status';
 
 export function traceFlow(step: FlowStep, data: Record<string, string | number | boolean | null | undefined> = {}) {
   if (!__DEV__) return;

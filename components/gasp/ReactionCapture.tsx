@@ -15,6 +15,7 @@ import Animated, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { selectionHaptic } from '@/utils/haptics';
+import { traceFlow } from '@/services/flowTrace';
 import { PIP_WIDTH, PIP_HEIGHT, MARGIN } from './pipPosition';
 
 const STORAGE_KEY = '@gasp/reaction-pip-corner';
@@ -165,7 +166,8 @@ export function ReactionCapture({
         <Animated.View style={[styles.cameraWrapper, borderAnimatedStyle]}>
           {isCameraActive && (
             <CameraView ref={cameraRef} style={styles.camera} facing="front" mode="video"
-              onCameraReady={onCameraReady} />
+              onCameraReady={onCameraReady}
+              onMountError={(e) => traceFlow('camera-mount-error', { message: e.message })} />
           )}
           <View style={styles.dragHandle} />
         </Animated.View>
