@@ -59,6 +59,9 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
 - A gravação é interrompida e a prévia da reação aparece com o vídeo gravado.
 - Se não houver vídeo, aparece o alerta "Falha na gravação" e a tela fecha
   ao confirmar.
+- A tela nunca fica travada: se a câmera não devolver o vídeo em 4s depois
+  de soltar, conta como "sem vídeo" (visto num iPhone 15 Pro com um gasp em
+  vídeo com som).
 
 ### C6. O composite fica sincronizado com a revelação
 - O backend recebe `revealOffsetMs = revelação − início da gravação`

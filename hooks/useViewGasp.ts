@@ -29,6 +29,10 @@ const RECORD_MAX_ATTEMPTS = 10;
 // Rejections arrive ~15ms after recordAsync, so REC only lights up once an
 // attempt has survived this long; otherwise every retry would flash it.
 const REC_CONFIRM_MS = 300;
+// expo-camera only resolves recordAsync once AVFoundation reports the file is
+// finished. On an iPhone 15 Pro that report never came after a video gasp with
+// sound played during the recording, and the screen hung on the last frame.
+const CLIP_TIMEOUT_MS = 4000;
 
 // Backoff delays for sendMessage retries: immediate, 500ms, 1500ms
 const SEND_RETRY_DELAYS_MS = [0, 500, 1500];
@@ -271,8 +275,20 @@ export function useViewGasp({
         setIsRecording(false);
       }
       if (recordingPromiseRef.current) {
-        const result = await recordingPromiseRef.current;
-        videoUri = result?.uri ?? null;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timedOut = new Promise<'timeout'>((resolve) => {
+          timer = setTimeout(() => resolve('timeout'), CLIP_TIMEOUT_MS);
+        });
+        const result = await Promise.race([recordingPromiseRef.current, timedOut]);
+        clearTimeout(timer);
+        if (result === 'timeout') {
+          traceFlow('clip-timeout', { afterMs: CLIP_TIMEOUT_MS });
+          Sentry.captureMessage('Reaction clip never finished after stopRecording', {
+            tags: { feature: 'reaction-recording' },
+          });
+        } else {
+          videoUri = result?.uri ?? null;
+        }
       }
     } catch (e) {
       Sentry.captureException(e);

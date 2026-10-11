@@ -55,6 +55,9 @@ interface FakeCamera {
   /** Rejects this many upcoming recordAsync calls right away, like expo-camera
    * does when onCameraReady fired before the movie output was attached. */
   notReadyAttempts: number;
+  /** stopRecording never hands back the clip, like expo-camera did on an
+   * iPhone 15 Pro when a video gasp with sound played during the recording. */
+  neverFinishes: boolean;
 }
 
 function createFakeCamera(): FakeCamera {
@@ -63,6 +66,7 @@ function createFakeCamera(): FakeCamera {
   const camera: FakeCamera = {
     clipUri: 'file:///reaction.mov',
     notReadyAttempts: 0,
+    neverFinishes: false,
     recordAsync: jest.fn((_opts: { maxDuration: number }) => {
       if (camera.notReadyAttempts > 0) {
         camera.notReadyAttempts -= 1;
@@ -76,7 +80,9 @@ function createFakeCamera(): FakeCamera {
         fail = reject;
       });
     }),
-    stopRecording: jest.fn(() => finish?.(camera.clipUri ? { uri: camera.clipUri } : undefined)),
+    stopRecording: jest.fn(() => {
+      if (!camera.neverFinishes) finish?.(camera.clipUri ? { uri: camera.clipUri } : undefined);
+    }),
     failRecording: () => fail?.(new Error('camera busy')),
   };
   return camera;
@@ -205,6 +211,7 @@ const COUNTDOWN_MS = 3000;
 const RECORD_RETRY_MS = 150;
 const NOT_READY_MS = 15;
 const REC_CONFIRM_MS = 300;
+const CLIP_TIMEOUT_MS = 4000;
 
 const serverGasp = {
   id: 'gasp-1',
@@ -505,6 +512,29 @@ describe('gasp view contract', () => {
   });
 
   describe('C5. releasing after the reveal', () => {
+    it('does not hang when the camera never hands back the clip', async () => {
+      mockCamera.neverFinishes = true;
+      openFromInbox();
+      holdStart();
+      cameraReady();
+      countdownEnds();
+      act(() => {
+        jest.advanceTimersByTime(IMAGE_GASP_S * 1000);
+      });
+      // release() awaits the clip, so it is not awaited here.
+      act(() => {
+        void mockHold.opts!.onHoldEnd();
+      });
+      await advance(CLIP_TIMEOUT_MS);
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'viewGasp.recordingFailedTitle',
+        'viewGasp.recordingFailedBody',
+        expect.any(Array),
+      );
+      expect(screen.queryByText('reaction-preview')).toBeNull();
+    });
+
     it('stops recording and previews the recorded clip', async () => {
       openFromInbox();
       await watchWholeGasp();

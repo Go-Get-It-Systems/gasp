@@ -16,6 +16,7 @@ export type FlowStep =
   | 'release'
   | 'preview'
   | 'no-clip'
+  | 'clip-timeout'
   | 'upload-done'
   | 'upload-failed'
   | 'composite'
