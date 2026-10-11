@@ -87,6 +87,10 @@ export function useViewGasp({
   const gaspIdRef = useRef<string | null>(null);
   const openedRef = useRef(false);
   const reactionSucceededRef = useRef(false);
+  // Set once a reaction upload succeeded and is being delivered after the
+  // screen closes: the unmount must not close-view the gasp meanwhile, or the
+  // server marks it "viewed" and the reaction can no longer mark it "reacted".
+  const reactionInFlightRef = useRef(false);
   // Track background upload so we can cancel it on discard
   const bgUploadQueueIdRef = useRef<string | null>(null);
   const [isCountingDown, setIsCountingDown] = useState(false);
@@ -103,7 +107,7 @@ export function useViewGasp({
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const id = gaspIdRef.current;
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      if (id && openedRef.current && !reactionSucceededRef.current) {
+      if (id && openedRef.current && !reactionSucceededRef.current && !reactionInFlightRef.current) {
         closeViewMutation.mutate(id);
       }
     };
@@ -340,6 +344,7 @@ export function useViewGasp({
         }
 
         // 3. Navigate back right after the upload; compositing continues in the background
+        reactionInFlightRef.current = true;
         setPreviewUri(null);
         router.back();
 
@@ -368,7 +373,11 @@ export function useViewGasp({
           Sentry.captureException(sendError, {
             tags: { feature: 'super-imposed-reaction', step: 'send-reaction-message' },
           });
+          // The reaction never landed: close the view the unmount skipped.
+          const id = gaspIdRef.current;
+          if (id && openedRef.current) closeViewMutation.mutate(id);
         } finally {
+          reactionInFlightRef.current = false;
           setIsSending(false);
         }
       } catch (e) {
@@ -393,6 +402,7 @@ export function useViewGasp({
     showMissingConversationToast,
     showUploadErrorToast,
     resolveConversationId,
+    closeViewMutation,
   ]);
 
   /**
