@@ -171,6 +171,11 @@ describe('useViewGasp', () => {
         result.current.handleHoldStart();
         result.current.handleCameraReady();
       });
+      // Not at the instant the camera reports ready (see RECORD_START_DELAY_MS).
+      expect(camera.recordAsync).not.toHaveBeenCalled();
+      act(() => {
+        jest.advanceTimersByTime(250);
+      });
 
       expect(camera.recordAsync).toHaveBeenCalledTimes(1);
       // 5s gasp + 3s countdown + 1s slack

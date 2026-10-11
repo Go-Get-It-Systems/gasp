@@ -42,6 +42,9 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
   recusar a primeira tentativa ("Camera is not ready yet"). Enquanto a pessoa
   segura, o app tenta de novo a cada 150ms, até 10 vezes.
 - Se a câmera não ficou pronta a tempo, a gravação começa na revelação.
+- A gravação começa 250ms depois do aviso de câmera pronta, nunca no mesmo
+  instante: no iPhone 15 Pro, um `recordAsync` disparado junto com o
+  `onCameraReady` foi aceito mas nunca gravou (o vídeo nunca voltou).
 - Existe no máximo uma gravação por vez que a pessoa segura.
 - A duração máxima da gravação é a duração do gasp (até 30s) mais 3s de
   contagem mais 1s de folga.
@@ -59,6 +62,7 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
 - A gravação é interrompida e a prévia da reação aparece com o vídeo gravado.
 - Se não houver vídeo, aparece o alerta "Falha na gravação" e a tela fecha
   ao confirmar.
+- Depois da revelação, segurar de novo não faz nada: o gasp abre uma vez.
 - A tela nunca fica travada: se a câmera não devolver o vídeo em 4s depois
   de soltar, conta como "sem vídeo" (visto num iPhone 15 Pro com um gasp em
   vídeo com som).

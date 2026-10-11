@@ -58,6 +58,10 @@ interface FakeCamera {
   /** stopRecording never hands back the clip, like expo-camera did on an
    * iPhone 15 Pro when a video gasp with sound played during the recording. */
   neverFinishes: boolean;
+  /** When onCameraReady fired. A recordAsync issued within HANG_WINDOW_MS of
+   * it is accepted but never records (stop never returns a clip): seen three
+   * times on an iPhone 15 Pro, while a start ~150ms later always worked. */
+  readyAt: number | null;
 }
 
 function createFakeCamera(): FakeCamera {
@@ -67,6 +71,7 @@ function createFakeCamera(): FakeCamera {
     clipUri: 'file:///reaction.mov',
     notReadyAttempts: 0,
     neverFinishes: false,
+    readyAt: null,
     recordAsync: jest.fn((_opts: { maxDuration: number }) => {
       if (camera.notReadyAttempts > 0) {
         camera.notReadyAttempts -= 1;
@@ -74,6 +79,9 @@ function createFakeCamera(): FakeCamera {
         return new Promise((_resolve, reject) => {
           setTimeout(() => reject(new Error("Camera is not ready yet. Wait for 'onCameraReady' callback")), NOT_READY_MS);
         });
+      }
+      if (camera.readyAt !== null && Date.now() - camera.readyAt < HANG_WINDOW_MS) {
+        return new Promise<{ uri: string } | undefined>(() => {});
       }
       return new Promise<{ uri: string } | undefined>((resolve, reject) => {
         finish = resolve;
@@ -95,7 +103,7 @@ let mockParams: Record<string, string> = {};
 interface UiProbes {
   hold?: { isRecording: boolean; recordingStartedAt: number | null };
   capture?: { onCameraReady: () => void };
-  countdown?: { onCountdownComplete: () => void };
+  countdown?: { onCountdownComplete: () => void; isActive: boolean };
   /** isRecording on every HoldToView render, to catch a REC that flashes. */
   recHistory?: boolean[];
   preview?: { onSend: () => void; onDiscard: () => void; isSending: boolean; reactionVideoUri: string };
@@ -212,6 +220,8 @@ const RECORD_RETRY_MS = 150;
 const NOT_READY_MS = 15;
 const REC_CONFIRM_MS = 300;
 const CLIP_TIMEOUT_MS = 4000;
+const RECORD_START_DELAY_MS = 250;
+const HANG_WINDOW_MS = 100;
 
 const serverGasp = {
   id: 'gasp-1',
@@ -249,7 +259,11 @@ function holdStart() {
   act(() => mockHold.opts!.onHoldStart());
 }
 function cameraReady() {
-  act(() => mockUi.capture!.onCameraReady());
+  act(() => {
+    mockCamera.readyAt = Date.now();
+    mockUi.capture!.onCameraReady();
+    jest.advanceTimersByTime(RECORD_START_DELAY_MS);
+  });
 }
 function countdownEnds() {
   act(() => {
@@ -401,6 +415,27 @@ describe('gasp view contract', () => {
       expect(mockCamera.recordAsync).toHaveBeenCalledTimes(1);
     });
 
+    it('waits a moment after the camera reports ready before recording', async () => {
+      openFromInbox();
+      holdStart();
+      act(() => {
+        mockCamera.readyAt = Date.now();
+        mockUi.capture!.onCameraReady();
+      });
+      expect(mockCamera.recordAsync).not.toHaveBeenCalled();
+
+      await advance(RECORD_START_DELAY_MS);
+      expect(mockCamera.recordAsync).toHaveBeenCalledTimes(1);
+
+      countdownEnds();
+      act(() => {
+        jest.advanceTimersByTime(IMAGE_GASP_S * 1000);
+      });
+      await release();
+
+      expect(screen.getByText('reaction-preview')).toBeTruthy();
+    });
+
     it('falls back to starting at the reveal when the camera was not ready in time', () => {
       openFromInbox();
       holdStart();
@@ -427,7 +462,7 @@ describe('gasp view contract', () => {
       expect(mockUi.hold!.isRecording).toBe(true);
       const startedAt = mockUi.hold!.recordingStartedAt!;
       const retriesMs = 2 * (NOT_READY_MS + RECORD_RETRY_MS);
-      expect(startedAt).toBe(T0 + retriesMs);
+      expect(startedAt).toBe(T0 + RECORD_START_DELAY_MS + retriesMs);
 
       // The clip still covers the reveal, so the composite lines up with it.
       await advance(COUNTDOWN_MS - retriesMs - REC_CONFIRM_MS);
@@ -484,9 +519,9 @@ describe('gasp view contract', () => {
       cameraReady();
       countdownEnds();
 
-      // Started at T0, so at the reveal the clock reads ~0:03 (see RecordingHud tests).
+      // Started during the countdown, so at the reveal the clock reads ~0:03 (see RecordingHud tests).
       expect(mockUi.hold!.isRecording).toBe(true);
-      expect(mockUi.hold!.recordingStartedAt).toBe(T0);
+      expect(mockUi.hold!.recordingStartedAt).toBe(T0 + RECORD_START_DELAY_MS);
     });
 
     it('turns off when the hold ends', async () => {
@@ -512,6 +547,20 @@ describe('gasp view contract', () => {
   });
 
   describe('C5. releasing after the reveal', () => {
+    it('ignores a new hold once the gasp was revealed', async () => {
+      openFromInbox();
+      await watchWholeGasp();
+      const calls = mockCamera.recordAsync.mock.calls.length;
+
+      act(() => mockHold.opts!.onHoldStart());
+      act(() => mockUi.capture!.onCameraReady());
+      await advance(RECORD_START_DELAY_MS);
+
+      expect(mockCamera.recordAsync).toHaveBeenCalledTimes(calls);
+      expect(mockUi.countdown!.isActive).toBe(false);
+      expect(alertSpy).not.toHaveBeenCalled();
+    });
+
     it('does not hang when the camera never hands back the clip', async () => {
       mockCamera.neverFinishes = true;
       openFromInbox();

@@ -33,6 +33,10 @@ const REC_CONFIRM_MS = 300;
 // finished. On an iPhone 15 Pro that report never came after a video gasp with
 // sound played during the recording, and the screen hung on the last frame.
 const CLIP_TIMEOUT_MS = 4000;
+// A recordAsync issued the instant onCameraReady fires can be accepted yet
+// never record (seen three times on an iPhone 15 Pro: stop never returned a
+// clip), while a start ~150ms later always worked. Give the session a moment.
+const RECORD_START_DELAY_MS = 250;
 
 // Backoff delays for sendMessage retries: immediate, 500ms, 1500ms
 const SEND_RETRY_DELAYS_MS = [0, 500, 1500];
@@ -98,6 +102,7 @@ export function useViewGasp({
   const isRecordingRef = useRef(false);
   const recordRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const gaspIdRef = useRef<string | null>(null);
   const openedRef = useRef(false);
@@ -120,6 +125,7 @@ export function useViewGasp({
       recordingPromiseRef.current = null;
       if (recordRetryTimerRef.current) clearTimeout(recordRetryTimerRef.current);
       if (recConfirmTimerRef.current) clearTimeout(recConfirmTimerRef.current);
+      if (recordStartTimerRef.current) clearTimeout(recordStartTimerRef.current);
       // Read latest refs on unmount so inbox-mode gasps close only when no reaction succeeded.
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const id = gaspIdRef.current;
@@ -228,6 +234,9 @@ export function useViewGasp({
   }, [reactionDurationS]);
 
   const handleHoldStart = useCallback(() => {
+    // The gasp opens once: after the reveal a new hold must not start another
+    // countdown or recording (it used to, while the first clip was finishing).
+    if (revealedRef.current) return;
     releasedRef.current = false;
     traceFlow('hold-start');
     setIsCountingDown(true);
@@ -238,7 +247,12 @@ export function useViewGasp({
   // ~2s after the reveal and missed the reaction's first moments).
   const handleCameraReady = useCallback(() => {
     traceFlow('camera-ready', { released: releasedRef.current });
-    if (!releasedRef.current) startRecording();
+    if (releasedRef.current || revealedRef.current) return;
+    if (recordStartTimerRef.current) clearTimeout(recordStartTimerRef.current);
+    recordStartTimerRef.current = setTimeout(() => {
+      recordStartTimerRef.current = null;
+      startRecording();
+    }, RECORD_START_DELAY_MS);
   }, [startRecording]);
 
   // Called when the 3-2-1 countdown finishes: reveal the media, start the
@@ -260,6 +274,10 @@ export function useViewGasp({
     if (releasedRef.current) return;
     releasedRef.current = true;
     traceFlow('release', { revealed: revealedRef.current });
+    if (recordStartTimerRef.current) {
+      clearTimeout(recordStartTimerRef.current);
+      recordStartTimerRef.current = null;
+    }
 
     setIsCountingDown(false);
 

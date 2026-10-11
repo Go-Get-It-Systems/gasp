@@ -303,8 +303,10 @@ describe('useViewGasp composite flow', () => {
       act(() => {
         result.current.handleHoldStart();
         result.current.handleCameraReady();
+        // Recording starts a moment after the camera reports ready.
+        jest.advanceTimersByTime(250);
       });
-      jest.setSystemTime(new Date('2026-10-10T10:00:03.000Z'));
+      jest.setSystemTime(new Date('2026-10-10T10:00:03.250Z'));
       act(() => { result.current.handleCountdownComplete(); });
       await act(async () => { await result.current.handleRelease(); });
       await act(async () => { result.current.handleSend(); });
