@@ -100,13 +100,13 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
 
 ## Lacunas conhecidas (decisão pendente)
 
-- **`open` que falha em todas as tentativas.** Se o servidor recusar as
+- **`open` que falha em todas as tentativas** (backlog B-003). Se o servidor recusar as
   quatro tentativas, o gasp continua `pending`: o `close-view` não muda um
   gasp `pending` (decisão em `gasps.transitions.ts`), e o gasp volta para a
   lista de quem já o viu. Fechar essa brecha exige decidir se `close-view`
   deve marcar `viewed` também a partir de `pending`.
 
-- **A mesma conta em dois aparelhos.** Enquanto um gasp de visualização única
+- **A mesma conta em dois aparelhos** (backlog B-004). Enquanto um gasp de visualização única
   está `opened` (até a reação chegar, cerca de 10s com o composite), o
   servidor ainda o lista como pendente, e outro aparelho da mesma conta pode
   abri-lo. Decisão: o backend deve tirar gasps de visualização única `opened`
