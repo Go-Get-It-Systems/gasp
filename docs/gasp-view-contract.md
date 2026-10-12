@@ -76,7 +76,10 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
   para alinhar o gasp com o rosto no vídeo lado a lado.
 
 ### C7. O status final no servidor é coerente
-- Reação entregue (modo inbox): o gasp termina `reacted`.
+- Reação entregue: o gasp termina `reacted`, também quando aberto pelo chat.
+  Sempre que o gasp do servidor é conhecido, a reação vai por
+  `POST /reactions`, que também publica a resposta no chat. Uma mensagem de
+  chat sozinha só é usada quando o gasp não tem registro no servidor.
 - Enquanto a reação está sendo entregue, nenhum `close-view` é enviado,
   porque o servidor marcaria `viewed` e a reação não conseguiria mais marcar
   `reacted` (transições em `gasp-backend/src/modules/gasps/gasps.transitions.ts`).
@@ -96,12 +99,6 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
 - O vídeo da reação tem imagem da câmera frontal e áudio do microfone.
 
 ## Lacunas conhecidas (decisão pendente)
-
-- **Reação pelo chat não marca `reacted`.** No modo chat (`chatMessageId`)
-  a reação é enviada como mensagem, e o backend não muda o status do gasp.
-  Se o gasp foi ligado ao do servidor, ele fica em `opened` e continua
-  aparecendo na aba Gasps até expirar. O teste de fluxo documenta esse
-  comportamento atual para que uma mudança aqui seja intencional.
 
 - **`open` que falha em todas as tentativas.** Se o servidor recusar as
   quatro tentativas, o gasp continua `pending`: o `close-view` não muda um

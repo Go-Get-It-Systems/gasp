@@ -381,7 +381,7 @@ export function useViewGasp({
 
     // The server gasp was found at the reveal but has since left the pending
     // list: the same account answered or closed it on another device.
-    if (!messageId && gaspIdRef.current && gaspGone) {
+    if (gaspIdRef.current && gaspGone) {
       traceFlow('answered-elsewhere');
       showAnsweredElsewhereToast();
       return;
@@ -462,18 +462,22 @@ export function useViewGasp({
         traceFlow('composite', { revealOffsetMs, isComposite: reactionMediaUrl !== reactionVideoUrl });
 
         try {
-          if (messageId) {
-            await sendMessageWithRetry(resolvedConversationId, reactionMediaUrl, messageId, 3);
-          } else if (currentGaspId) {
+          // A known server gasp always goes through POST /reactions, also from
+          // the chat: it marks the gasp "reacted", records the reaction for
+          // the sender and posts the chat reply. A chat message alone left
+          // the gasp "opened" (backlog B-001).
+          if (currentGaspId) {
             await createReaction({
               gaspId: currentGaspId,
               videoUrl: reactionMediaUrl,
             });
+          } else if (messageId) {
+            await sendMessageWithRetry(resolvedConversationId, reactionMediaUrl, messageId, 3);
           } else {
             await sendMessageREST(resolvedConversationId, buildReactionMessagePayload(reactionMediaUrl));
           }
           reactionSucceededRef.current = true;
-          traceFlow('reaction-delivered', { via: messageId ? 'chat' : currentGaspId ? 'reactions' : 'message' });
+          traceFlow('reaction-delivered', { via: currentGaspId ? 'reactions' : messageId ? 'chat' : 'message' });
         } catch (sendError: unknown) {
           Sentry.captureException(sendError, {
             tags: { feature: 'super-imposed-reaction', step: 'send-reaction-message' },
