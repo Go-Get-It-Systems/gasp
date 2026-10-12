@@ -14,7 +14,7 @@ Status: `aberto`, `decisão pendente`, `em andamento`, `feito (PR)`.
 ---
 
 ## B-001 · Reação pelo chat não marca o gasp como `reacted`
-- **Prioridade:** P1 · **Área:** backend + app · **Status:** aberto
+- **Prioridade:** P1 · **Área:** backend + app · **Status:** feito (gasp#40)
 - **Contexto:** quando o gasp é aberto pelo chat (`chatMessageId`), a reação
   vai como mensagem (`POST /messages`, tipo `reaction`). O backend não muda o
   status do gasp, que fica `opened` e continua na aba Gasps até expirar.
@@ -29,8 +29,10 @@ Status: `aberto`, `decisão pendente`, `em andamento`, `feito (PR)`.
   `reaction` com `replyToId` de uma mensagem `gasp`, marcar o gasp como
   `reacted` usando `resolveReactionStatusUpdate`), ou o app também chamar
   `POST /reactions` no modo chat.
-- **Decisão:** qual dos dois caminhos. Recomendado: backend, porque cobre
-  versões antigas do app.
+- **Decisão:** resolvido no app: com o gasp do servidor conhecido, a reação
+  pelo chat vai por `POST /reactions` (que também publica a resposta no
+  chat). Versões antigas do app só se corrigem ao atualizar. Se isso
+  importar, dá para adicionar um fallback no backend depois.
 
 ## B-002 · Banco de produção perde conexão de vez em quando
 - **Prioridade:** P1 · **Área:** infra/backend · **Status:** aberto

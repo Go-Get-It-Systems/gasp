@@ -774,8 +774,22 @@ describe('gasp view contract', () => {
     });
   });
 
-  describe('known gap (contract: "Lacunas conhecidas")', () => {
-    it('a reaction sent from the chat replies to the message but leaves the server gasp "opened"', async () => {
+  describe('reactions sent from the chat', () => {
+    // Backlog B-001: the chat path only posted a chat message, so the server
+    // gasp stayed "opened" and came back to the Gasps tab after a restart.
+    it('go through POST /reactions when the server gasp is known, ending "reacted"', async () => {
+      openFromChat();
+      await watchWholeGasp();
+      await send();
+
+      expect(mockServer.calls).toEqual(['open', 'reaction']);
+      expect(mockServer.status).toBe('reacted');
+      // The server posts the chat reply itself; no second message from the app.
+      expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+
+    it('fall back to a chat reply when the gasp has no server record', async () => {
+      mockPending = [];
       openFromChat();
       await watchWholeGasp();
       await send();
@@ -785,8 +799,7 @@ describe('gasp view contract', () => {
         mediaUrl: 'https://cdn.test/composite.mp4',
         replyToId: 'msg-1',
       }));
-      expect(mockServer.calls).toEqual(['open']);
-      expect(mockServer.status).toBe('opened');
+      expect(mockServer.calls).toEqual([]);
     });
   });
 });
