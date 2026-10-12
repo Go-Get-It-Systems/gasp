@@ -63,6 +63,8 @@ interface UseViewGaspProps {
   /** Called once when the media is actually revealed — the only point where the gasp is consumed */
   onReveal?: () => void;
   resolveConversationId?: () => Promise<string | null>;
+  /** The server gasp was found but has left the pending list since. */
+  gaspGone?: boolean;
 }
 
 /** Private helper: sleep for ms milliseconds */
@@ -83,6 +85,7 @@ export function useViewGasp({
   gaspUrl,
   resolveConversationId,
   onReveal,
+  gaspGone = false,
 }: UseViewGaspProps) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -172,6 +175,14 @@ export function useViewGasp({
       t('viewGasp.uploadFailedTitle'),
       t('viewGasp.uploadFailedBody'),
       [{ text: t('common.ok') }],
+    );
+  }, [t]);
+
+  const showAnsweredElsewhereToast = useCallback(() => {
+    Alert.alert(
+      t('viewGasp.answeredElsewhereTitle'),
+      t('viewGasp.answeredElsewhereBody'),
+      [{ text: t('common.ok'), onPress: () => router.back() }],
     );
   }, [t]);
 
@@ -368,6 +379,14 @@ export function useViewGasp({
       console.tronLog?.log('handleSend | start', { localUri: localUri.slice(-40), userId, conversationId, messageId, gaspUrl: gaspUrl.slice(-40) });
     }
 
+    // The server gasp was found at the reveal but has since left the pending
+    // list: the same account answered or closed it on another device.
+    if (!messageId && gaspIdRef.current && gaspGone) {
+      traceFlow('answered-elsewhere');
+      showAnsweredElsewhereToast();
+      return;
+    }
+
     setIsSending(true);
     // NOTE: router.back() is NOT called here — it fires after upload succeeds
 
@@ -490,7 +509,9 @@ export function useViewGasp({
     createReaction,
     sendMessageWithRetry,
     showMissingConversationToast,
+    showAnsweredElsewhereToast,
     showUploadErrorToast,
+    gaspGone,
     resolveConversationId,
     closeViewMutation,
   ]);

@@ -201,6 +201,8 @@
     "reactionUploadFailed": "Your reaction video could not be uploaded. Please try again.",
     "uploadFailedTitle": "Upload failed",
     "uploadFailedBody": "Could not upload your reaction. Please try again.",
+    "answeredElsewhereTitle": "Already opened elsewhere",
+    "answeredElsewhereBody": "This gasp was already opened on another device signed in to your account, so this reaction can’t be sent.",
     "missingConversationTitle": "Could not send reaction",
     "missingConversationBody": "We could not find the chat for this gasp. Please try again from the conversation.",
     "recordingFailedTitle": "Recording failed",

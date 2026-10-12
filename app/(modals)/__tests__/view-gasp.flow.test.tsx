@@ -749,6 +749,31 @@ describe('gasp view contract', () => {
     });
   });
 
+  describe('the same account on another device', () => {
+    // Seen with an iPhone and a simulator on one account: the iPhone's
+    // reaction landed while the simulator was viewing, the gasp left the
+    // pending list, and Send said "Could not send reaction".
+    it('explains that the gasp was answered elsewhere instead of a generic send error', async () => {
+      const { rerender } = openFromInbox();
+      await watchWholeGasp();
+
+      mockPending = [];
+      rerender(<ViewGaspScreen />);
+      // The screen keeps the media and the recorded reaction.
+      expect(screen.getByText('reaction-preview')).toBeTruthy();
+      expect(alertSpy).not.toHaveBeenCalledWith('viewGasp.unavailableTitle', 'viewGasp.unavailableBody');
+      await send();
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'viewGasp.answeredElsewhereTitle',
+        'viewGasp.answeredElsewhereBody',
+        expect.any(Array),
+      );
+      expect(uploadWithRetry).not.toHaveBeenCalled();
+      expect(mockServer.calls).toEqual(['open']);
+    });
+  });
+
   describe('known gap (contract: "Lacunas conhecidas")', () => {
     it('a reaction sent from the chat replies to the message but leaves the server gasp "opened"', async () => {
       openFromChat();

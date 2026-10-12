@@ -202,6 +202,8 @@
     "reactionUploadFailed": "Your reaction video could not be uploaded. Please try again.",
     "uploadFailedTitle": "Falha no envio",
     "uploadFailedBody": "Não foi possível enviar seu vídeo de reação. Tente novamente.",
+    "answeredElsewhereTitle": "Já aberto em outro aparelho",
+    "answeredElsewhereBody": "Este gasp já foi aberto em outro aparelho conectado à sua conta, então esta reação não pode ser enviada.",
     "missingConversationTitle": "Não foi possível enviar a reação",
     "missingConversationBody": "Não encontramos a conversa deste gasp. Tente novamente pela conversa.",
     "recordingFailedTitle": "Falha na gravação",

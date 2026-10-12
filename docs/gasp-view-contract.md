@@ -109,6 +109,14 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
   lista de quem já o viu. Fechar essa brecha exige decidir se `close-view`
   deve marcar `viewed` também a partir de `pending`.
 
+- **A mesma conta em dois aparelhos.** Enquanto um gasp de visualização única
+  está `opened` (até a reação chegar, cerca de 10s com o composite), o
+  servidor ainda o lista como pendente, e outro aparelho da mesma conta pode
+  abri-lo. Decisão: o backend deve tirar gasps de visualização única `opened`
+  da lista de pendentes. Isso fica para um PR futuro, antes das sessões web.
+  Até lá, o segundo aparelho mostra "Já aberto em outro aparelho" ao tentar
+  enviar.
+
 ## Checklist no aparelho antes de cada PR que toca este fluxo
 
 Use dois aparelhos ou aparelho + simulador, com as contas de teste.

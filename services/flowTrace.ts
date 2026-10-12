@@ -23,6 +23,7 @@ export type FlowStep =
   | 'reaction-delivered'
   | 'reaction-failed'
   | 'close-view'
+  | 'answered-elsewhere'
   | 'camera-mount-error'
   | 'video-play'
   | 'video-status';
