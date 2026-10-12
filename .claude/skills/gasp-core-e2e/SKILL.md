@@ -103,7 +103,8 @@ connected to the same Metro).
 
 Write one table, a row per contract rule, with PASS / FAIL / NOT VERIFIED and
 the evidence (screenshot, contact sheet, trace line or server call). Then list
-anything outside the contract you noticed. A rule only passes with evidence
+anything outside the contract you noticed, and record each item that is not
+fixed in this run with the `backlog` skill (`docs/backlog.md`). A rule only passes with evidence
 from the layer that can prove it. If something failed, say which commit or
 change most likely caused it before proposing a fix, and add a case to
 `app/(modals)/__tests__/view-gasp.flow.test.tsx` that reproduces it when the
