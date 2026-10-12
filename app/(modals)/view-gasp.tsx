@@ -21,6 +21,7 @@ import { findPendingGasp, findPendingGaspByMedia } from '@/hooks/queries/useGasp
 import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
 import { colors } from '@/constants/colors';
 import { ReportSheet } from '@/components/safety/ReportSheet';
+import { traceFlow } from '@/services/flowTrace';
 
 export default function ViewGaspScreen() {
   const insets = useSafeAreaInsets();
@@ -50,8 +51,15 @@ export default function ViewGaspScreen() {
   // not open gasp B (and consume it) when A is missing from the list.
   // A gasp opened from the chat is the same server gasp as in the Gasps tab
   // (same media URL); linking them keeps both views and the server in sync.
-  const gasp = findPendingGasp(pendingGasps, params.gaspId)
+  const liveGasp = findPendingGasp(pendingGasps, params.gaspId)
     ?? findPendingGaspByMedia(pendingGasps, params.chatGaspUrl);
+  // Keep the gasp once found: it can leave the pending list mid-view (the
+  // same account reacted on another device) and the screen must not lose the
+  // media or the recorded reaction. `gaspGone` lets Send explain why.
+  const lastGaspRef = useRef(liveGasp);
+  if (liveGasp) lastGaspRef.current = liveGasp;
+  const gasp = liveGasp ?? lastGaspRef.current;
+  const gaspGone = !liveGasp && !!lastGaspRef.current;
   // On a cold start from a push the pending list may still be loading.
   const isResolvingGasp = !!params.gaspId && !params.chatImageUri && !pendingQuery.isFetched;
 
@@ -113,6 +121,7 @@ export default function ViewGaspScreen() {
     openedRef,
     isCountingDown,
     isRecording,
+    recordingStartedAt,
     previewUri,
     isSending,
     handleHoldStart,
@@ -132,6 +141,7 @@ export default function ViewGaspScreen() {
     gaspUrl,
     resolveConversationId,
     onReveal: handleReveal,
+    gaspGone,
   });
 
   const hasRevealedRef = useRef(false);
@@ -154,6 +164,7 @@ export default function ViewGaspScreen() {
     if (hasRevealedRef.current && gasp && !openedRef.current) {
       openedRef.current = true;
       gaspIdRef.current = gasp.id;
+      traceFlow('server-open', { gaspId: gasp.id });
       openGaspMutation.mutate(gasp.id);
     }
   }, [gasp, revealTick, openGaspMutation, openedRef, gaspIdRef]);
@@ -250,6 +261,7 @@ export default function ViewGaspScreen() {
             senderName={senderName} textOverlayJson={params.chatTextOverlay}
             isHolding={isHolding} holdProgress={holdProgress} isRevealed={isRevealed}
             touchX={touchX} touchY={touchY} onVideoLoad={handleVideoLoad}
+            isRecording={isRecording} recordingStartedAt={recordingStartedAt}
             durationS={holdDuration ? Math.round(holdDuration / 1000) : null} />
         </View>
       </GestureDetector>

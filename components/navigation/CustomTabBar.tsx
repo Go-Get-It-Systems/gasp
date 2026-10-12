@@ -25,6 +25,8 @@ import { ContentTypeIndicator } from "@/components/ui/ContentTypeIndicator";
 import { hasUnreadChatActivity, shouldClearChatUnreadHint } from "@/components/navigation/chatUnread";
 import { useConversations } from "@/hooks/queries/useChat";
 import { usePendingGasps } from "@/hooks/queries/useGasps";
+import { withoutViewedOnceGasps } from "@/hooks/queries/useGasps.helpers";
+import { useGaspStore } from "@/stores/gaspStore";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { TabBarIcon } from "./TabBarIcon";
 
@@ -62,7 +64,8 @@ export function CustomTabBar({
 
   const conversationsHaveUnread = conversations?.some((conversation) => conversation.unreadCount > 0) ?? false;
   const hasUnreadChats = hasUnreadChatActivity(conversations, chatHasUnreadHint);
-  const hasUnreadGasps = (pendingGasps?.length ?? 0) > 0;
+  const viewedGaspUrls = useGaspStore((s) => s.viewedGaspUrls);
+  const hasUnreadGasps = withoutViewedOnceGasps(pendingGasps ?? [], viewedGaspUrls).length > 0;
 
   const pulseScaleSv = useSharedValue(1);
 

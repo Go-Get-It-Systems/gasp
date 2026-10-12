@@ -58,3 +58,13 @@ export function isChatGaspOpenable(options: {
   if (!pendingMatch) return false;
   return pendingMatch.replayable || !viewedLocally;
 }
+
+/**
+ * The pending gasps this device may still open. After a view-once gasp is
+ * revealed the server keeps it "opened" until the reaction lands or the view
+ * closes (the composite alone can take ~10s), so the Gasps tab offered it
+ * again and it was opened twice on an iPhone. Same rule as the chat bubble.
+ */
+export function withoutViewedOnceGasps(list: Gasp[], viewedGaspUrls: Record<string, true>): Gasp[] {
+  return list.filter((g) => g.replayable || !viewedGaspUrls[g.imageUrl]);
+}

@@ -46,12 +46,13 @@ jest.mock('@/stores/chatStore', () => ({
   useChatStore: jest.fn(() => ({ sendMessage: mockSendMessage })),
 }));
 jest.mock('@/hooks/queries/useGasps', () => ({
-  useCloseViewGasp: jest.fn(() => ({ mutate: jest.fn() })),
+  useCloseViewGasp: jest.fn(() => ({ mutate: mockCloseViewMutate })),
   useCreateReaction: jest.fn(() => ({ mutateAsync: jest.fn() })),
 }));
 jest.mock('expo-camera', () => ({ CameraView: 'CameraView' }));
 
 const mockSendMessage = jest.fn();
+const mockCloseViewMutate = jest.fn();
 const mockedUploadWithRetry = uploadWithRetry as jest.MockedFunction<typeof uploadWithRetry>;
 const mockedEnqueueUpload = enqueueUpload as jest.MockedFunction<typeof enqueueUpload>;
 const mockedRemoveFromQueue = removeFromQueue as jest.MockedFunction<typeof removeFromQueue>;
@@ -302,8 +303,10 @@ describe('useViewGasp composite flow', () => {
       act(() => {
         result.current.handleHoldStart();
         result.current.handleCameraReady();
+        // Recording starts a moment after the camera reports ready.
+        jest.advanceTimersByTime(250);
       });
-      jest.setSystemTime(new Date('2026-10-10T10:00:03.000Z'));
+      jest.setSystemTime(new Date('2026-10-10T10:00:03.250Z'));
       act(() => { result.current.handleCountdownComplete(); });
       await act(async () => { await result.current.handleRelease(); });
       await act(async () => { result.current.handleSend(); });
@@ -336,6 +339,60 @@ describe('useViewGasp composite flow', () => {
         'conv-1',
         expect.objectContaining({ mediaUrl: 'https://cdn.example.com/reaction.mp4' }),
       );
+    });
+  });
+
+  describe('gasp status while the reaction is delivered', () => {
+    beforeEach(() => {
+      // Earlier tests replace this mock with mockReturnValue; pin it back.
+      jest.mocked(require('@/hooks/queries/useGasps').useCloseViewGasp).mockReturnValue({ mutate: mockCloseViewMutate });
+      mockedUploadWithRetry.mockReset();
+      mockedUploadWithRetry.mockResolvedValue({ downloadUrl: 'https://cdn.example.com/reaction.mp4' } as never);
+    });
+
+    async function openRevealRecordAndSend(result: { current: ReturnType<typeof useViewGasp> }) {
+      result.current.gaspIdRef.current = 'gasp-1';
+      result.current.openedRef.current = true;
+      result.current.reactionCameraRef.current = {
+        recordAsync: jest.fn(() => Promise.resolve({ uri: 'file://reaction.mov' })),
+        stopRecording: jest.fn(),
+      } as never;
+      act(() => {
+        result.current.handleHoldStart();
+        result.current.handleCountdownComplete();
+      });
+      await act(async () => { await result.current.handleRelease(); });
+      act(() => { result.current.handleSend(); });
+    }
+
+    it('does not close-view on unmount while the composite and reaction are in flight', async () => {
+      let resolveComposite!: (url: string) => void;
+      mockResolveReactionMediaUrl.mockReturnValue(new Promise<string>((r) => { resolveComposite = r; }));
+      const { result, unmount } = renderHook(() => useViewGasp(DEFAULT_HOOK_PROPS));
+
+      await openRevealRecordAndSend(result);
+      await waitFor(() => expect(mockResolveReactionMediaUrl).toHaveBeenCalled());
+      unmount(); // router.back() closed the screen
+      expect(mockCloseViewMutate).not.toHaveBeenCalled();
+
+      await act(async () => { resolveComposite('https://cdn.example.com/composites/c.mp4'); });
+      await waitFor(() => expect(mockSendMessageREST).toHaveBeenCalled());
+      expect(mockCloseViewMutate).not.toHaveBeenCalled();
+    });
+
+    it('closes the view if the reaction could not be delivered', async () => {
+      mockSendMessageREST.mockRejectedValue(new Error('offline'));
+      const { result, unmount } = renderHook(() => useViewGasp(DEFAULT_HOOK_PROPS));
+
+      await openRevealRecordAndSend(result);
+      await waitFor(() => expect(mockResolveReactionMediaUrl).toHaveBeenCalled());
+      unmount();
+      // sendMessageWithRetry backs off 500ms then 1500ms between attempts.
+      for (let i = 0; i < 8; i++) await act(async () => { jest.advanceTimersByTime(500); });
+      await waitFor(() => expect(mockCloseViewMutate).toHaveBeenCalledWith('gasp-1'));
+      expect(mockSendMessageREST).toHaveBeenCalledTimes(3);
+      mockSendMessageREST.mockReset();
+      mockSendMessageREST.mockImplementation(() => Promise.resolve());
     });
   });
 });

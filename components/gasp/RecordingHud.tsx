@@ -23,6 +23,10 @@ interface RecordingHudProps {
   isRevealed: SharedValue<number>;
   /** …and only while the finger is still down (it stops on release). */
   isHolding: SharedValue<number>;
+  /** Whether the reaction camera is actually recording right now. */
+  isRecording: boolean;
+  /** When the recording started (it starts during the countdown), or null. */
+  recordingStartedAt: number | null;
 }
 
 function formatElapsed(seconds: number) {
@@ -34,7 +38,7 @@ function formatElapsed(seconds: number) {
  * a Stories-style bar for how much of the gasp is left, a "REC 0:03" chip in
  * the same row as the close button, and a brief "Let go to finish" hint.
  */
-export function RecordingHud({ progress, isRevealed, isHolding }: RecordingHudProps) {
+export function RecordingHud({ progress, isRevealed, isHolding, isRecording, recordingStartedAt }: RecordingHudProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [active, setActive] = useState(false);
@@ -50,7 +54,6 @@ export function RecordingHud({ progress, isRevealed, isHolding }: RecordingHudPr
 
   useEffect(() => {
     if (!active) {
-      setElapsedS(0);
       hintOpacity.value = 0;
       return;
     }
@@ -58,14 +61,25 @@ export function RecordingHud({ progress, isRevealed, isHolding }: RecordingHudPr
       withTiming(1, { duration: 200 }),
       withDelay(HINT_VISIBLE_MS, withTiming(0, { duration: 300 })),
     );
-    const startedAt = Date.now();
-    const interval = setInterval(() => {
-      setElapsedS(Math.floor((Date.now() - startedAt) / 1000));
-    }, 250);
-    return () => clearInterval(interval);
   }, [active, hintOpacity]);
 
-  const containerStyle = useAnimatedStyle(() => ({ opacity: isRevealed.get() * isHolding.get() }));
+  // REC reflects the camera, not the gesture: it only shows while recording
+  // and counts from when the recording really started.
+  useEffect(() => {
+    if (!isRecording || recordingStartedAt === null) {
+      setElapsedS(0);
+      return;
+    }
+    const tick = () => setElapsedS(Math.max(0, Math.floor((Date.now() - recordingStartedAt) / 1000)));
+    tick();
+    const interval = setInterval(tick, 250);
+    return () => clearInterval(interval);
+  }, [isRecording, recordingStartedAt]);
+
+  // Hidden once the gasp has run out (progress 1), even if the finger stays down.
+  const containerStyle = useAnimatedStyle(() => ({
+    opacity: progress.get() >= 1 ? 0 : isRevealed.get() * isHolding.get(),
+  }));
   const barFillStyle = useAnimatedStyle(() => ({ width: `${progress.get() * 100}%` }));
   const hintStyle = useAnimatedStyle(() => ({ opacity: hintOpacity.get() }));
 
@@ -74,14 +88,16 @@ export function RecordingHud({ progress, isRevealed, isHolding }: RecordingHudPr
       <View style={[styles.bar, { top: insets.top + 2 }]}>
         <Animated.View style={[styles.barFill, barFillStyle]} />
       </View>
-      <View
-        style={[styles.chip, { top: insets.top + 12 }]}
-        accessible
-        accessibilityLabel={t('viewGasp.recordingElapsed', { seconds: elapsedS })}
-      >
-        <View style={styles.recDot} />
-        <Text style={styles.chipText}>{`REC ${formatElapsed(elapsedS)}`}</Text>
-      </View>
+      {isRecording && (
+        <View
+          style={[styles.chip, { top: insets.top + 12 }]}
+          accessible
+          accessibilityLabel={t('viewGasp.recordingElapsed', { seconds: elapsedS })}
+        >
+          <View style={styles.recDot} />
+          <Text style={styles.chipText}>{`REC ${formatElapsed(elapsedS)}`}</Text>
+        </View>
+      )}
       <Animated.View style={[styles.hint, { bottom: insets.bottom + 40 }, hintStyle]}>
         <Text style={styles.hintText}>{t('viewGasp.letGoToFinish')}</Text>
       </Animated.View>

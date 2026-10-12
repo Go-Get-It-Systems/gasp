@@ -10,6 +10,7 @@ import { uploadWithRetry, enqueueUpload, removeFromQueue } from '@/services/uplo
 import { sendMessage as sendMessageREST } from '@/services/api/messages';
 import { compressVideo } from '@/services/videoCompression';
 import { resolveReactionMediaUrl } from '@/services/compositeService';
+import { traceFlow } from '@/services/flowTrace';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
 import { useTranslation } from 'react-i18next';
 
@@ -20,6 +21,22 @@ const COUNTDOWN_S = 3;
 // Slack so recordAsync's own maxDuration never cuts the clip before the
 // progress ring ends the hold.
 const RECORDING_SLACK_S = 1;
+// expo-camera fires onCameraReady before the movie output is attached, so the
+// first recordAsync can reject with "Camera is not ready yet". Retry while the
+// viewer is still holding: 10 × 150ms covers most of the countdown.
+const RECORD_RETRY_MS = 150;
+const RECORD_MAX_ATTEMPTS = 10;
+// Rejections arrive ~15ms after recordAsync, so REC only lights up once an
+// attempt has survived this long; otherwise every retry would flash it.
+const REC_CONFIRM_MS = 300;
+// expo-camera only resolves recordAsync once AVFoundation reports the file is
+// finished. On an iPhone 15 Pro that report never came after a video gasp with
+// sound played during the recording, and the screen hung on the last frame.
+const CLIP_TIMEOUT_MS = 4000;
+// A recordAsync issued the instant onCameraReady fires can be accepted yet
+// never record (seen three times on an iPhone 15 Pro: stop never returned a
+// clip), while a start ~150ms later always worked. Give the session a moment.
+const RECORD_START_DELAY_MS = 250;
 
 // Backoff delays for sendMessage retries: immediate, 500ms, 1500ms
 const SEND_RETRY_DELAYS_MS = [0, 500, 1500];
@@ -46,6 +63,8 @@ interface UseViewGaspProps {
   /** Called once when the media is actually revealed — the only point where the gasp is consumed */
   onReveal?: () => void;
   resolveConversationId?: () => Promise<string | null>;
+  /** The server gasp was found but has left the pending list since. */
+  gaspGone?: boolean;
 }
 
 /** Private helper: sleep for ms milliseconds */
@@ -66,6 +85,7 @@ export function useViewGasp({
   gaspUrl,
   resolveConversationId,
   onReveal,
+  gaspGone = false,
 }: UseViewGaspProps) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -83,10 +103,17 @@ export function useViewGasp({
   const recordingStartedAtRef = useRef<number | null>(null);
   const revealedAtRef = useRef<number | null>(null);
   const isRecordingRef = useRef(false);
+  const recordRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const gaspIdRef = useRef<string | null>(null);
   const openedRef = useRef(false);
   const reactionSucceededRef = useRef(false);
+  // Set once a reaction upload succeeded and is being delivered after the
+  // screen closes: the unmount must not close-view the gasp meanwhile, or the
+  // server marks it "viewed" and the reaction can no longer mark it "reacted".
+  const reactionInFlightRef = useRef(false);
   // Track background upload so we can cancel it on discard
   const bgUploadQueueIdRef = useRef<string | null>(null);
   const [isCountingDown, setIsCountingDown] = useState(false);
@@ -99,11 +126,15 @@ export function useViewGasp({
     return () => {
       isMountedRef.current = false;
       recordingPromiseRef.current = null;
+      if (recordRetryTimerRef.current) clearTimeout(recordRetryTimerRef.current);
+      if (recConfirmTimerRef.current) clearTimeout(recConfirmTimerRef.current);
+      if (recordStartTimerRef.current) clearTimeout(recordStartTimerRef.current);
       // Read latest refs on unmount so inbox-mode gasps close only when no reaction succeeded.
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const id = gaspIdRef.current;
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      if (id && openedRef.current && !reactionSucceededRef.current) {
+      if (id && openedRef.current && !reactionSucceededRef.current && !reactionInFlightRef.current) {
+        traceFlow('close-view', { why: 'unmount' });
         closeViewMutation.mutate(id);
       }
     };
@@ -147,6 +178,14 @@ export function useViewGasp({
     );
   }, [t]);
 
+  const showAnsweredElsewhereToast = useCallback(() => {
+    Alert.alert(
+      t('viewGasp.answeredElsewhereTitle'),
+      t('viewGasp.answeredElsewhereBody'),
+      [{ text: t('common.ok'), onPress: () => router.back() }],
+    );
+  }, [t]);
+
   const showMissingConversationToast = useCallback(() => {
     Alert.alert(
       t('viewGasp.missingConversationTitle'),
@@ -158,31 +197,59 @@ export function useViewGasp({
   const reactionDurationS = Math.min(holdDurationS, MAX_REACTION_DURATION_S);
 
   const startRecording = useCallback(() => {
-    const camera = reactionCameraRef.current;
-    if (!camera || releasedRef.current || isRecordingRef.current) return;
-    try {
-      isRecordingRef.current = true;
-      setIsRecording(true);
-      recordingStartedAtRef.current = Date.now();
-      recordingPromiseRef.current = camera.recordAsync({
-        maxDuration: reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S,
-      });
-      recordingPromiseRef.current?.catch((e) => {
-        Sentry.captureException(e, { tags: { feature: 'reaction-recording' } });
+    const attempt = (n: number) => {
+      if (recordRetryTimerRef.current) {
+        clearTimeout(recordRetryTimerRef.current);
+        recordRetryTimerRef.current = null;
+      }
+      const camera = reactionCameraRef.current;
+      if (!camera || releasedRef.current || isRecordingRef.current) return;
+
+      const fail = (e: unknown) => {
+        if (recConfirmTimerRef.current) {
+          clearTimeout(recConfirmTimerRef.current);
+          recConfirmTimerRef.current = null;
+        }
         isRecordingRef.current = false;
         setIsRecording(false);
         recordingPromiseRef.current = null;
-      });
-    } catch (e) {
-      Sentry.captureException(e, { tags: { feature: 'reaction-recording', step: 'start-recording' } });
-      isRecordingRef.current = false;
-      setIsRecording(false);
-      recordingPromiseRef.current = null;
-    }
+        const retry = n < RECORD_MAX_ATTEMPTS && !releasedRef.current;
+        traceFlow('recording-failed', { error: String(e), attempt: n, retry });
+        if (retry) {
+          recordRetryTimerRef.current = setTimeout(() => attempt(n + 1), RECORD_RETRY_MS);
+        } else {
+          Sentry.captureException(e, { tags: { feature: 'reaction-recording' }, extra: { attempts: n } });
+        }
+      };
+
+      try {
+        isRecordingRef.current = true;
+        recordingStartedAtRef.current = Date.now();
+        const maxDuration = reactionDurationS + COUNTDOWN_S + RECORDING_SLACK_S;
+        const promise = camera.recordAsync({ maxDuration });
+        recordingPromiseRef.current = promise;
+        recConfirmTimerRef.current = setTimeout(() => {
+          recConfirmTimerRef.current = null;
+          if (recordingPromiseRef.current === promise && isRecordingRef.current) setIsRecording(true);
+        }, REC_CONFIRM_MS);
+        traceFlow('recording-started', { duringCountdown: !revealedRef.current, maxDuration, attempt: n });
+        promise?.catch((e) => {
+          // A stale attempt must not clear a newer recording.
+          if (recordingPromiseRef.current === promise) fail(e);
+        });
+      } catch (e) {
+        fail(e);
+      }
+    };
+    attempt(1);
   }, [reactionDurationS]);
 
   const handleHoldStart = useCallback(() => {
+    // The gasp opens once: after the reveal a new hold must not start another
+    // countdown or recording (it used to, while the first clip was finishing).
+    if (revealedRef.current) return;
     releasedRef.current = false;
+    traceFlow('hold-start');
     setIsCountingDown(true);
   }, []);
 
@@ -190,7 +257,13 @@ export function useViewGasp({
   // is ready so the reveal itself is captured (previously recording only began
   // ~2s after the reveal and missed the reaction's first moments).
   const handleCameraReady = useCallback(() => {
-    if (!releasedRef.current) startRecording();
+    traceFlow('camera-ready', { released: releasedRef.current });
+    if (releasedRef.current || revealedRef.current) return;
+    if (recordStartTimerRef.current) clearTimeout(recordStartTimerRef.current);
+    recordStartTimerRef.current = setTimeout(() => {
+      recordStartTimerRef.current = null;
+      startRecording();
+    }, RECORD_START_DELAY_MS);
   }, [startRecording]);
 
   // Called when the 3-2-1 countdown finishes: reveal the media, start the
@@ -200,6 +273,7 @@ export function useViewGasp({
     if (releasedRef.current) return;
     revealedRef.current = true;
     revealedAtRef.current = Date.now();
+    traceFlow('reveal', { recording: isRecordingRef.current });
     // Drives the circle the gasp opens through (see CircleReveal).
     isRevealed.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
     startProgressAnimation();
@@ -210,19 +284,40 @@ export function useViewGasp({
   const handleRelease = useCallback(async () => {
     if (releasedRef.current) return;
     releasedRef.current = true;
+    traceFlow('release', { revealed: revealedRef.current });
+    if (recordStartTimerRef.current) {
+      clearTimeout(recordStartTimerRef.current);
+      recordStartTimerRef.current = null;
+    }
 
     setIsCountingDown(false);
 
     let videoUri: string | null = null;
     try {
+      if (recConfirmTimerRef.current) {
+        clearTimeout(recConfirmTimerRef.current);
+        recConfirmTimerRef.current = null;
+      }
       if (reactionCameraRef.current && isRecordingRef.current) {
         reactionCameraRef.current.stopRecording();
         isRecordingRef.current = false;
         setIsRecording(false);
       }
       if (recordingPromiseRef.current) {
-        const result = await recordingPromiseRef.current;
-        videoUri = result?.uri ?? null;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timedOut = new Promise<'timeout'>((resolve) => {
+          timer = setTimeout(() => resolve('timeout'), CLIP_TIMEOUT_MS);
+        });
+        const result = await Promise.race([recordingPromiseRef.current, timedOut]);
+        clearTimeout(timer);
+        if (result === 'timeout') {
+          traceFlow('clip-timeout', { afterMs: CLIP_TIMEOUT_MS });
+          Sentry.captureMessage('Reaction clip never finished after stopRecording', {
+            tags: { feature: 'reaction-recording' },
+          });
+        } else {
+          videoUri = result?.uri ?? null;
+        }
       }
     } catch (e) {
       Sentry.captureException(e);
@@ -250,8 +345,10 @@ export function useViewGasp({
           tags: { feature: 'super-imposed-reaction', step: 'background-upload-enqueue' },
         });
       });
+      traceFlow('preview');
       setPreviewUri(videoUri);
     } else {
+      traceFlow('no-clip');
       // Recording returned no URI — camera likely wasn't ready.
       // Show an alert so the user knows what happened instead of silently closing.
       Alert.alert(
@@ -280,6 +377,14 @@ export function useViewGasp({
 
     if (__DEV__) {
       console.tronLog?.log('handleSend | start', { localUri: localUri.slice(-40), userId, conversationId, messageId, gaspUrl: gaspUrl.slice(-40) });
+    }
+
+    // The server gasp was found at the reveal but has since left the pending
+    // list: the same account answered or closed it on another device.
+    if (!messageId && gaspIdRef.current && gaspGone) {
+      traceFlow('answered-elsewhere');
+      showAnsweredElsewhereToast();
+      return;
     }
 
     setIsSending(true);
@@ -319,11 +424,13 @@ export function useViewGasp({
             throw new Error('uploadWithRetry returned empty downloadUrl');
           }
           reactionVideoUrl = result.downloadUrl;
+          traceFlow('upload-done');
         } catch (e) {
           // Upload failed — keep ReactionPreview visible, re-enable Send button
           Sentry.captureException(e, {
             tags: { feature: 'super-imposed-reaction', step: 'upload' },
           });
+          traceFlow('upload-failed', { error: String(e) });
           setIsSending(false);
           showUploadErrorToast();
           return;
@@ -340,6 +447,7 @@ export function useViewGasp({
         }
 
         // 3. Navigate back right after the upload; compositing continues in the background
+        reactionInFlightRef.current = true;
         setPreviewUri(null);
         router.back();
 
@@ -351,6 +459,7 @@ export function useViewGasp({
           ? Math.max(0, revealedAt - startedAt)
           : undefined;
         const reactionMediaUrl = await resolveReactionMediaUrl(reactionVideoUrl, gaspUrl, revealOffsetMs);
+        traceFlow('composite', { revealOffsetMs, isComposite: reactionMediaUrl !== reactionVideoUrl });
 
         try {
           if (messageId) {
@@ -364,11 +473,20 @@ export function useViewGasp({
             await sendMessageREST(resolvedConversationId, buildReactionMessagePayload(reactionMediaUrl));
           }
           reactionSucceededRef.current = true;
+          traceFlow('reaction-delivered', { via: messageId ? 'chat' : currentGaspId ? 'reactions' : 'message' });
         } catch (sendError: unknown) {
           Sentry.captureException(sendError, {
             tags: { feature: 'super-imposed-reaction', step: 'send-reaction-message' },
           });
+          // The reaction never landed: close the view the unmount skipped.
+          traceFlow('reaction-failed', { error: String(sendError) });
+          const id = gaspIdRef.current;
+          if (id && openedRef.current) {
+            traceFlow('close-view', { why: 'delivery-failed' });
+            closeViewMutation.mutate(id);
+          }
         } finally {
+          reactionInFlightRef.current = false;
           setIsSending(false);
         }
       } catch (e) {
@@ -391,8 +509,11 @@ export function useViewGasp({
     createReaction,
     sendMessageWithRetry,
     showMissingConversationToast,
+    showAnsweredElsewhereToast,
     showUploadErrorToast,
+    gaspGone,
     resolveConversationId,
+    closeViewMutation,
   ]);
 
   /**
@@ -411,7 +532,10 @@ export function useViewGasp({
       bgUploadQueueIdRef.current = null;
     }
     const id = gaspIdRef.current;
-    if (id) closeViewMutation.mutate(id);                      // inbox mode only
+    if (id) {
+      traceFlow('close-view', { why: 'discard' });
+      closeViewMutation.mutate(id);                            // inbox mode only
+    }
   }, [closeViewMutation]);
 
   return {
@@ -420,6 +544,8 @@ export function useViewGasp({
     openedRef,
     isCountingDown,
     isRecording,
+    /** When the current recording started (null when not recording). */
+    recordingStartedAt: isRecording ? recordingStartedAtRef.current : null,
     previewUri,
     isSending,
     /** Reaction recording duration in seconds (= gasp duration capped at 30s, plus the countdown) */
