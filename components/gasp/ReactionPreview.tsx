@@ -55,6 +55,7 @@ export function ReactionPreview({
             reactionLabel={t('reaction.you')}
             originalLabel={t('reaction.senderGasp', { name: senderName })}
             showDivider
+            dividerStyle={styles.previewDivider}
             watermarkMode="subtle"
             reactionFlex={50}
             originalFlex={50}
@@ -129,6 +130,11 @@ const styles = StyleSheet.create({
   },
   compositeWrapper: {
     ...StyleSheet.absoluteFillObject,
+  },
+  previewDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    transform: [{ translateY: -0.5 }],
   },
   actions: {
     flexDirection: 'row',

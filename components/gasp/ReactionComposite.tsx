@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { InlineVideo } from '@/components/ui/InlineVideo';
@@ -14,6 +14,7 @@ export interface ReactionCompositeProps {
   originalLabel?: string;
   showLabels?: boolean;
   showDivider?: boolean;
+  dividerStyle?: StyleProp<ViewStyle>;
   watermarkMode?: 'hidden' | 'subtle';
   reactionPaused?: boolean;
   reactionMuted?: boolean;
@@ -58,6 +59,7 @@ export function ReactionComposite({
   originalLabel,
   showLabels = false,
   showDivider = true,
+  dividerStyle,
   watermarkMode = 'hidden',
   reactionPaused = false,
   reactionMuted = false,
@@ -96,7 +98,7 @@ export function ReactionComposite({
         )}
       </View>
 
-      {showDivider && <View testID="reaction-composite-divider" style={styles.divider} />}
+      {showDivider && <View pointerEvents="none" testID="reaction-composite-divider" style={[styles.divider, dividerStyle]} />}
 
       {/* Reaction video — bottom half */}
       <View testID="reaction-composite-reaction-panel" style={[styles.reactionPanel, { flex: reactionFlex }]}>
