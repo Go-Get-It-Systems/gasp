@@ -116,6 +116,8 @@
     "reRecord": "Re-record",
     "sendReaction": "Send Reaction",
     "saveToCameraRoll": "Save to Camera Roll",
+    "discardTitle": "Discard reaction?",
+    "discardMessage": "Your recording will be lost.",
     "discard": "Discard",
     "reactionVideoTap": "Reaction video, tap to view composite",
     "closeReactionView": "Close reaction view",

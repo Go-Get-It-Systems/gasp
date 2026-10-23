@@ -1,6 +1,6 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { render, fireEvent } from '@testing-library/react-native';
+import { ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import type { ComponentType } from 'react';
 import { ReactionPreview } from '@/components/gasp/ReactionPreview';
 
@@ -52,6 +52,21 @@ describe('ReactionPreview', () => {
       position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
     });
   });
+  it('keeps the recording until discard is explicitly confirmed', () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const onDiscard = jest.fn();
+    const { getByRole } = render(<ReactionPreview {...DEFAULT_PROPS} onDiscard={onDiscard} />);
+    fireEvent.press(getByRole('button', { name: 'Discard' }));
+    expect(onDiscard).not.toHaveBeenCalled();
+    const buttons = alert.mock.calls[0][2]!;
+    expect(buttons[0].style).toBe('cancel');
+    buttons[0].onPress?.();
+    expect(onDiscard).not.toHaveBeenCalled();
+    buttons[1].onPress?.();
+    expect(onDiscard).toHaveBeenCalledTimes(1);
+    alert.mockRestore();
+  });
+
   describe('Send button states', () => {
     it('shows Send icon and enables button when isSending is false (default)', () => {
       const { getByRole, UNSAFE_queryByType } = render(
