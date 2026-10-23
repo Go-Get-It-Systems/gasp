@@ -1,12 +1,16 @@
-import { StyleSheet, View, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, View, Pressable, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
 import { Send, RotateCcw, Download, Trash2 } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { ReactionComposite } from '@/components/gasp/ReactionComposite';
+import { ReactionComposite, REACTION_WATERMARK } from '@/components/gasp/ReactionComposite';
 import { useTranslation } from 'react-i18next';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ACTION_SIZE = 28;
+const TOUCH_SIZE = 48;
+const VISUAL_GAP = 32;
 
 interface ReactionPreviewProps {
   originalImageUri: string;
@@ -34,6 +38,11 @@ export function ReactionPreview({
 }: ReactionPreviewProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  // Match the watermark's center axis and keep equal visible gaps between
+  // the logo, send and discard, independently of their larger touch targets.
+  const actionRight = width * (REACTION_WATERMARK.right + REACTION_WATERMARK.width / 2) - TOUCH_SIZE / 2;
+  const actionTop = -(height / 2) * REACTION_WATERMARK.bottom + VISUAL_GAP - (TOUCH_SIZE - ACTION_SIZE) / 2;
   const confirmDiscard = () => {
     if (isSending) return;
     Alert.alert(t('reaction.discardTitle'), t('reaction.discardMessage'), [
@@ -68,7 +77,7 @@ export function ReactionPreview({
           />
         </Animated.View>
 
-        <View pointerEvents="box-none" style={styles.controls}>
+        <View pointerEvents="box-none" style={[styles.controls, { right: actionRight, marginTop: actionTop }]}>
           {/* Buttons overlay the lower panel. */}
           <Animated.View entering={FadeInDown.delay(300).duration(250)} style={styles.actions}>
             {/* The live gasp flow omits retakes so reactions stay authentic (06/06 decision). */}
@@ -79,7 +88,7 @@ export function ReactionPreview({
                 accessibilityRole="button"
                 accessibilityLabel={t('reaction.reRecord')}
               >
-                <RotateCcw size={28} color="#FFFFFF" />
+                <RotateCcw size={ACTION_SIZE} color="#FFFFFF" />
               </Pressable>
             )}
             <Pressable
@@ -93,7 +102,7 @@ export function ReactionPreview({
               {isSending ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Send size={28} color="#FFFFFF" />
+                <Send size={ACTION_SIZE} color="#FFFFFF" />
               )}
             </Pressable>
             <Pressable
@@ -104,14 +113,14 @@ export function ReactionPreview({
               accessibilityRole="button"
               accessibilityLabel={t('reaction.discard')}
             >
-              <Trash2 size={28} color="#FFFFFF" />
+              <Trash2 size={ACTION_SIZE} color="#FFFFFF" />
             </Pressable>
           </Animated.View>
 
           {onSave && (
             <Animated.View entering={FadeInDown.delay(400).duration(250)} style={styles.secondaryActions}>
               <Pressable onPress={onSave} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={t('reaction.saveToCameraRoll')}>
-                <Download size={28} color="#FFFFFF" />
+                <Download size={ACTION_SIZE} color="#FFFFFF" />
               </Pressable>
             </Animated.View>
           )}
@@ -128,7 +137,7 @@ const styles = StyleSheet.create({
   },
   content: { flex: 1 },
   header: { position: 'absolute', left: 20, right: 72, zIndex: 2 },
-  controls: { position: 'absolute', top: '50%', marginTop: 12, right: 16, zIndex: 2 },
+  controls: { position: 'absolute', top: '50%', zIndex: 2 },
   contextText: {
     color: '#FFFFFF', fontSize: 14, fontWeight: '600',
     textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
@@ -143,12 +152,12 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'column',
-    gap: 20,
+    gap: VISUAL_GAP + ACTION_SIZE - TOUCH_SIZE,
     alignItems: 'center',
   },
   iconButton: {
-    width: 48,
-    height: 48,
+    width: TOUCH_SIZE,
+    height: TOUCH_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',
@@ -157,5 +166,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   sendButtonDisabled: { opacity: 0.82 },
-  secondaryActions: { marginTop: 20, alignItems: 'center' },
+  secondaryActions: { marginTop: VISUAL_GAP + ACTION_SIZE - TOUCH_SIZE, alignItems: 'center' },
 });

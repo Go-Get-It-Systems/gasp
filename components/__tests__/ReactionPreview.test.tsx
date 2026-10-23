@@ -10,6 +10,7 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 
 jest.mock('@/components/gasp/ReactionComposite', () => ({
   ReactionComposite: 'ReactionComposite',
+  REACTION_WATERMARK: { right: 0.03333, bottom: 0.01875, width: 0.08889 },
 }));
 
 jest.mock('react-i18next', () => ({

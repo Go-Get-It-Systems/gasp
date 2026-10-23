@@ -4,6 +4,8 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { InlineVideo } from '@/components/ui/InlineVideo';
 import { Text } from '@/components/ui/Text';
 
+export const REACTION_WATERMARK = { right: 0.03333, bottom: 0.01875, width: 0.08889 } as const;
+
 const WATERMARK_SOURCE = require('@/assets/images/gasp-watermark-white.png');
 
 export interface ReactionCompositeProps {
@@ -162,9 +164,9 @@ const styles = StyleSheet.create({
   },
   watermark: {
     position: 'absolute',
-    right: '3.333%',
-    bottom: '1.875%',
-    width: '8.889%',
+    right: `${REACTION_WATERMARK.right * 100}%`,
+    bottom: `${REACTION_WATERMARK.bottom * 100}%`,
+    width: `${REACTION_WATERMARK.width * 100}%`,
     aspectRatio: 1,
     zIndex: 3,
   },
