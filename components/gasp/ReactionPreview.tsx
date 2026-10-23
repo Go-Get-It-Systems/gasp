@@ -68,7 +68,7 @@ export function ReactionPreview({
           />
         </Animated.View>
 
-        <View pointerEvents="box-none" style={[styles.controls, { bottom: insets.bottom + 12 }]}>
+        <View pointerEvents="box-none" style={styles.controls}>
           {/* Buttons overlay the lower panel. */}
           <Animated.View entering={FadeInDown.delay(300).duration(250)} style={styles.actions}>
             {/* The live gasp flow omits retakes so reactions stay authentic (06/06 decision). */}
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   content: { flex: 1 },
   header: { position: 'absolute', left: 20, right: 72, zIndex: 2 },
-  controls: { position: 'absolute', right: 16, zIndex: 2 },
+  controls: { position: 'absolute', top: '50%', marginTop: 12, right: 16, zIndex: 2 },
   contextText: {
     color: '#FFFFFF', fontSize: 14, fontWeight: '600',
     textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
