@@ -1,10 +1,12 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import type { ComponentType } from 'react';
 import { ReactionPreview } from '@/components/gasp/ReactionPreview';
 
 const MockReactionComposite = 'ReactionComposite' as unknown as ComponentType<Record<string, unknown>>;
+
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 59, bottom: 34, left: 0, right: 0 }) }));
 
 jest.mock('@/components/gasp/ReactionComposite', () => ({
   ReactionComposite: 'ReactionComposite',
@@ -44,6 +46,12 @@ const DEFAULT_PROPS = {
 };
 
 describe('ReactionPreview', () => {
+  it('fills the preview with media rather than a fixed-height card', () => {
+    const { getByTestId } = render(<ReactionPreview {...DEFAULT_PROPS} />);
+    expect(StyleSheet.flatten(getByTestId('reaction-preview-frame').props.style)).toMatchObject({
+      position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    });
+  });
   describe('Send button states', () => {
     it('shows Send icon and enables button when isSending is false (default)', () => {
       const { getByRole, UNSAFE_queryByType } = render(
@@ -122,11 +130,11 @@ describe('ReactionPreview', () => {
       const composite = UNSAFE_getByType(MockReactionComposite);
       expect(composite.props.reactionLabel).toBe('You');
       expect(composite.props.originalLabel).toBe("Alice's gasp");
-      expect(composite.props.showLabels).toBe(true);
+      expect(composite.props.showLabels).toBeUndefined();
       expect(composite.props.showDivider).toBe(true);
       expect(composite.props.watermarkMode).toBe('subtle');
-      expect(composite.props.reactionFlex).toBe(45);
-      expect(composite.props.originalFlex).toBe(55);
+      expect(composite.props.reactionFlex).toBe(50);
+      expect(composite.props.originalFlex).toBe(50);
     });
   });
 });

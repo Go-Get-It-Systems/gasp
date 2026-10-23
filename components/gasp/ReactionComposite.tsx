@@ -61,25 +61,12 @@ export function ReactionComposite({
   watermarkMode = 'hidden',
   reactionPaused = false,
   reactionMuted = false,
-  reactionFlex = 45,
-  originalFlex = 55,
+  reactionFlex = 50,
+  originalFlex = 50,
 }: ReactionCompositeProps) {
   return (
-    <View style={styles.container}>
-      {/* Reaction video — left 45% */}
-      <View testID="reaction-composite-reaction-panel" style={[styles.reactionPanel, { flex: reactionFlex }]}>
-        <InlineVideo
-          uri={reactionVideoUri}
-          style={StyleSheet.absoluteFill}
-          paused={reactionPaused}
-          muted={reactionMuted}
-        />
-        {showLabels && reactionLabel && <PanelLabel label={reactionLabel} />}
-      </View>
-
-      {showDivider && <View testID="reaction-composite-divider" style={styles.divider} />}
-
-      {/* Original gasp — right 55% */}
+    <View testID="reaction-composite" style={styles.container}>
+      {/* Original gasp — top half */}
       <View testID="reaction-composite-gasp-panel" style={[styles.gaspPanel, { flex: originalFlex }]}>
         <OriginalMedia
           uri={originalUri}
@@ -108,6 +95,19 @@ export function ReactionComposite({
           </View>
         )}
       </View>
+
+      {showDivider && <View testID="reaction-composite-divider" style={styles.divider} />}
+
+      {/* Reaction video — bottom half */}
+      <View testID="reaction-composite-reaction-panel" style={[styles.reactionPanel, { flex: reactionFlex }]}>
+        <InlineVideo
+          uri={reactionVideoUri}
+          style={StyleSheet.absoluteFill}
+          paused={reactionPaused}
+          muted={reactionMuted}
+        />
+        {showLabels && reactionLabel && <PanelLabel label={reactionLabel} />}
+      </View>
     </View>
   );
 }
@@ -123,7 +123,7 @@ function PanelLabel({ label }: { label: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     backgroundColor: '#000',
     overflow: 'hidden',
   },
@@ -131,7 +131,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   divider: {
-    width: StyleSheet.hairlineWidth,
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(255,255,255,0.28)',
     zIndex: 2,
   },

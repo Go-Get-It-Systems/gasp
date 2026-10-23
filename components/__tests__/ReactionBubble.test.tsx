@@ -94,8 +94,8 @@ describe('ReactionBubble', () => {
     expect(composites[0].props.showDivider).toBe(true);
     expect(composites[0].props.reactionPaused).toBe(true);
     expect(composites[0].props.reactionMuted).toBe(true);
-    expect(composites[0].props.reactionFlex).toBe(45);
-    expect(composites[0].props.originalFlex).toBe(55);
+    expect(composites[0].props.reactionFlex).toBe(50);
+    expect(composites[0].props.originalFlex).toBe(50);
     expect(getByTestId('reaction-thumbnail-frame')).toBeTruthy();
     expect(queryByLabelText('Close reaction view')).toBeNull();
   });
@@ -173,8 +173,8 @@ describe('ReactionBubble', () => {
     expect(composites[1].props.showDivider).toBe(true);
     expect(composites[1].props.watermarkMode).toBe('subtle');
     expect(composites[1].props.showLabels).toBeUndefined();
-    expect(composites[1].props.reactionFlex).toBe(45);
-    expect(composites[1].props.originalFlex).toBe(55);
+    expect(composites[1].props.reactionFlex).toBe(50);
+    expect(composites[1].props.originalFlex).toBe(50);
     expect(getByText('You')).toBeTruthy();
     expect(getByText('You reacted')).toBeTruthy();
     expect(getAllByText("Alice's gasp")).toHaveLength(2);
@@ -188,12 +188,10 @@ describe('ReactionBubble', () => {
       backgroundColor: '#000',
     });
     expect(topContextStyle).toMatchObject({
-      width: '94%',
+      position: 'absolute',
     });
     expect(frameStyle).toMatchObject({
-      width: '94%',
-      maxHeight: '82%',
-      borderRadius: 22,
+      position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
     });
     fireEvent.press(getByLabelText('Close reaction view'));
     expect(queryByLabelText('Close reaction view')).toBeNull();
@@ -215,8 +213,8 @@ describe('ReactionBubble', () => {
     expect(composites.length).toBeGreaterThanOrEqual(2);
     expect(composites[1].props.reactionVideoUri).toBe('https://cdn.example.com/reaction.mp4');
     expect(composites[1].props.originalUri).toBe('https://cdn.example.com/gasp.jpg');
-    expect(composites[1].props.reactionFlex).toBe(45);
-    expect(composites[1].props.originalFlex).toBe(55);
+    expect(composites[1].props.reactionFlex).toBe(50);
+    expect(composites[1].props.originalFlex).toBe(50);
     expect(getByText('Bi')).toBeTruthy();
     expect(getByText('Bi reacted')).toBeTruthy();
     expect(getAllByText('Your gasp')).toHaveLength(2);

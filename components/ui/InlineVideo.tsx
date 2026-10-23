@@ -9,11 +9,13 @@ export function InlineVideo({
   style,
   paused,
   muted = true,
+  contentFit = 'cover',
 }: {
   uri: string;
   style: object;
   paused: boolean;
   muted?: boolean;
+  contentFit?: 'cover' | 'contain';
 }) {
   const [ready, setReady] = useState(false);
   const player = useVideoPlayer(uri, (p) => {
@@ -51,7 +53,7 @@ export function InlineVideo({
 
   return (
     <View style={style}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit={contentFit} nativeControls={false} />
       {!ready && (
         <View style={styles.videoLoading}>
           <ActivityIndicator size="small" color={colors.primary} />

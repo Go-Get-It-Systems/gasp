@@ -1,13 +1,12 @@
-import { StyleSheet, View, Dimensions, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Pressable, ActivityIndicator } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
 import { Send, RotateCcw, Download } from 'lucide-react-native';
-import Animated, { FadeIn, FadeInDown, ZoomIn, Easing } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { ReactionComposite } from '@/components/gasp/ReactionComposite';
 import { useTranslation } from 'react-i18next';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const COMPOSITE_HEIGHT = SCREEN_WIDTH * 1.4;
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ReactionPreviewProps {
   originalImageUri: string;
@@ -34,19 +33,20 @@ export function ReactionPreview({
   isSending = false,
 }: ReactionPreviewProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Animated.View entering={FadeIn.delay(50).duration(300)}>
+        <Animated.View pointerEvents="none" entering={FadeIn.delay(50).duration(300)} style={[styles.header, { top: insets.top + 12 }]}>
           <Text variant="title" style={styles.title}>{t('reaction.yourReaction')}</Text>
           <Text variant="caption" style={styles.subtitle}>{t('reaction.reactionTo', { name: senderName })}</Text>
         </Animated.View>
 
-        {/* Composite zooms in with back-easing for a "ta-da" feel */}
+        {/* Media fills the screen; controls overlay it without changing the split. */}
         <Animated.View
-          entering={ZoomIn.delay(100).duration(400).easing(Easing.out(Easing.back(1.3)))}
-          style={[styles.compositeWrapper, { height: COMPOSITE_HEIGHT }]}
+          testID="reaction-preview-frame"
+          style={styles.compositeWrapper}
         >
           <ReactionComposite
             originalUri={originalImageUri}
@@ -54,56 +54,57 @@ export function ReactionPreview({
             reactionVideoUri={reactionVideoUri}
             reactionLabel={t('reaction.you')}
             originalLabel={t('reaction.senderGasp', { name: senderName })}
-            showLabels
             showDivider
             watermarkMode="subtle"
-            reactionFlex={45}
-            originalFlex={55}
+            reactionFlex={50}
+            originalFlex={50}
           />
         </Animated.View>
 
-        {/* Buttons slide up after composite */}
-        <Animated.View entering={FadeInDown.delay(300).duration(250)} style={styles.actions}>
-          {/* The live gasp flow omits retakes so reactions stay authentic (06/06 decision). */}
-          {onRetake && (
-            <Pressable
-              onPress={onRetake}
-              style={styles.retakeButton}
-              accessibilityRole="button"
-              accessibilityLabel={t('reaction.reRecord')}
-            >
-              <RotateCcw size={20} color={colors.textPrimary} />
-              <Text variant="body" style={styles.retakeText}>{t('reaction.reRecord')}</Text>
-            </Pressable>
-          )}
-          <Pressable
-            onPress={onSend}
-            disabled={isSending}
-            accessibilityState={{ disabled: isSending }}
-            style={[styles.sendButton, isSending && styles.sendButtonDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel={t('reaction.sendReaction')}
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Send size={20} color="#FFFFFF" />
+        <View pointerEvents="box-none" style={[styles.controls, { bottom: insets.bottom + 12 }]}>
+          {/* Buttons overlay the lower panel. */}
+          <Animated.View entering={FadeInDown.delay(300).duration(250)} style={styles.actions}>
+            {/* The live gasp flow omits retakes so reactions stay authentic (06/06 decision). */}
+            {onRetake && (
+              <Pressable
+                onPress={onRetake}
+                style={styles.retakeButton}
+                accessibilityRole="button"
+                accessibilityLabel={t('reaction.reRecord')}
+              >
+                <RotateCcw size={20} color={colors.textPrimary} />
+                <Text variant="body" style={styles.retakeText}>{t('reaction.reRecord')}</Text>
+              </Pressable>
             )}
-            <Text variant="body" style={styles.sendText}>{t('reaction.sendReaction')}</Text>
-          </Pressable>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(400).duration(250)} style={styles.secondaryActions}>
-          {onSave && (
-            <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel={t('reaction.saveToCameraRoll')}>
-              <Download size={18} color={colors.textSecondary} />
-              <Text variant="body" style={styles.saveText}>{t('reaction.saveToCameraRoll')}</Text>
+            <Pressable
+              onPress={onSend}
+              disabled={isSending}
+              accessibilityState={{ disabled: isSending }}
+              style={[styles.sendButton, isSending && styles.sendButtonDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={t('reaction.sendReaction')}
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Send size={20} color="#FFFFFF" />
+              )}
+              <Text variant="body" style={styles.sendText}>{t('reaction.sendReaction')}</Text>
             </Pressable>
-          )}
-          <Pressable onPress={onDiscard} style={styles.discardButton} accessibilityRole="button" accessibilityLabel={t('reaction.discard')}>
-            <Text variant="body" style={styles.discardText}>{t('reaction.discard')}</Text>
-          </Pressable>
-        </Animated.View>
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(400).duration(250)} style={styles.secondaryActions}>
+            {onSave && (
+              <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel={t('reaction.saveToCameraRoll')}>
+                <Download size={18} color={colors.textSecondary} />
+                <Text variant="body" style={styles.saveText}>{t('reaction.saveToCameraRoll')}</Text>
+              </Pressable>
+            )}
+            <Pressable onPress={onDiscard} style={styles.discardButton} accessibilityRole="button" accessibilityLabel={t('reaction.discard')}>
+              <Text variant="body" style={styles.discardText}>{t('reaction.discard')}</Text>
+            </Pressable>
+          </Animated.View>
+        </View>
       </View>
     </View>
   );
@@ -113,13 +114,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
   },
-  content: {
-    gap: 16,
-    alignItems: 'center',
-  },
+  content: { flex: 1 },
+  header: { position: 'absolute', left: 20, right: 72, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 12, padding: 10 },
+  controls: { position: 'absolute', left: 20, right: 20, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, padding: 12 },
   title: {
     fontSize: 28,
     fontWeight: '800',
@@ -130,11 +128,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   compositeWrapper: {
-    width: SCREEN_WIDTH - 48,
-    borderRadius: 16,
-    borderCurve: 'continuous',
-    overflow: 'hidden',
-    marginTop: 8,
+    ...StyleSheet.absoluteFillObject,
   },
   actions: {
     flexDirection: 'row',
