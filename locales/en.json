@@ -103,6 +103,8 @@
     "reacted": " reacted to your gasp",
     "someone": "Someone",
     "yourReaction": "Your Reaction",
+    "previewContext": "Reaction to {{name}}’s gasp",
+    "sendShort": "Send",
     "reactionTo": "to {{name}}'s gasp",
     "you": "You",
     "reaction": "Reaction",

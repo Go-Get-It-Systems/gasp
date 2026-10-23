@@ -39,8 +39,7 @@ export function ReactionPreview({
     <View style={styles.container}>
       <View style={styles.content}>
         <Animated.View pointerEvents="none" entering={FadeIn.delay(50).duration(300)} style={[styles.header, { top: insets.top + 12 }]}>
-          <Text variant="title" style={styles.title}>{t('reaction.yourReaction')}</Text>
-          <Text variant="caption" style={styles.subtitle}>{t('reaction.reactionTo', { name: senderName })}</Text>
+          <Text variant="caption" style={styles.contextText}>{t('reaction.previewContext', { name: senderName })}</Text>
         </Animated.View>
 
         {/* Media fills the screen; controls overlay it without changing the split. */}
@@ -65,6 +64,9 @@ export function ReactionPreview({
         <View pointerEvents="box-none" style={[styles.controls, { bottom: insets.bottom + 12 }]}>
           {/* Buttons overlay the lower panel. */}
           <Animated.View entering={FadeInDown.delay(300).duration(250)} style={styles.actions}>
+            <Pressable onPress={onDiscard} style={styles.discardButton} accessibilityRole="button" accessibilityLabel={t('reaction.discard')}>
+              <Text variant="body" style={styles.discardText}>{t('reaction.discard')}</Text>
+            </Pressable>
             {/* The live gasp flow omits retakes so reactions stay authentic (06/06 decision). */}
             {onRetake && (
               <Pressable
@@ -90,21 +92,18 @@ export function ReactionPreview({
               ) : (
                 <Send size={20} color="#FFFFFF" />
               )}
-              <Text variant="body" style={styles.sendText}>{t('reaction.sendReaction')}</Text>
+              <Text variant="body" style={styles.sendText}>{t('reaction.sendShort')}</Text>
             </Pressable>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(400).duration(250)} style={styles.secondaryActions}>
-            {onSave && (
+          {onSave && (
+            <Animated.View entering={FadeInDown.delay(400).duration(250)} style={styles.secondaryActions}>
               <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel={t('reaction.saveToCameraRoll')}>
                 <Download size={18} color={colors.textSecondary} />
                 <Text variant="body" style={styles.saveText}>{t('reaction.saveToCameraRoll')}</Text>
               </Pressable>
-            )}
-            <Pressable onPress={onDiscard} style={styles.discardButton} accessibilityRole="button" accessibilityLabel={t('reaction.discard')}>
-              <Text variant="body" style={styles.discardText}>{t('reaction.discard')}</Text>
-            </Pressable>
-          </Animated.View>
+            </Animated.View>
+          )}
         </View>
       </View>
     </View>
@@ -117,16 +116,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: { flex: 1 },
-  header: { position: 'absolute', left: 20, right: 72, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 12, padding: 10 },
-  controls: { position: 'absolute', left: 20, right: 20, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, padding: 12 },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
+  header: { position: 'absolute', left: 20, right: 72, zIndex: 2 },
+  controls: { position: 'absolute', left: 20, right: 20, zIndex: 2 },
+  contextText: {
+    color: '#FFFFFF', fontSize: 14, fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
   compositeWrapper: {
     ...StyleSheet.absoluteFillObject,
@@ -139,7 +133,8 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     width: '100%',
   },
   retakeButton: {
@@ -148,7 +143,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    height: 52,
+    minHeight: 48,
     borderRadius: 26,
     borderCurve: 'continuous',
     borderWidth: 1,
@@ -156,12 +151,13 @@ const styles = StyleSheet.create({
   },
   retakeText: { color: colors.textPrimary, fontWeight: '600' },
   sendButton: {
-    flex: 1,
+    paddingHorizontal: 20,
+    minWidth: 112,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    height: 52,
+    minHeight: 48,
     borderRadius: 26,
     borderCurve: 'continuous',
     backgroundColor: colors.primary,
@@ -174,9 +170,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 8,
+    minHeight: 48,
   },
-  discardText: { color: colors.textSecondary, fontWeight: '500' },
+  discardText: { color: '#FFFFFF', fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
