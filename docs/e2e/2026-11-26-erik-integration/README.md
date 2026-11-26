@@ -105,6 +105,35 @@ Avatar sintético explicitamente público retornou 200. A identidade de teste
 recebeu 403 ao consultar o bucket de produção. Nenhum segredo consta aqui.
 Essas verificações são da API/armazenamento, não substituem teste nativo.
 
+## Business — descoberta e campanha de demonstração
+
+O usuário confirmou no iPhone/Bi os cartões Nike · Demo e Adidas · Demo,
+abertura do perfil Nike com logo/nome/bio, deixar de seguir e seguir novamente.
+Após voltar ao Discover, o cartão refletiu Following e um seguidor. Os dois
+perfis são fixtures isoladas, com identificação explícita de demonstração;
+Iaco foi habilitado como business/owner, Bi permanece personal.
+
+Preparada pela API autenticada do Iaco, e não pelo formulário nativo, a
+campanha `ygutkerjxjxsirzmclu4yn60` na Adidas · Demo usa 12 segundos
+(a partir de 5s) do vídeo oficial [You Got This](https://company.adidas.com/en/magazine/behind-the-scenes/behind-the-2025-brand-campaign-we-all-need-someone-to-make-us-believe-you-got-this).
+O arquivo oficial dessa página não contém faixa de áudio; não usar esta
+campanha como evidência de reprodução do áudio original. A cópia de teste
+foi reduzida para 720px, H.264, sem áudio adicionado, armazenada de forma
+privada e com atribuição no texto da campanha. Publicação Live confirmada:
+audience 1, delivered 1, failed 0, opened/viewed/reacted 0 no momento da
+checagem inicial. O usuário confirmou recebimento e reprodução no iPhone/Bi,
+abertura da câmera, gravação, rosto e voz na prévia e “Reaction sent”.
+Leitura posterior da API e painel nativo do Iaco: delivered/opened/viewed/reacted
+1, failed/selected 0; reação `xyuudgnwxcxd9lte6si6aqn5`, consentToFeature false,
+isPinned false. Botão Feature reaction desabilitado com “Not approved for
+featuring”. A tela Watch reaction from Bi carregou o vídeo original e a
+gravação com o rosto; acionado o player da reação, duração indicada 7s.
+Áudio recebido não foi confirmado auditivamente (controle nativo indicou
+Volume 0%); a confirmação da voz refere-se à prévia no iPhone. Reprodução
+fechada e retorno às métricas observado. O viewer acessado pelo Studio legado
+mostra mídias em dois players separados dentro de folha modal, não composição
+vertical de tela inteira. Nenhum frame com rosto foi adicionado ao Git.
+
 ## Próximos passos
 
 1. Complementar evidência temporal de início da captura e sincronização;
@@ -113,7 +142,7 @@ Essas verificações são da API/armazenamento, não substituem teste nativo.
 2. Troca de conta e reprodução legada com os leitores privados.
 3. Business: papel de conta, campanhas foto/vídeo, métricas, câmera,
    consentimento, destaque e revogação, limite de dez. Duas empresas foram
-   preparadas; Iaco proprietário, Bi única seguidora, contas ainda pessoais.
+   preparadas; Iaco business/proprietário, Bi personal e única seguidora.
 4. Push em segundo plano separado: a identidade restrita não tem permissão
    FCM. Não considerar entrega em primeiro plano prova de push.
 
