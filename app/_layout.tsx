@@ -191,7 +191,7 @@ function RootContent() {
             headerShown: false,
             // The parent presentation must also fill the display: a full-screen
             // child cannot escape an iOS sheet's rounded, inset container.
-            presentation: getFocusedRouteNameFromRoute(route) === "view-gasp"
+            presentation: ["view-gasp", "campaign-reaction-full"].includes(getFocusedRouteNameFromRoute(route) ?? "")
               ? "fullScreenModal"
               : "modal",
           })}

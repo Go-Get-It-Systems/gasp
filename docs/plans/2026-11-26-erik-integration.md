@@ -30,7 +30,18 @@ Antes de rollout: inventariar clientes instalados, definir atualização mínima
 - **Nesta etapa:** encerrar o Metro da integração e reconectar ao checkout original; nenhum dado de produção ou schema foi alterado pela integração.
 - **Código:** abrir nova branch/worktree na tag de recuperação apropriada; não usar reset destrutivo nem reescrever main. Tags já publicadas em ambos os repositórios.
 - **Após eventual deploy:** restaurar o release compatível e configuração registrada. Apenas voltar o código antigo pode deixar uploads privados novos inacessíveis: preparar previamente uma versão de recuperação que mantenha leitura autorizada, ou bloquear a publicação até resolver essa compatibilidade.
-- **Dados/configuração:** tags Git não são backup do banco, bucket ou variáveis. Esta etapa não altera schema/ACL/configuração remota. O limite do piloto permanece dez; uma restauração do banco nunca é implícita no rollback de código.
+- **Dados/configuração:** tags Git não são backup do banco, bucket ou variáveis. A integração não altera schema, ACL ou configuração de produção. O usuário autorizou um ambiente remoto separado e credenciais exclusivas, com permissões limitadas ao bucket de teste. O limite do piloto permanece dez; uma restauração do banco nunca é implícita no rollback de código.
 
 ## Estado inicial
 585 testes do app e 343 da API passaram nas branches isoladas do Erik; 18 testes de banco não foram executados nessa análise. Esses resultados não equivalem ao gate da integração nem ao E2E no aparelho. Resultados integrados serão registrados separadamente.
+
+## Preparação do ambiente isolado
+O usuário escolheu ambiente separado e autorizou identidade/chave exclusivas, acesso somente ao bucket novo e segredo no Railway de integração.
+
+- Railway: `integration-erik`; API `gasp-api-integration`, Postgres e Redis exclusivos, sem cópia de produção.
+- Bucket novo: `gasp-integration-erik-20261126`, separado dos arquivos existentes; criado privado. A configuração de suporte a avatares públicos ainda está pendente.
+- Firebase Auth permanece no projeto do app para permitir os logins de teste existentes; não equivale a Firebase totalmente separado.
+- A identidade restrita ainda não foi criada: a API IAM está desativada e a revisão automática pede autorização específica para habilitá-la no projeto compartilhado. Não houve alteração de IAM nem geração de chave.
+- Fixtures de banco exclusivamente sintéticas; não clonar dados, fila ou dispositivos reais de produção.
+- Gate integrado: 592 testes do app, tipos e lint passaram (51 avisos, zero erros). API: 353 testes unitários/rotas, 18 Business com PostgreSQL, três permissões de mídia com PostgreSQL e 12 montagens FFmpeg passaram; tipos/build/migrações passaram (lint: seis avisos, zero erros).
+- Simuladores e iPhone pendentes nesta versão. Não confundir E2E anterior com validação desta integração.

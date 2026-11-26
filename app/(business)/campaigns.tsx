@@ -6,7 +6,8 @@ import { businessQueryKeys, useBusinessStore } from '@/stores/businessStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ArrowLeft, Megaphone, Plus, RefreshCw, Trash2 } from 'lucide-react-native';
-import { useState } from 'react';
+import * as Sentry from '@sentry/react-native';
+import { businessErrorMessage } from '@/components/business/businessError';
 import {
     ActivityIndicator,
     Alert,
@@ -37,12 +38,10 @@ const STATE_LABELS: Record<Campaign['state'], string> = {
 
 function CampaignRow({
   campaign,
-  workspaceId,
   onPublish,
   onDelete,
 }: {
   campaign: Campaign;
-  workspaceId: string;
   onPublish: (campaign: Campaign) => void;
   onDelete: (campaign: Campaign) => void;
 }) {
@@ -184,7 +183,6 @@ export default function CampaignsScreen() {
   const insets = useSafeAreaInsets();
   const { activeWorkspace } = useBusinessStore();
   const queryClient = useQueryClient();
-  const [pendingPublishCampaign, setPendingPublishCampaign] = useState<Campaign | null>(null);
 
   const workspaceId = activeWorkspace?.id ?? '';
 
@@ -208,8 +206,9 @@ export default function CampaignsScreen() {
       queryClient.invalidateQueries({ queryKey: businessQueryKeys.overview(workspaceId) });
       // No positive acknowledgement toast per R3.6
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Failed to publish campaign.';
+    onError: (err: unknown) => {
+      Sentry.captureException(err);
+      const msg = businessErrorMessage(err, 'Failed to publish campaign.');
       Alert.alert('Error', msg);
     },
   });
@@ -221,8 +220,9 @@ export default function CampaignsScreen() {
       queryClient.invalidateQueries({ queryKey: businessQueryKeys.campaigns(workspaceId) });
       queryClient.invalidateQueries({ queryKey: businessQueryKeys.overview(workspaceId) });
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Failed to delete campaign.';
+    onError: (err: unknown) => {
+      Sentry.captureException(err);
+      const msg = businessErrorMessage(err, 'Failed to delete campaign.');
       Alert.alert('Error', msg);
     },
   });
@@ -230,8 +230,8 @@ export default function CampaignsScreen() {
   const handleDeleteRequest = (campaign: Campaign) => {
     const doDelete = () => deleteMutation.mutate({ campaignId: campaign.id });
 
-    if (typeof window !== 'undefined' && typeof (window as any).confirm === 'function') {
-      if ((window as any).confirm(`Delete "${campaign.title}"? This cannot be undone.`)) doDelete();
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      if (window.confirm(`Delete "${campaign.title}"? This cannot be undone.`)) doDelete();
     } else {
       Alert.alert(
         'Delete campaign',
@@ -320,7 +320,6 @@ export default function CampaignsScreen() {
           renderItem={({ item }) => (
             <CampaignRow
               campaign={item}
-              workspaceId={workspaceId}
               onPublish={handlePublishRequest}
               onDelete={handleDeleteRequest}
             />

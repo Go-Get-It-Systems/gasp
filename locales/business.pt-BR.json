@@ -25,7 +25,7 @@
   "title": "Título da campanha", "overlay": "Texto sobre a mídia (opcional)", "replayable": "Permitir rever", "chooseMedia": "Escolher foto ou vídeo",
   "captureMedia": "Capturar foto ou vídeo", "mediaHint": "Escolha a mídia que será incluída nesta campanha.", "saveDraft": "Salvar rascunho", "editDraft": "Editar rascunho",
   "publish": "Publicar", "retryPublish": "Tentar publicação novamente", "close": "Encerrar campanha", "delete": "Excluir rascunho",
-  "publishTitle": "Publicar esta campanha?", "publishBody": "Enviar aos seguidores atuais que optaram por receber ({{count}}). Uma campanha por dia UTC. Mídia e público não podem ser alterados após a publicação.",
+  "publishTitle": "Publicar esta campanha?", "publishBody": "Enviar aos seguidores atuais que optaram por receber ({{count}}). O limite diário de publicação se aplica. Mídia e público não podem ser alterados após a publicação.",
   "retryBody": "Tentar novamente apenas para o público e a mídia originais; nenhum novo destinatário será incluído.",
   "closeTitle": "Encerrar esta campanha?", "closeBody": "Entregas pendentes serão canceladas. Reações já consentidas podem permanecer na galeria.",
   "deleteTitle": "Excluir este rascunho?", "deleteBody": "Este rascunho será removido permanentemente.",

@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react-native';
+import { businessErrorMessage } from './businessError';
 /**
  * Studio tab — business accounts only.
  * Three sub-tabs (underline indicator style):
@@ -118,7 +120,7 @@ function hasNoRealData(data: MetricsResponse): boolean {
 
 // ─── Reaction card ────────────────────────────────────────────────────────────
 
-function ReactionCard({ item, handle, workspaceId, isPinned, onTogglePin }: {
+function ReactionCard({ item, handle, isPinned, onTogglePin }: {
   item: CampaignReactionItem;
   handle: string;
   workspaceId: string;
@@ -144,9 +146,9 @@ function ReactionCard({ item, handle, workspaceId, isPinned, onTogglePin }: {
     <Pressable style={cardStyles.card} onPress={handlePress} accessibilityRole="button" accessibilityLabel={`View reaction by ${item.reactorDisplayName}`}>
       <View style={cardStyles.thumb}>
         {item.thumbnailUrl ? (
-          <Image source={{ uri: item.thumbnailUrl }} style={StyleSheet.absoluteFillObject as any} contentFit="cover" />
+          <Image source={{ uri: item.thumbnailUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
         ) : item.campaignMediaUrl ? (
-          <Image source={{ uri: item.campaignMediaUrl }} style={StyleSheet.absoluteFillObject as any} contentFit="cover" />
+          <Image source={{ uri: item.campaignMediaUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
         ) : (
           <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.surfaceElevated }]} />
         )}
@@ -263,7 +265,7 @@ function CampaignMetricRow({ item }: { item: CampaignMetric }) {
       {item.queued > 0 && (
         <View style={mStyles.barWrap}>
           <View style={mStyles.barTrack}>
-            <View style={[mStyles.barFill, { width: `${Math.min(item.deliveryRate, 100)}%` as any }]} />
+            <View style={[mStyles.barFill, { width: `${Math.min(item.deliveryRate, 100)}%` }]} />
           </View>
           <Text style={mStyles.barLabel}>{item.deliveryRate}% delivered</Text>
         </View>
@@ -356,8 +358,9 @@ export default function StudioScreen() {
       queryClient.removeQueries({ queryKey: pinnedQueryKey });
       refetchPinned();
     },
-    onError: (e: any) => {
-      const msg = e?.response?.data?.message ?? e?.message ?? 'Failed to update featured status.';
+    onError: (e: unknown) => {
+      Sentry.captureException(e);
+      const msg = businessErrorMessage(e, 'Failed to update featured status.');
       Alert.alert('Error', msg);
     },
   });

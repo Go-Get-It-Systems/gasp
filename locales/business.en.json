@@ -25,7 +25,7 @@
   "title": "Campaign title", "overlay": "Text overlay (optional)", "replayable": "Allow replay", "chooseMedia": "Choose photo or video",
   "captureMedia": "Take photo or video", "mediaHint": "Choose the media to include in this campaign.", "saveDraft": "Save draft", "editDraft": "Edit draft",
   "publish": "Publish", "retryPublish": "Retry publication", "close": "Close campaign", "delete": "Delete draft",
-  "publishTitle": "Publish this campaign?", "publishBody": "Send to the current opt-in followers ({{count}}). One campaign per UTC day. Media and audience cannot be edited after publication.",
+  "publishTitle": "Publish this campaign?", "publishBody": "Send to the current opt-in followers ({{count}}). The daily publication limit applies. Media and audience cannot be edited after publication.",
   "retryBody": "Retry only the original audience and media; no new audience is added.",
   "closeTitle": "Close this campaign?", "closeBody": "Pending deliveries will be cancelled. Existing consented reactions can remain in the gallery.",
   "deleteTitle": "Delete this draft?", "deleteBody": "This draft will be permanently removed.",

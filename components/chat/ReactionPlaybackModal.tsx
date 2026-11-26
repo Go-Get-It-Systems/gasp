@@ -14,6 +14,7 @@ interface ReactionPlaybackModalProps {
   visible: boolean;
   reactionUri?: string;
   originalUri?: string;
+  originalMediaType?: 'image' | 'video';
   reactionLabel: string;
   originalLabel: string;
   hasCompositeMedia: boolean;
@@ -23,7 +24,7 @@ interface ReactionPlaybackModalProps {
 
 export function ReactionPlaybackModal({
   visible, reactionUri, originalUri, reactionLabel, originalLabel, hasCompositeMedia, onClose,
-  isVerticalComposite = false,
+  isVerticalComposite = false, originalMediaType = 'image',
 }: ReactionPlaybackModalProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -73,6 +74,7 @@ export function ReactionPlaybackModal({
             {hasCompositeMedia && reactionUri && originalUri ? (
               <ReactionComposite
                 originalUri={originalUri}
+                originalMediaType={originalMediaType}
                 reactionVideoUri={reactionUri}
                 showDivider
                 watermarkMode="subtle"
