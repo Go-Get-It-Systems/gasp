@@ -391,8 +391,8 @@ export default function StudioScreen() {
 
   const counts = data?.deliveryCounts;
   const campaign = data?.latestCampaign ?? null;
-  const reactions = counts?.opened ?? 0;
-  const opens = counts?.delivered ?? 0;
+  const reactions = counts?.reacted ?? 0;
+  const opens = counts?.opened ?? 0;
   const engagement = counts ? calcEngagement(counts.delivered, counts.viewed) : 0;
   const campaignSubtitle = campaign ? buildCampaignSubtitle(reactions, campaign.publishedAt) : '';
 

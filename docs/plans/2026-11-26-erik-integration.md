@@ -55,10 +55,13 @@ aprovados e ainda em rascunho. Árvores locais limpas antes desta atualização.
 Primeira execução desta sequência: 39 testes passaram em oito suites de
 isolamento de sessão, API/navegação, armazenamento/mídia privada, papéis e
 fluxos Business. Isso não substitui a troca nativa no mesmo aparelho.
-Revisão do Studio novo encontrou um defeito a corrigir antes da aprovação:
-`StudioScreen` atribui `counts.opened` a Reactions e `counts.delivered` a Opens,
-embora o adaptador preserve os contadores reais (`reacted` e `opened`).
-Validar com contagens distintas para evitar falso positivo quando todos são 1.
+Revisão do Studio novo encontrou e corrigiu um defeito: `StudioScreen`
+atribuía `counts.opened` a Reactions e `counts.delivered` a Opens. Agora usa
+`reacted` e `opened`, inclusive no subtítulo da campanha. Teste de regressão
+da tela com 20 entregas, 12 aberturas, 8 visualizações e 3 reações falhou antes
+e passou depois; estado sem contadores mantém zeros. Passaram 21 testes em
+quatro suites relacionadas, tipos e lint dos arquivos alterados. Validação
+nativa da navegação e troca de conta continuam pendentes.
 
 ### Plano original e histórico
 
