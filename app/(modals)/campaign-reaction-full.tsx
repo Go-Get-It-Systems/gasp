@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react-native';
-import { ReactionPlaybackModal } from '@/components/chat/ReactionPlaybackModal';
+import { ReactionPlaybackContent } from '@/components/chat/ReactionPlaybackModal';
 import { useBusinessActor } from '@/hooks/queries/useBusiness';
 import { getCampaignsByHandle } from '@/services/api/business';
 import { queryKeys } from '@/services/queryKeys';
@@ -45,7 +45,7 @@ export default function CampaignReactionFullScreen() {
     );
   }
   return (
-    <ReactionPlaybackModal visible
+    <ReactionPlaybackContent
       reactionUri={params.reactionVideoUri}
       originalUri={originalUri}
       originalMediaType={originalMediaType}

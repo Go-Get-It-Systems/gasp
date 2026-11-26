@@ -215,6 +215,25 @@ liberação. O experimento de atualização da conexão permanece local e fora
 deste registro versionado de implementação, conforme pausa solicitada pelo
 usuário. Nenhuma main, produção ou TestFlight foi alterada.
 
+### Retorno do player: reprodução física e correção
+
+O usuário repetiu Studio → Reactions → reação da Bi → X no iPhone 15 Pro,
+logado no Iaco, e confirmou a mesma tela preta. Portanto, a falha não ficou
+restrita ao simulador. A rota fullScreenModal renderizava ainda um Modal
+nativo interno em ReactionPlaybackModal; fechar navegava para trás enquanto
+essa apresentação interna estava ativa.
+
+O conteúdo compartilhado foi separado do invólucro Modal. A rota Business
+agora renderiza ReactionPlaybackContent diretamente; os chamadores do chat
+continuam usando ReactionPlaybackModal. Não houve mudança de mídia/layout.
+O teste novo comprovou a apresentação duplicada antes da correção e passou
+depois. Passaram 19 testes (rota, ReactionBubble e ReactionComposite), tipos,
+lint dos arquivos alterados e diff-check. No simulador, abrir a mesma reação
+e fechar pelo X retornou à aba Reactions com View reaction by Bi visível.
+O app ajustado foi reaberto no iPhone para reteste pelo usuário; confirmação
+física da correção ainda pendente. O experimento de conexão permanece fora
+do commit desta correção.
+
 ## Próximos passos
 
 1. Complementar evidência temporal de início da captura e sincronização;
