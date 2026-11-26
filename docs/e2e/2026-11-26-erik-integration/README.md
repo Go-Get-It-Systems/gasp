@@ -128,9 +128,10 @@ Leitura posterior da API e painel nativo do Iaco: delivered/opened/viewed/reacte
 isPinned false. Botão Feature reaction desabilitado com “Not approved for
 featuring”. A tela Watch reaction from Bi carregou o vídeo original e a
 gravação com o rosto; acionado o player da reação, duração indicada 7s.
-Áudio recebido não foi confirmado auditivamente (controle nativo indicou
-Volume 0%); a confirmação da voz refere-se à prévia no iPhone. Reprodução
-fechada e retorno às métricas observado. O viewer acessado pelo Studio legado
+Na primeira conferência, áudio recebido ainda não havia sido confirmado
+(controle nativo indicou Volume 0%). Depois, a reprodução foi reaberta no
+simulador do Iaco e o usuário confirmou ouvir a frase gravada na reação
+recebida, encerrando essa pendência. O viewer acessado pelo Studio legado
 mostra mídias em dois players separados dentro de folha modal, não composição
 vertical de tela inteira. Nenhum frame com rosto foi adicionado ao Git.
 
