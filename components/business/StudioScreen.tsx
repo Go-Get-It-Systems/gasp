@@ -11,6 +11,8 @@ import { ActiveCampaignCard } from '@/components/business/ActiveCampaignCard';
 import { BusinessStudioHeader } from '@/components/business/BusinessStudioHeader';
 import { BusinessStudioProfile } from '@/components/business/BusinessStudioProfile';
 import { BusinessStudioStats } from '@/components/business/BusinessStudioStats';
+import { StudioWorkspaceSelector } from '@/components/business/StudioWorkspaceSelector';
+import { useStudioWorkspace } from '@/hooks/queries/useStudioWorkspace';
 import { FeaturedReactionsGrid } from '@/components/business/FeaturedReactionsGrid';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
@@ -19,14 +21,13 @@ import type { CampaignMetric, CampaignReactionItem, MetricsResponse } from '@/se
 import {
     getCampaignReactions,
     getMetrics,
-    getMyBusinesses,
     getPinnedReactions,
     getStudioOverview,
     pinReaction,
     unpinReaction,
 } from '@/services/api/business';
 import { useAuthStore } from '@/stores/authStore';
-import { businessQueryKeys, useBusinessStore } from '@/stores/businessStore';
+import { businessQueryKeys } from '@/stores/businessStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { router, useFocusEffect } from 'expo-router';
@@ -300,27 +301,11 @@ const mStyles = StyleSheet.create({
 export default function StudioScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
-  const { activeWorkspace, setActiveWorkspace } = useBusinessStore();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-
-  // Load workspace
-  const { data: myBusinesses, isLoading: loadingWs } = useQuery({
-    queryKey: businessQueryKeys.mine(),
-    queryFn: async () => {
-      const ws = await getMyBusinesses();
-      const active = ws.find((w) => w.isActive) ?? ws[0] ?? null;
-      if (active) setActiveWorkspace(active);
-      return ws;
-    },
-    retry: false,
-    staleTime: 60_000,
-    placeholderData: (prev) => prev,
-  });
-
-  const workspace = myBusinesses?.find((w) => w.isActive) ?? myBusinesses?.[0] ?? null;
+  const { workspaces, workspace, selectWorkspace, isLoading: loadingWs } = useStudioWorkspace();
   const workspaceId = workspace?.id;
 
-  // Overview — always eager, keep previous data while refetching so campaign card doesn't flash
+  // Keep each workspace's own cache; never show another company's placeholder data.
   const { data, isLoading: loadingOverview, isFetching, refetch } = useQuery({
     queryKey: workspaceId ? businessQueryKeys.overview(workspaceId) : ['overview-disabled'],
     queryFn: () => {
@@ -329,7 +314,6 @@ export default function StudioScreen() {
     },
     enabled: !!workspaceId,
     staleTime: 30_000,
-    placeholderData: (prev) => prev,
   });
 
   // Reactions — gcTime:0 ensures no stale empty cache is served between workspaceId changes
@@ -366,7 +350,7 @@ export default function StudioScreen() {
   });
 
   // Metrics — lazy, uses same workspace resolution pattern as old metrics screen
-  const resolvedId = activeWorkspace?.id ?? workspaceId;
+  const resolvedId = workspaceId;
   const { data: metricsData, isLoading: loadingMetrics, isError: metricsError, isFetching: fetchingMetrics, refetch: refetchMetrics } = useQuery({
     queryKey: businessQueryKeys.metrics(resolvedId ?? ''),
     queryFn: () => { if (!resolvedId) throw new Error('No workspace'); return getMetrics(resolvedId); },
@@ -430,6 +414,9 @@ export default function StudioScreen() {
         showBack={false}
         onSettingsPress={() => router.push('/(modals)/settings')}
       />
+
+      <StudioWorkspaceSelector workspaces={workspaces ?? []}
+        selectedId={workspaceId} onSelect={selectWorkspace} disabled={pinMutation.isPending} />
 
       {/* Sub-tab bar */}
       <View style={styles.tabBar}>

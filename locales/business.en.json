@@ -1,4 +1,5 @@
 {
+  "selectBusiness": "Business",
   "studio": "Business Studio", "directory": "Businesses", "inbox": "Business campaigns", "myReactions": "My campaign reactions",
   "profile": "Business profile", "profileTab": "Business", "noLinkedBusiness": "No business is linked to your account yet.",
   "overview": "Overview", "campaigns": "Campaigns", "reactions": "Reactions", "metrics": "Metrics",

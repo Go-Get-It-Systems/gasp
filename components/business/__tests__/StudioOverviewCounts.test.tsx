@@ -22,6 +22,7 @@ jest.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ removeQueries: jest.fn() }),
 }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() }, useFocusEffect: jest.fn() }));
+jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 jest.mock('../BusinessStudioHeader', () => ({ BusinessStudioHeader: () => null }));
 jest.mock('../BusinessStudioProfile', () => ({ BusinessStudioProfile: () => null }));

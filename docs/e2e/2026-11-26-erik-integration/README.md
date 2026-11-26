@@ -237,6 +237,31 @@ nesta rodada, após a correção `349ce6e`. O experimento de conexão permanece
 fora do commit desta correção; esse resultado não encerra as pendências de
 seleção de empresa, texto de consentimento ou a revisão final de merge.
 
+### Seleção de empresa no Studio novo — 27 de novembro
+
+O Studio agora oferece um seletor horizontal com as empresas retornadas para
+a conta proprietária. A seleção é validada contra essa lista e governa
+Overview, Reactions, Metrics e o destino de New Campaign. Uma atualização
+da lista mantém a escolha enquanto a empresa continuar disponível; uma
+empresa removida não permanece selecionada. O seletor suporta mais de duas
+empresas por rolagem horizontal e fica oculto quando há menos de duas.
+
+A consulta de Overview não reaproveita dados da outra empresa enquanto
+carrega. Passaram 33 testes em oito suites de Business e isolamento de
+sessão/navegação, checagem de tipos e lint dos arquivos alterados. Os testes
+incluem troca de empresa, destino do formulário, consultas de reações e
+métricas, preservação após atualização e remoção de acesso.
+
+No simulador, Nike mostrou sua campanha e Adidas mostrou suas duas
+campanhas nas métricas. No iPhone 15 Pro, o usuário inicialmente não viu o
+seletor; após o carregamento, confirmou Nike e Adidas e validou que campanhas
+e métricas acompanham a troca nos dois sentidos. Essa validação aprova a
+troca visual no aparelho; não houve nova publicação de campanha nesta rodada.
+
+O experimento de conexão continua local e fora desta alteração versionada.
+O texto de consentimento e a revisão final de integração seguem pendentes.
+Nenhum merge na main, deploy de produção ou envio ao TestFlight foi feito.
+
 ## Próximos passos
 
 1. Complementar evidência temporal de início da captura e sincronização;
