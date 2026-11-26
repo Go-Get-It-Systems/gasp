@@ -230,9 +230,12 @@ O teste novo comprovou a apresentação duplicada antes da correção e passou
 depois. Passaram 19 testes (rota, ReactionBubble e ReactionComposite), tipos,
 lint dos arquivos alterados e diff-check. No simulador, abrir a mesma reação
 e fechar pelo X retornou à aba Reactions com View reaction by Bi visível.
-O app ajustado foi reaberto no iPhone para reteste pelo usuário; confirmação
-física da correção ainda pendente. O experimento de conexão permanece fora
-do commit desta correção.
+O app ajustado foi reaberto no iPhone 15 Pro. Na conta do Iaco, o usuário
+repetiu Studio → Reactions → reação da Bi → X e confirmou que voltou à lista
+sem tela preta. Retorno do player aprovado no simulador e no aparelho físico
+nesta rodada, após a correção `349ce6e`. O experimento de conexão permanece
+fora do commit desta correção; esse resultado não encerra as pendências de
+seleção de empresa, texto de consentimento ou a revisão final de merge.
 
 ## Próximos passos
 
