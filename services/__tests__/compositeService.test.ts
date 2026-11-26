@@ -17,11 +17,17 @@ describe('compositeService', () => {
 
   // Feature: super-imposed-reaction, Property 1: buildCompositePayload layout invariant
   describe('buildCompositePayload', () => {
-    it('always returns layout="1/3-2/3" for any pair of string inputs', () => {
+    it('preserves the preview shape and bounds invalid or extreme dimensions', () => {
+      expect(buildCompositePayload('r', 'g', 2700, 393 / 852).outputAspectRatio).toBe(393 / 852);
+      expect(buildCompositePayload('r', 'g', 0, 0).outputAspectRatio).toBe(0.4);
+      expect(buildCompositePayload('r', 'g', 0, 2).outputAspectRatio).toBe(1);
+      expect(buildCompositePayload('r', 'g', 0, NaN).outputAspectRatio).toBeCloseTo(9 / 19.5);
+    });
+    it('requests the vertical layout for any pair of string inputs', () => {
       fc.assert(
         fc.property(fc.string(), fc.string(), (reactionVideoUrl, gaspUrl) => {
           const payload = buildCompositePayload(reactionVideoUrl, gaspUrl);
-          expect(payload.layout).toBe('1/3-2/3');
+          expect(payload.layout).toBe('vertical-50-50');
         }),
         { numRuns: 100 },
       );
@@ -46,6 +52,24 @@ describe('compositeService', () => {
   });
 
   describe('compositeReaction', () => {
+    it('uses a full legacy composite only when an older server rejects the new layout', async () => {
+      mockedApiPost.mockRejectedValueOnce({ response: { status: 400, data: { error: 'unsupported_layout' } } });
+      mockedApiPost.mockResolvedValueOnce({ data: { compositeUrl: 'https://cdn/composites/old.mp4' } } as never);
+      const signal = new AbortController().signal;
+      await expect(compositeReaction(buildCompositePayload('r', 'g', 2700), signal))
+        .resolves.toEqual({ compositeUrl: 'https://cdn/composites/old.mp4' });
+      expect(mockedApiPost).toHaveBeenNthCalledWith(2, '/reactions/composite', {
+        reactionVideoUrl: 'r', gaspUrl: 'g', revealOffsetMs: 2700, layout: '1/3-2/3',
+      }, { signal });
+    });
+
+    it('does not retry authorization errors with a different layout', async () => {
+      const error = { response: { status: 403 } };
+      mockedApiPost.mockRejectedValueOnce(error);
+      await expect(compositeReaction(buildCompositePayload('r', 'g'), new AbortController().signal)).rejects.toBe(error);
+      expect(mockedApiPost).toHaveBeenCalledTimes(1);
+    });
+
     it('calls api.post with the correct endpoint, payload, and signal', async () => {
       const payload = buildCompositePayload(
         'https://cdn.example.com/reaction.mp4',

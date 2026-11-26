@@ -4,6 +4,7 @@ import { StyleSheet, type ViewStyle } from 'react-native';
 import type { ComponentType } from 'react';
 import { ReactionBubble } from '@/components/chat/ReactionBubble';
 import type { Message } from '@/services/api/schemas/chat.schema';
+import { getCachedUri } from '@/services/mediaCache';
 
 const MockReactionComposite = 'ReactionComposite' as unknown as ComponentType<Record<string, unknown>>;
 const MockInlineVideo = 'InlineVideo' as unknown as ComponentType<Record<string, unknown>>;
@@ -78,6 +79,32 @@ const gaspMessage: Message = {
 };
 
 describe('ReactionBubble', () => {
+  afterEach(() => jest.mocked(getCachedUri).mockReset());
+
+  it('plays a cached vertical export full screen without composing it a second time', () => {
+    jest.mocked(getCachedUri).mockReturnValue('file:///cache/reaction.mp4');
+    const { getByRole, UNSAFE_getByType, UNSAFE_queryByType } = render(
+      <ReactionBubble message={{ ...reactionMessage, mediaUrl: 'https://storage.googleapis.com/app/composites/user/vertical-v1/out.mp4' }}
+        isOwnMessage={false} replyToMessage={gaspMessage} otherParticipantName="Iaco" />,
+    );
+    fireEvent.press(getByRole('button', { name: 'Reaction video, tap to view composite' }));
+    expect(UNSAFE_queryByType(MockReactionComposite)).toBeNull();
+    expect(UNSAFE_getByType(MockInlineVideo).props).toMatchObject({
+      uri: 'file:///cache/reaction.mp4', contentFit: 'cover', muted: false,
+    });
+  });
+
+  it('keeps a cached legacy composite fully visible', () => {
+    jest.mocked(getCachedUri).mockReturnValue('file:///cache/legacy.mp4');
+    const { getByRole, UNSAFE_getByType, UNSAFE_queryByType } = render(
+      <ReactionBubble message={{ ...reactionMessage, mediaUrl: 'https://storage.googleapis.com/app/composites/user/out.mp4' }}
+        isOwnMessage={false} replyToMessage={gaspMessage} />,
+    );
+    fireEvent.press(getByRole('button', { name: 'Reaction video, tap to view composite' }));
+    expect(UNSAFE_queryByType(MockReactionComposite)).toBeNull();
+    expect(UNSAFE_getByType(MockInlineVideo).props.contentFit).toBe('contain');
+  });
+
   it('renders a composite thumbnail when original media exists', () => {
     const { getByTestId, queryByLabelText, UNSAFE_getAllByType } = render(
       <ReactionBubble

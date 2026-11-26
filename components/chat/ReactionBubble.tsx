@@ -35,7 +35,9 @@ export function ReactionBubble({
   // Original gasp URI comes from the replied-to message
   const originalUri = replyToMessage?.mediaUrl ?? replyToMessage?.content ?? '';
   const resolvedOriginalUri = originalUri ? (getCachedUri(originalUri) ?? originalUri) : '';
-  const isBackendCompositeMedia = isCompositeMediaUrl(resolvedMediaUri);
+  // Classify the source URL, not the cache file (which loses storage folders).
+  const isBackendCompositeMedia = isCompositeMediaUrl(rawMediaUri);
+  const isVerticalComposite = !!rawMediaUri && /\/composites\/[^/]+\/vertical-v1\//.test(rawMediaUri);
   const hasCompositeMedia = !!(resolvedMediaUri && resolvedOriginalUri && !isBackendCompositeMedia);
 
   const [showComposite, setShowComposite] = useState(false);
@@ -91,6 +93,7 @@ export function ReactionBubble({
         reactionLabel={reactionLabel}
         originalLabel={originalLabel}
         hasCompositeMedia={hasCompositeMedia}
+        isVerticalComposite={isVerticalComposite}
         onClose={handleClose}
       />
     </>

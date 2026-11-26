@@ -17,11 +17,13 @@ interface ReactionPlaybackModalProps {
   reactionLabel: string;
   originalLabel: string;
   hasCompositeMedia: boolean;
+  isVerticalComposite?: boolean;
   onClose: () => void;
 }
 
 export function ReactionPlaybackModal({
   visible, reactionUri, originalUri, reactionLabel, originalLabel, hasCompositeMedia, onClose,
+  isVerticalComposite = false,
 }: ReactionPlaybackModalProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -90,7 +92,7 @@ export function ReactionPlaybackModal({
                 <InlineVideo
                   uri={reactionUri}
                   style={StyleSheet.absoluteFill}
-                  contentFit="contain"
+                  contentFit={isVerticalComposite ? 'cover' : 'contain'}
                   paused={false}
                   muted={false}
                 />
