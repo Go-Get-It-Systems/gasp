@@ -18,7 +18,9 @@ Bi: iPhone 17 Pro. Iaco: iPhone 17 Pro Max. Login por telefone/código de teste
 confirmado nos dois apps, conectados ao Metro da integração (8084).
 As contas e dados são exclusivos do banco de integração; Firebase Auth é
 compartilhado com o projeto existente. O iPhone 15 Pro foi aberto no mesmo
-Metro; o usuário confirmou Iaco. A rodada física ainda está pendente.
+Metro; o usuário confirmou Iaco. A rodada física de vídeo foi executada:
+o usuário confirmou som durante captura, REC/cronômetro, rosto e voz na
+prévia. Envio e recebimento na Bi foram conferidos nesta integração.
 
 Vídeo novo `davrraqd97lty4wwdllzsht9` preparado pela API autenticada da Bi
 para a captura física (upload 200, envio 201). Essa preparação não conta
@@ -51,13 +53,38 @@ que o intervalo de amostragem. Áudio e câmera reais dependem do iPhone.
 | C1 consumo na revelação | PASS | Foto/vídeo: um open, depois close-view e caixa vazia. |
 | C2 soltura antecipada | PASS | Foto continuou borrada; nenhum open/close durante a soltura. |
 | C3 gravação na contagem | NOT VERIFIED | Sem câmera no simulador; requer iPhone. |
-| C4 REC real | NOT VERIFIED | Caminho sem câmera passou na amostra; cronômetro real pendente. |
-| C5 soltar após revelar | NOT VERIFIED | Alerta/saída sem vídeo passou; prévia com captura real pendente. |
-| C6 composição sincronizada | NOT VERIFIED | FFmpeg local passou; recebimento nativo integrado pendente. |
-| C7 status final coerente | NOT VERIFIED | Saída sem reação passou; reacted após envio real pendente. |
+| C4 REC real | PASS | Usuário confirmou REC e cronômetro no iPhone; simulador sem REC na amostra. Precisão de início não foi medida. |
+| C5 soltar após revelar | PASS | Usuário confirmou prévia real; sem câmera, alerta e retorno funcionaram. |
+| C6 composição sincronizada | NOT VERIFIED | Reprodução vertical recebida passou; offset exato da captura física ainda não medido. |
+| C7 status final coerente | PASS | API retornou reacted, uma reação recebida vinculada à conversa; nenhum close-view entre open e envio. |
 | C8 falhas de envio | NOT VERIFIED | Gate automatizado passou; não houve falha induzida no aparelho. |
-| C9 áudio durante captura | NOT VERIFIED | Requer validação física. |
-| C10 rosto e voz | NOT VERIFIED | Requer validação física. |
+| C9 áudio durante captura | PASS | Usuário confirmou som enquanto reagia no iPhone. |
+| C10 rosto e voz | PASS | Usuário confirmou imagem e voz na prévia; rosto observado no recebimento da Bi. |
+
+## Rodada física de vídeo
+
+Para o gasp `davrraqd97lty4wwdllzsht9`, logs da API confirmam open 200 às
+05:07:22 UTC, uploads 200 às 05:07:34 e 05:07:37, composição 200 às
+05:07:46 e reação 201 em seguida. Não houve close-view nesse intervalo.
+Consulta autenticada posterior confirmou status `reacted` e exatamente uma
+reação recebida pela Bi, vinculada à conversa.
+
+No simulador da Bi, o chat mostrou uma nova reação do Iaco. A reprodução
+carregou pela leitura protegida e mostrou o vídeo original em cima e o
+rosto embaixo, divisão vertical em tela inteira, divisor e logo. O quadro
+observado mostrava AUDIO 3.8s. A reprodução foi fechada após a conferência.
+Não foram publicados no Git imagens do rosto ou áudio da pessoa.
+
+O usuário confirmou todos os pontos perguntados: som durante a captura,
+REC/cronômetro e rosto/voz na prévia. O trecho de trace físico não estava
+no buffer do Metro consultado; não atribuir precisão temporal à confirmação
+visual. C3 e o offset exato de C6 seguem sem evidência temporal desta rodada.
+
+Antes da captura, houve aviso de reconexão, timeouts e uma resposta 503
+observada no cliente. Railway manteve API/banco/Redis online, sem falha de
+deploy; os logs mostraram desconexões/reconexões. Três consultas seguintes
+à saúde retornaram 200, assim como a caixa de entrada. Causa ainda não
+isolada; não afirmar que o servidor reiniciou ou que houve correção.
 
 ## Segurança implantada — verificação pela API
 
@@ -70,8 +97,9 @@ Essas verificações são da API/armazenamento, não substituem teste nativo.
 
 ## Próximos passos
 
-1. iPhone/Iaco: vídeo novo, captura, som, rosto, voz, REC, envio e composição
-   vertical recebida pela Bi; confirmar status reacted e sincronização.
+1. Complementar evidência temporal de início da captura e sincronização;
+   investigar recorrência do aviso de reconexão. Fluxo de vídeo, som, rosto,
+   voz, REC, entrega vertical e status reacted passaram nesta rodada.
 2. Troca de conta e reprodução legada com os leitores privados.
 3. Business: papel de conta, campanhas foto/vídeo, métricas, câmera,
    consentimento, destaque e revogação, limite de dez. Duas empresas foram
