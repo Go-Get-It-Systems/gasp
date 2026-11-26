@@ -13,6 +13,55 @@ Preservar a versão atual, integrar as branches do Erik em branches próprias e 
 As duas integrações usam `codex/erik-business-security-integration`, em worktrees irmãs separadas dos checkouts que alimentam o app atual. O relatório Business foi reaplicado antes da integração. Logs locais antigos ficam preservados no checkout original, sem publicar possíveis dados de sessão.
 
 ## Plano e critérios de passagem
+### Revisão de escopo — 27/11/2026
+
+O usuário dispensou compatibilidade com vídeos antigos por se tratar de beta:
+eventual perda de acesso a essas mídias é aceita e deixa de bloquear o merge.
+Isso não autoriza apagar arquivos, abrir mídias privadas ao público ou deixar
+clientes antigos criarem novos envios incompatíveis sem um plano de atualização.
+Os itens históricos abaixo sobre reprodução legada são substituídos por essa
+decisão para a aprovação desta integração.
+
+Sequência prática para fechar a revisão:
+
+1. **Troca de conta:** repetir os testes automatizados de sessão/cache/mídia;
+   depois, no mesmo simulador, sair do Iaco business e entrar na Bi personal.
+   Conferir limpeza de conversas, players, filas e Studio; voltar ao Iaco e
+   confirmar seus próprios workspaces. Uma falha de isolamento bloqueia merge.
+2. **Studio novo:** acessar pela aba Studio, não pelo atalho legado do perfil.
+   Exercitar Overview, Reactions e Metrics; criar/publicar uma campanha e
+   conferir acesso à mídia privada, entrega à Bi e retorno da reação. Verificar
+   qual empresa está selecionada, inclusive com duas empresas vinculadas.
+   Os testes anteriores de câmera/voz/consentimento continuam válidos para
+   seus caminhos; não representam cobertura dessa navegação nova.
+3. **Correções e evidências:** corrigir regressões encontradas na integração,
+   executar os testes relevantes e registrar o resultado nativo. Conferir o
+   limite diário exibido. Precisão de sincronização, rede e push continuam
+   identificados separadamente; não declarar a liberação completa sem decisão.
+4. **Transição do beta:** confirmar a versão que os participantes usarão e a
+   ordem coordenada de API/app. Em 27/11, a configuração Railway consultada
+   apontava produção para main com checkSuites habilitado: merge do backend
+   pode publicar automaticamente. Se for integrar antes de distribuir o app,
+   preparar uma separação explícita entre merge e deploy, com aprovação antes
+   de alterar a configuração de produção. Recuperação deve suportar as novas
+   mídias privadas; aceitar perder vídeos antigos não resolve esse caso.
+5. **Merge:** revisar os commits finais, testes verdes e ausência de conflitos;
+   apresentar o resultado e o impacto de publicação para autorização final.
+   Não executar merge, alterar produção ou enviar TestFlight nesta revisão.
+
+Estado conferido em 27/11: as duas propostas estão sem conflitos, testes remotos
+aprovados e ainda em rascunho. Árvores locais limpas antes desta atualização.
+
+Primeira execução desta sequência: 39 testes passaram em oito suites de
+isolamento de sessão, API/navegação, armazenamento/mídia privada, papéis e
+fluxos Business. Isso não substitui a troca nativa no mesmo aparelho.
+Revisão do Studio novo encontrou um defeito a corrigir antes da aprovação:
+`StudioScreen` atribui `counts.opened` a Reactions e `counts.delivered` a Opens,
+embora o adaptador preserve os contadores reais (`reacted` e `opened`).
+Validar com contagens distintas para evitar falso positivo quando todos são 1.
+
+### Plano original e histórico
+
 1. **Checkpoint:** tags anotadas remotas, bases e origens registradas; checkouts originais preservados.
 2. **Integração:** manter histórico do Erik, composição vertical, reprodução legada, patch de áudio, retries/logs de expiração; resolver conflito do compositor combinando layout atual e leitores privados.
 3. **Ajustes de compatibilidade:** revisar acesso/renovação de mídia privada e troca de conta; alinhar reprodução Business ao padrão vertical aprovado; conferir aviso de limite diário.
