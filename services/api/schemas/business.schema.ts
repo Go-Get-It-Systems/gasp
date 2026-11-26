@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { ApiGaspSchema } from './gasp.schema';
 import { PaginatedResponseSchema } from './common.schema';
+import { resolveCompanyLogoUrl } from '@/utils/companyLogoUrl';
 
 const id = z.string().min(1);
 const count = z.number().int().nonnegative();
 export const BusinessWorkspaceSchema = z.object({
-  id, handle: id, displayName: id, avatarUrl: z.string().nullable(), bio: z.string().nullable(),
+  id, handle: id, displayName: id, avatarUrl: z.string().nullable().transform(resolveCompanyLogoUrl), bio: z.string().nullable(),
   verificationStatus: z.enum(['pending', 'verified', 'rejected']), isVerified: z.boolean(),
   followerCount: count, isFollowing: z.boolean(),
 });

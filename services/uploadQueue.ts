@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { assertCurrentSession, getSessionActor, getSessionGeneration } from './session';
 import { uploadMedia, type UploadResult, type UploadProgress, type MediaType } from './storage';
 import * as Sentry from '@sentry/react-native';
 
@@ -24,7 +25,8 @@ const MAX_ATTEMPTS = 3;
 const BACKOFF_BASE = 1000; // 1s, 3s, 9s
 
 // In-memory flag to prevent concurrent processQueue calls
-let isProcessing = false;
+let processingGeneration: number | null = null;
+let pendingQueueWrites: Promise<void> = Promise.resolve();
 
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 
@@ -38,9 +40,14 @@ async function readQueue(): Promise<UploadQueueItem[]> {
   }
 }
 
-async function writeQueue(queue: UploadQueueItem[]): Promise<void> {
+async function writeQueue(queue: UploadQueueItem[], generation = getSessionGeneration()): Promise<void> {
+  if (generation !== getSessionGeneration()) return;
   try {
-    await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+    const snapshot = JSON.stringify(queue);
+    pendingQueueWrites = pendingQueueWrites.catch(() => {}).then(async () => {
+      if (generation === getSessionGeneration()) await AsyncStorage.setItem(QUEUE_KEY, snapshot);
+    });
+    await pendingQueueWrites;
   } catch (error) {
     Sentry.captureException(error, { extra: { context: 'uploadQueue.writeQueue' } });
   }
@@ -60,6 +67,8 @@ export async function enqueueUpload(
   type: MediaType,
   userId: string,
 ): Promise<string> {
+  const generation = getSessionGeneration();
+  if (getSessionActor() !== userId) throw new Error('Upload account changed');
   const item: UploadQueueItem = {
     id: generateId(),
     uri,
@@ -71,8 +80,9 @@ export async function enqueueUpload(
   };
 
   const queue = await readQueue();
+  assertCurrentSession(generation);
   queue.push(item);
-  await writeQueue(queue);
+  await writeQueue(queue, generation);
 
   if (__DEV__) {
     console.tronLog?.log('uploadQueue | enqueue', { id: item.id, type, uri: uri.slice(-50) });
@@ -89,27 +99,33 @@ export async function enqueueUpload(
  * Safe to call multiple times — concurrent calls are no-ops.
  */
 export async function processQueue(): Promise<void> {
-  if (isProcessing) return;
-  isProcessing = true;
+  const actor = getSessionActor();
+  const generation = getSessionGeneration();
+  if (processingGeneration === generation || !actor) return;
+  processingGeneration = generation;
 
   try {
     let queue = await readQueue();
 
     for (const item of queue) {
-      if (item.status !== 'pending') continue;
+      if (generation !== getSessionGeneration()) return;
+      if (item.status !== 'pending' || item.userId !== actor) continue;
 
       // Mark as uploading
       queue = queue.map((q) => (q.id === item.id ? { ...q, status: 'uploading' as const } : q));
-      await writeQueue(queue);
+      await writeQueue(queue, generation);
 
       let succeeded = false;
 
       for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         try {
+          assertCurrentSession(generation);
           await uploadMedia(item.uri, item.type, item.userId);
+          assertCurrentSession(generation);
           succeeded = true;
           break;
-        } catch (error) {
+        } catch {
+          if (generation !== getSessionGeneration()) return;
           const isLastAttempt = attempt === MAX_ATTEMPTS - 1;
           if (!isLastAttempt) {
             const delay = BACKOFF_BASE * Math.pow(3, attempt);
@@ -139,10 +155,10 @@ export async function processQueue(): Promise<void> {
         });
       }
 
-      await writeQueue(queue);
+      await writeQueue(queue, generation);
     }
   } finally {
-    isProcessing = false;
+    if (processingGeneration === generation) processingGeneration = null;
   }
 }
 
@@ -157,13 +173,15 @@ export async function getPendingUploads(): Promise<UploadQueueItem[]> {
  * Reset a failed item back to pending and reprocess the queue.
  */
 export async function retryFailed(id: string): Promise<void> {
+  const generation = getSessionGeneration();
   const queue = await readQueue();
+  assertCurrentSession(generation);
   const updated = queue.map((q) =>
     q.id === id && q.status === 'failed'
       ? { ...q, status: 'pending' as const, attempts: 0 }
       : q,
   );
-  await writeQueue(updated);
+  await writeQueue(updated, generation);
   processQueue();
 }
 
@@ -171,19 +189,12 @@ export async function retryFailed(id: string): Promise<void> {
  * Remove an item from the queue (completed or cancelled).
  */
 export async function removeFromQueue(id: string): Promise<void> {
+  const generation = getSessionGeneration();
   const queue = await readQueue();
-  await writeQueue(queue.filter((q) => q.id !== id));
+  await writeQueue(queue.filter((q) => q.id !== id), generation);
 }
 
 // ─── Inline use (send-gasp still uses this) ──────────────────────────────────
-
-interface UploadTask {
-  uri: string;
-  type: MediaType;
-  userId: string;
-  attempt: number;
-  maxAttempts: number;
-}
 
 /**
  * Upload with automatic retry and exponential backoff.
@@ -197,12 +208,17 @@ export async function uploadWithRetry(
   onProgress?: (progress: UploadProgress) => void,
   maxAttempts = 3,
 ): Promise<UploadResult> {
+  const generation = getSessionGeneration();
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      return await uploadMedia(uri, type, userId, onProgress);
+      assertCurrentSession(generation);
+      const result = await uploadMedia(uri, type, userId, onProgress);
+      assertCurrentSession(generation);
+      return result;
     } catch (error) {
+      assertCurrentSession(generation);
       lastError = error instanceof Error ? error : new Error(String(error));
 
       if (attempt < maxAttempts - 1) {
@@ -217,4 +233,10 @@ export async function uploadWithRetry(
   });
 
   throw lastError;
+}
+
+/** Clears persisted uploads after older writes finish; running uploads cannot repopulate it. */
+export async function clearUploadQueue(): Promise<void> {
+  await pendingQueueWrites.catch(() => {});
+  await AsyncStorage.removeItem(QUEUE_KEY);
 }

@@ -13,6 +13,7 @@ const mockUpload = jest.fn().mockResolvedValue({ downloadUrl: 'https://storage.g
 let mockRecipient = false;
 let mockQueryError = false;
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }) }));
+jest.mock('lucide-react-native', () => ({ ChevronLeft: () => null, RefreshCcw: () => null, AlertTriangle: () => null }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 jest.mock('@react-navigation/native', () => ({ useIsFocused: () => true }));
 jest.mock('expo-router', () => ({ router: { back: mockBack }, useLocalSearchParams: () => ({ workspaceId: 'workspace-1', campaignId: 'campaign-1' }) }));

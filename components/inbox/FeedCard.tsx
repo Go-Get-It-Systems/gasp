@@ -4,7 +4,7 @@ import { Text } from "@/components/ui/Text";
 import { colors } from "@/constants/colors";
 import { getCachedUri } from "@/services/mediaCache";
 import { formatRelativeTime } from "@/utils/format";
-import { Image } from "expo-image";
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { Eye } from "lucide-react-native";
 import { Dimensions, StyleSheet, View } from "react-native";
 

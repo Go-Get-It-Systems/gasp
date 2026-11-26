@@ -1,7 +1,8 @@
 import React, { RefObject } from 'react';
 import { StyleSheet, View, Image, Dimensions } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { PrivateImage as ExpoImage } from '@/components/ui/PrivateImage';
+import { VideoView } from 'expo-video';
+import { usePrivateVideoPlayer as useVideoPlayer } from '@/hooks/usePrivateVideoPlayer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const LOGO_SIZE = SCREEN_WIDTH * 0.15;

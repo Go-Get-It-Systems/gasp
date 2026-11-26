@@ -2,6 +2,7 @@ import { StyleSheet, View, FlatList } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
 import { UserCard } from './UserCard';
+import { BusinessDiscoverCard } from './BusinessDiscoverCard';
 import type { RecommendedUser } from '@/services/api/schemas/user.schema';
 
 function ItemSeparator() {
@@ -39,7 +40,10 @@ export function RecommendedSection({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={ItemSeparator}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => item.accountType === 'business' ? <BusinessDiscoverCard
+          handle={item.username} displayName={item.displayName} avatarUrl={item.avatarUrl}
+          score={item.gaspScore}
+        /> : (
           <UserCard
             user={item}
             showGradientRing={showGradientRing}

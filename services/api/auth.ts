@@ -42,6 +42,6 @@ export async function removeDevice(token: string): Promise<void> {
   await api.delete(`/auth/devices/${encodeURIComponent(token)}`);
 }
 
-export async function logout(): Promise<void> {
-  await api.post('/auth/logout');
+export async function logout(token?: string): Promise<void> {
+  await api.post('/auth/logout', undefined, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
 }

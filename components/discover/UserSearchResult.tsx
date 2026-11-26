@@ -4,6 +4,8 @@ import { Text } from '@/components/ui/Text';
 import { UserPlus, Check, Clock } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { openFriendProfile } from '@/services/navigation';
+import { BusinessSearchResult } from './BusinessSearchResult';
+import type { User } from '@/services/api/schemas/user.schema';
 
 export type RequestStatus = 'none' | 'sending' | 'sent' | 'already_friends';
 
@@ -12,11 +14,17 @@ interface UserSearchResultProps {
   displayName: string;
   username: string;
   avatarUrl: string | null;
+  accountType?: User['accountType'];
   status: RequestStatus;
   onAdd: (id: string) => Promise<void>;
 }
 
-export function UserSearchResult({
+export function UserSearchResult(props: UserSearchResultProps) {
+  return props.accountType === 'business' ? <BusinessSearchResult displayName={props.displayName} username={props.username} avatarUrl={props.avatarUrl} />
+    : <PersonalSearchResult {...props} />;
+}
+
+function PersonalSearchResult({
   id,
   displayName,
   username,

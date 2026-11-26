@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Avatars are intentionally public profile data. Uploads go through the API.
+    match /avatars/{owner}/{object=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // The Admin SDK writes private media; authorized reads use short signed URLs.
+    match /{object=**} {
+      allow read, write: if false;
+    }
+  }
+}

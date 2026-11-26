@@ -1,7 +1,8 @@
 import { useCallback, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Image } from 'expo-image';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
+import { VideoView } from 'expo-video';
+import { usePrivateVideoPlayer as useVideoPlayer } from '@/hooks/usePrivateVideoPlayer';
 import * as Sentry from '@sentry/react-native';
 import { parseTextOverlay, TextOverlayRenderer } from './TextOverlayRenderer';
 import { CircleReveal } from './CircleReveal';
