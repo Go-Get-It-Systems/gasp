@@ -10,10 +10,8 @@ export const FriendshipStatusForUserSchema = z.enum([
 
 export type FriendshipStatusForUser = z.infer<typeof FriendshipStatusForUserSchema>;
 
-export const AccountTypeSchema = z.enum(['personal', 'business']);
-export type AccountType = z.infer<typeof AccountTypeSchema>;
-
 export const UserSchema = z.object({
+  accountType: z.enum(['personal', 'business']).optional(),
   id: z.string(),
   displayName: z.string(),
   username: z.string(),
@@ -21,7 +19,6 @@ export const UserSchema = z.object({
   bio: z.string().optional(),
   phoneNumber: z.string().optional(),
   createdAt: z.string(),
-  accountType: AccountTypeSchema.optional().default('personal'),
   friendshipStatus: FriendshipStatusForUserSchema.optional(),
   friendshipId: z.string().optional(),
 });
@@ -60,6 +57,7 @@ export type UserStats = z.infer<typeof UserStatsSchema>;
 export type UserBadge = 'top10' | 'rising' | 'new' | 'active' | null;
 
 export const RecommendedUserSchema = z.object({
+  accountType: UserSchema.shape.accountType,
   id: z.string(),
   displayName: z.string(),
   username: z.string(),
@@ -69,7 +67,6 @@ export const RecommendedUserSchema = z.object({
   mutualFriendsCount: z.number(),
   mutualFriendAvatars: z.array(z.string()),
   badge: z.enum(['top10', 'rising', 'new', 'active']).nullable(),
-  accountType: AccountTypeSchema.optional().default('personal'),
 });
 
 export type RecommendedUser = z.infer<typeof RecommendedUserSchema>;

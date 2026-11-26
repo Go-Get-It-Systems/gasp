@@ -1,33 +1,33 @@
-import { ActivityCard } from '@/components/profile/ActivityCard';
-import { FriendActionButtons, type FriendshipStatus } from '@/components/profile/FriendActionButtons';
+import { useState } from 'react';
+import { StyleSheet, View, ScrollView, Pressable, Alert } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Sentry from '@sentry/react-native';
+import { ArrowLeft, MoreHorizontal } from 'lucide-react-native';
+import { useUserProfile, useUserStats } from '@/hooks/queries/useUserProfile';
+import {
+  useFriends,
+  usePendingFriendRequests,
+  useSendFriendRequest,
+  useAcceptFriendRequest,
+  useRejectFriendRequest,
+  useRemoveFriend,
+} from '@/hooks/queries/useFriends';
+import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
+import { openChat } from '@/services/navigation';
+import { calculateGaspScore } from '@/hooks/queries/useProfile';
 import { FriendProfileHeader } from '@/components/profile/FriendProfileHeader';
+import { FriendActionButtons, type FriendshipStatus } from '@/components/profile/FriendActionButtons';
 import { MutualFriendsSection } from '@/components/profile/MutualFriendsSection';
 import { ProfileMenu } from '@/components/profile/ProfileMenu';
 import { StatsCard } from '@/components/profile/StatsCard';
-import { BlockUserConfirmation } from '@/components/safety/BlockUserConfirmation';
-import { ReportSheet } from '@/components/safety/ReportSheet';
+import { ActivityCard } from '@/components/profile/ActivityCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { colors } from '@/constants/colors';
-import { useGetOrCreateConversation } from '@/hooks/queries/useChat';
-import {
-    useAcceptFriendRequest,
-    useFriends,
-    usePendingFriendRequests,
-    useRejectFriendRequest,
-    useRemoveFriend,
-    useSendFriendRequest,
-} from '@/hooks/queries/useFriends';
-import { calculateGaspScore } from '@/hooks/queries/useProfile';
 import { useBlockUser } from '@/hooks/queries/useSafety';
-import { useUserProfile, useUserStats } from '@/hooks/queries/useUserProfile';
-import { openChat } from '@/services/navigation';
-import * as Sentry from '@sentry/react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, MoreHorizontal } from 'lucide-react-native';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlockUserConfirmation } from '@/components/safety/BlockUserConfirmation';
+import { ReportSheet } from '@/components/safety/ReportSheet';
 
 export default function FriendProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -86,22 +86,6 @@ export default function FriendProfileScreen() {
   const removeFriend = useRemoveFriend();
   const getOrCreateConversation = useGetOrCreateConversation();
   const blockUser = useBlockUser();
-
-  // ── Business account: redirect to dedicated business profile modal ──────
-  const isBusiness = profile?.accountType === 'business';
-
-  if (isBusiness && profile) {
-    router.replace({
-      pathname: '/(modals)/business-profile',
-      params: {
-        userId,
-        displayName: name,
-        avatarUrl: avatar ?? '',
-        workspaceHandle: profile.username,
-      },
-    });
-    return null;
-  }
 
   const handleSendGasp = () => {
     router.back();

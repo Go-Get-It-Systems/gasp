@@ -16,7 +16,12 @@
     "invalidPhone": "Invalid phone number. Please check and try again.",
     "tooManyAttempts": "Too many attempts. Please try again later.",
     "appVerificationFailed": "App verification failed. Please try again.",
-    "couldNotSendCode": "Could not send verification code. Please try again."
+    "couldNotSendCode": "Could not send verification code. Please try again.",
+    "didntGetCode": "Didn't receive a code? ",
+    "resend": "Resend",
+    "resendIn": "Resend in {{seconds}}s",
+    "codeResentTitle": "Code sent",
+    "codeResentBody": "We sent a new code to {{phone}}."
   },
   "camera": {
     "cameraAccess": "Camera Access",
@@ -48,7 +53,41 @@
     "friendRequests": "FRIEND REQUESTS",
     "newGasps": "NEW GASPS",
     "reactions": "REACTIONS",
-    "sentGasps": "SENT"
+    "sentGasps": "SENT",
+    "pulse": {
+      "title": "Gasps",
+      "waiting_one": "{{count}} moment waiting",
+      "waiting_other": "{{count}} moments waiting",
+      "nothingWaiting": "Nothing waiting — make someone's day",
+      "openCamera": "Open camera",
+      "openNow": "OPEN NOW",
+      "openFrom": "Open Gasp from {{name}}",
+      "tapToOpen": "Tap to open",
+      "expiresInHours_one": "Expires in {{count}} hour",
+      "expiresInHours_other": "Expires in {{count}} hours",
+      "couldNotLoad": "Could not load your Gasps",
+      "capture": "Capture a Gasp",
+      "openEmptyTitle": "Nothing waiting right now",
+      "openEmptyBody": "Capture something small and send it to a friend.",
+      "latestMoment": "YOUR LATEST MOMENT",
+      "momentError": "Your latest moment is taking a little longer.",
+      "momentAccessibility": "Sent to {{recipients}} friends, {{opened}} opened, {{reactions}} reactions",
+      "sentTo_one": "Sent to {{count}} friend",
+      "sentTo_other": "Sent to {{count}} friends",
+      "opened_one": "{{count}} opened",
+      "opened_other": "{{count}} opened",
+      "reactionCount_one": "{{count}} reaction",
+      "reactionCount_other": "{{count}} reactions",
+      "expired": "Expired",
+      "reactionFrom": "Open reaction from {{name}}",
+      "reactedToMoment": "reacted to your moment",
+      "reactionsForYou": "REACTIONS FOR YOU",
+      "reactionsError": "Could not load reactions. Tap to retry.",
+      "showAllReactions": "View all {{count}} reactions",
+      "showFewerReactions": "Show fewer",
+      "loadMore": "Load more reactions",
+      "activity": "ACTIVITY"
+    }
   },
   "friendRequest": {
     "accept": "Accept",
@@ -111,6 +150,12 @@
       "findFriends": "Find friends",
       "conversationAccessibility": "{{name}}, {{preview}}",
       "conversationUnreadAccessibility": "{{name}}, {{preview}}, {{count}} unread messages"
+    },
+    "gaspBubble": {
+      "tapToOpen": "Tap to open",
+      "from": "from {{name}}",
+      "loading": "Loading...",
+      "opened": "Opened"
     }
   },
   "discover": {
@@ -140,7 +185,14 @@
     "errorUploadTitle": "Couldn't upload media",
     "errorUploadMessage": "Your photo or video didn't make it. Try again from the camera.",
     "errorGenericTitle": "Couldn't send",
-    "errorGenericMessage": "Please try again or pick another friend."
+    "errorGenericMessage": "Please try again or pick another friend.",
+    "sentTitle": "Gasp sent",
+    "sentToOne": "to {{name}}",
+    "sentToMany": "to {{count}} friends",
+    "allowReplays": "Allow replays",
+    "allowReplaysOn": "Can replay until it expires",
+    "allowReplaysOff": "Play once — disappears after viewing",
+    "allowReplaysA11y": "Allow the recipient to replay this gasp"
   },
   "viewGasp": {
     "cameraMicRequired": "Camera & Microphone Required",
@@ -149,10 +201,24 @@
     "reactionUploadFailed": "Your reaction video could not be uploaded. Please try again.",
     "uploadFailedTitle": "Upload failed",
     "uploadFailedBody": "Could not upload your reaction. Please try again.",
+    "answeredElsewhereTitle": "Already opened elsewhere",
+    "answeredElsewhereBody": "This gasp was already opened on another device signed in to your account, so this reaction can’t be sent.",
     "missingConversationTitle": "Could not send reaction",
     "missingConversationBody": "We could not find the chat for this gasp. Please try again from the conversation.",
     "recordingFailedTitle": "Recording failed",
-    "recordingFailedBody": "Could not capture your reaction. Please try again."
+    "recordingFailedBody": "Could not capture your reaction. Please try again.",
+    "holdToView": "Hold to view",
+    "recordingHint": "Your reaction is recorded while you hold",
+    "keepHolding": "Keep holding…",
+    "keepHoldingToOpen": "Keep holding to open",
+    "sentYouAGasp": "{{name}} sent you a gasp",
+    "photo": "Photo",
+    "video": "Video",
+    "pressAndHold": "Press & hold to open",
+    "letGoToFinish": "Let go to finish",
+    "recordingElapsed": "Recording, {{seconds}} seconds",
+    "unavailableTitle": "Gasp unavailable",
+    "unavailableBody": "This gasp was already opened or has expired."
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",
@@ -197,7 +263,13 @@
       "save": "Save changes",
       "saving": "Saving…",
       "saveErrorTitle": "Couldn't save profile"
-    }
+    },
+    "streak": "Streak",
+    "streakDays_one": "{{count}} day",
+    "streakDays_other": "{{count}} days",
+    "streakStart": "Start today!",
+    "reactionsReceived": "Reactions received",
+    "memberSince": "Member since"
   },
   "settings": {
     "title": "Settings",
@@ -329,5 +401,9 @@
       "in_progress": "In progress",
       "coming_soon": "Coming soon"
     }
+  },
+  "cameraPreview": {
+    "retake": "Retake",
+    "chooseAnother": "Choose another"
   }
 }

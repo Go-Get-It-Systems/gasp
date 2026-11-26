@@ -1,14 +1,8 @@
-import { colors } from '@/constants/colors';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function BusinessLayout() {
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
-        animation: 'slide_from_right',
-      }}
-    />
-  );
+  const isBusiness = useAuthStore((state) => state.user?.accountType === 'business');
+  if (!isBusiness) return <Redirect href="/(tabs)/profile" />;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

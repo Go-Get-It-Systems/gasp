@@ -1,5 +1,5 @@
 import { StyleSheet, View, Pressable } from 'react-native';
-import { Image } from 'expo-image';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
 import { Avatar } from '@/components/ui/Avatar';

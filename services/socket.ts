@@ -2,8 +2,9 @@ import { refreshToken } from '@/services/api/auth';
 import type { Message } from '@/services/api/schemas/chat.schema';
 import type { ApiReaction, Gasp } from '@/services/api/schemas/gasp.schema';
 import { io, Socket } from 'socket.io-client';
+import { assertCurrentSession, getSessionGeneration } from './session';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://gasp-backend-production.up.railway.app';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 let socket: Socket | null = null;
 
@@ -28,6 +29,7 @@ function bufferedEmit(event: string, data: unknown) {
 // ── Connection management ──────────────────────────────────────────
 
 export function connectSocket(token: string): Socket {
+  const generation = getSessionGeneration();
   if (socket?.connected) return socket;
 
   socket = io(API_URL, {
@@ -74,10 +76,12 @@ export function connectSocket(token: string): Socket {
     if (isTokenError) {
       try {
         const response = await refreshToken();
+        assertCurrentSession(generation);
         if (response.token) {
           const { setAuthToken } = await import('@/utils/storage');
           const { setApiToken } = await import('@/services/api');
           await setAuthToken(response.token);
+          assertCurrentSession(generation);
           setApiToken(response.token);
           if (socket) {
             socket.auth = { token: response.token };
@@ -94,6 +98,7 @@ export function connectSocket(token: string): Socket {
 }
 
 export function disconnectSocket() {
+  eventBuffer.length = 0;
   if (socket) {
     socket.removeAllListeners();
     socket.disconnect();

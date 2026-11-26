@@ -15,14 +15,16 @@ jest.mock('@react-navigation/native', () => ({
 let lastCameraMode: string | undefined;
 
 jest.mock('expo-camera', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React: typeof import('react') = require('react');
+  const { View }: typeof import('react-native') = require('react-native');
+  const MockCameraView = React.forwardRef<InstanceType<typeof View>, { mode?: string }>((props, ref) => {
+    // Side-channel: track the mode prop for assertions
+    lastCameraMode = props.mode;
+    return <View ref={ref} />;
+  });
+  MockCameraView.displayName = 'MockCameraView';
   return {
-    CameraView: React.forwardRef((props: any, ref: any) => {
-      // Side-channel: track the mode prop for assertions
-      lastCameraMode = props.mode;
-      return <View ref={ref} />;
-    }),
+    CameraView: MockCameraView,
     useCameraPermissions: () => [{ granted: true }, jest.fn()],
     useMicrophonePermissions: () => [{ granted: true }, jest.fn()],
   };
@@ -78,7 +80,7 @@ const mockStartRecording = jest.fn();
 const mockStopRecording = jest.fn();
 
 /** Helper: get the last props passed to CameraOverlay */
-function getOverlayProps(): Record<string, any> {
+function getOverlayProps(): Required<React.ComponentProps<typeof CameraOverlay>> {
   const calls = MockCameraOverlay.mock.calls;
   return calls[calls.length - 1][0];
 }

@@ -1,0 +1,29 @@
+Business Broadcast frontend integration — 2026-10-09
+
+Integration approach
+- Selectively port the developed Business Studio feature scope from origin/feat/business-studio-local, adapting it to the authenticated backend contract from backend PRs #10 and #11.
+- Preserve personal Social Pulse, chat, native Firebase login, notification privacy, CI and the existing EAS/Firebase identities. Do not merge the unrelated source history or copy its app configuration.
+- Keep personal tabs unchanged. Explicitly approved workspace owners enter Studio from Profile; businesses appear in Discover, with campaign deliveries in a separate Inbox section.
+- Business account preference is optional at registration and is NOT an ownership or access grant.
+
+Implemented flows
+- Studio workspace selection, overview, draft create/edit/delete, media capture/library selection, title/overlay/replay setting.
+- Confirmed publish/retry, immutable published media/audience, live/failed closure; campaign metrics with backend counts and denominators.
+- Owner reaction gallery, featured filtering, consent-only pin/unpin (server enforces six per workspace).
+- Public business profile, verification/follower information, explicit follow/unfollow, active campaigns and consented public/featured reaction galleries.
+- Consumer campaign viewer: public preview does not manufacture delivery events; only actual inbox recipients record opened/viewed.
+- Reaction recording/video selection, original campaign context, retry upload and fresh explicit consent (off by default).
+- Own reaction history and withdrawal from any device, including after the pilot/workspace is disabled. Uses the authenticated paginated GET /businesses/reactions/mine endpoint from backend PR #11, not local bookmarks.
+- Business notification route is validated against the single allowed consumer profile path; campaign socket events never enter personal caches or personal toasts.
+- Actor/workspace/campaign-isolated React Query caches; refresh on app foreground, gallery polling, account-change and safety invalidation.
+- Zod request/response contracts, typed navigation, small components, skeleton/error states, accessibility and English/Portuguese copy.
+
+Privacy limitations
+- Existing uploads have public URLs. Consent withdrawal removes API/gallery discovery and pinning; it cannot revoke copied URLs or downloaded media.
+- Public profile reactions from closed campaigns can still play; original media is shown only when available through an authorized campaign endpoint.
+- Studio authorization and pilot flags remain server-enforced. No feature flag, workspace membership, deployment approval or environment change is included here.
+
+Acceptance boundaries
+- Automated UI tests are component/service tests, not two-device native end-to-end certification.
+- iOS/Android build:ci exports compile Hermes bundles; they are not signed native binaries or store/OTA releases.
+- Full campaign fanout, upload, native recording, actual push transport and two-simulator acceptance require the approved backend deployment and an explicitly provisioned/allowlisted test business workspace.

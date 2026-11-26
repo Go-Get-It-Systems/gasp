@@ -1,5 +1,5 @@
 import { StyleSheet, View, Pressable } from 'react-native';
-import { Image } from 'expo-image';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { Text } from '@/components/ui/Text';
 import { UnreadDot } from '@/components/ui/UnreadDot';
 import { Eye } from 'lucide-react-native';

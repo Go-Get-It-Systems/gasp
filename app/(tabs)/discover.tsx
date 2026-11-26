@@ -1,36 +1,35 @@
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  ActivityIndicator,
+  Keyboard,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/queryKeys';
+import { Text } from '@/components/ui/Text';
+import { SearchBar } from '@/components/ui/SearchBar';
 import { DiscoverHeader } from '@/components/discover/DiscoverHeader';
 import { RecommendedSection } from '@/components/discover/RecommendedSection';
 import { UserCardSkeleton } from '@/components/discover/UserCardSkeleton';
-import {
-    UserSearchResult,
-    type RequestStatus,
-} from '@/components/discover/UserSearchResult';
 import { QueryState } from '@/components/ui/QueryState';
-import { SearchBar } from '@/components/ui/SearchBar';
-import { Text } from '@/components/ui/Text';
-import { colors } from '@/constants/colors';
-import { useAcceptFriendRequest, usePendingFriendRequests, useRejectFriendRequest, useSendFriendRequest } from '@/hooks/queries/useFriends';
+import {
+  UserSearchResult,
+  type RequestStatus,
+} from '@/components/discover/UserSearchResult';
+import { useInboxStore } from '@/stores/inboxStore';
+import { useSendFriendRequest, usePendingFriendRequests, useAcceptFriendRequest, useRejectFriendRequest } from '@/hooks/queries/useFriends';
+import * as usersApi from '@/services/api/users';
 import * as discoverApi from '@/services/api/discover';
 import type { User } from '@/services/api/schemas/user.schema';
-import * as usersApi from '@/services/api/users';
-import { queryKeys } from '@/services/queryKeys';
-import { useAuthStore } from '@/stores/authStore';
-import { useInboxStore } from '@/stores/inboxStore';
-import { useQuery } from '@tanstack/react-query';
-import { Trophy, Users, UserX } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-    ActivityIndicator,
-    FlatList,
-    Keyboard,
-    StyleSheet,
-    View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors } from '@/constants/colors';
+import { Users, Trophy, UserX } from 'lucide-react-native';
+import { BusinessDirectorySection } from '@/components/business/BusinessEntries';
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
-  const currentUser = useAuthStore((s) => s.user);
   const friends = useInboxStore((s) => s.friends);
   const sendFriendRequestMutation = useSendFriendRequest();
   const acceptMutation = useAcceptFriendRequest();
@@ -153,6 +152,7 @@ export default function DiscoverScreen() {
 
             {!isShowingSearch && (
               <View style={styles.recommendationsContainer}>
+                <BusinessDirectorySection />
                 {topGaspers.length > 0 && (
                   <RecommendedSection
                     title="Top Gaspers"

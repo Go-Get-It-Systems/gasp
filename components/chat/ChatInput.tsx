@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, TextInput, StyleSheet, Keyboard } from 'react-native';
-import { Send, Camera, Image as ImageIcon } from 'lucide-react-native';
+import { Send, Camera } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton } from '@/components/ui/IconButton';

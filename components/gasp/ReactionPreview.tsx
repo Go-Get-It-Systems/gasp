@@ -15,7 +15,6 @@ interface ReactionPreviewProps {
   reactionVideoUri: string;
   senderName: string;
   onSend?: () => void;
-  onReRecord?: () => void;
   onDiscard?: () => void;
   onRetake?: () => void;
   onSave?: () => void;
@@ -29,7 +28,6 @@ export function ReactionPreview({
   reactionVideoUri,
   senderName,
   onSend,
-  onReRecord,
   onDiscard,
   onRetake,
   onSave,
@@ -66,15 +64,18 @@ export function ReactionPreview({
 
         {/* Buttons slide up after composite */}
         <Animated.View entering={FadeInDown.delay(300).duration(250)} style={styles.actions}>
-          <Pressable
-            onPress={onReRecord ?? onRetake}
-            style={styles.retakeButton}
-            accessibilityRole="button"
-            accessibilityLabel={t('reaction.reRecord')}
-          >
-            <RotateCcw size={20} color={colors.textPrimary} />
-            <Text variant="body" style={styles.retakeText}>{t('reaction.reRecord')}</Text>
-          </Pressable>
+          {/* The live gasp flow omits retakes so reactions stay authentic (06/06 decision). */}
+          {onRetake && (
+            <Pressable
+              onPress={onRetake}
+              style={styles.retakeButton}
+              accessibilityRole="button"
+              accessibilityLabel={t('reaction.reRecord')}
+            >
+              <RotateCcw size={20} color={colors.textPrimary} />
+              <Text variant="body" style={styles.retakeText}>{t('reaction.reRecord')}</Text>
+            </Pressable>
+          )}
           <Pressable
             onPress={onSend}
             disabled={isSending}

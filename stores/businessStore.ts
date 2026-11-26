@@ -1,70 +1,30 @@
-import type { BusinessWorkspace } from '@/services/api/business';
-import * as businessApi from '@/services/api/business';
 import { create } from 'zustand';
+import type { StudioWorkspace } from '@/services/api/schemas/studio.schema';
+import { queryKeys } from '@/services/queryKeys';
+import { useAuthStore } from './authStore';
 
-interface BusinessState {
-  /** Active workspace the owner is currently operating in. */
-  activeWorkspace: BusinessWorkspace | null;
-  workspaces: BusinessWorkspace[];
-  isLoading: boolean;
-  error: string | null;
-
-  setActiveWorkspace: (workspace: BusinessWorkspace | null) => void;
-
-  /** Fetch owner workspaces from GET /businesses/mine. */
-  fetchMyWorkspaces: () => Promise<BusinessWorkspace[]>;
-
-  /** Clear studio state on exit (protects personal caches per R1.5). */
+// Only the selected workspace is UI state. All Studio reads stay in React Query.
+export const useBusinessStore = create<{
+  activeWorkspace: StudioWorkspace | null;
+  setActiveWorkspace: (workspace: StudioWorkspace | null) => void;
   exitStudio: () => void;
-}
-
-export const useBusinessStore = create<BusinessState>((set) => ({
+}>((set) => ({
   activeWorkspace: null,
-  workspaces: [],
-  isLoading: false,
-  error: null,
-
-  setActiveWorkspace: (workspace) => set({ activeWorkspace: workspace }),
-
-  fetchMyWorkspaces: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const workspaces = await businessApi.getMyBusinesses();
-      set({
-        workspaces,
-        activeWorkspace: workspaces[0] ?? null,
-        isLoading: false,
-      });
-      return workspaces;
-    } catch (err: any) {
-      const message = err?.response?.data?.message ?? 'Failed to load workspace';
-      set({ isLoading: false, error: message });
-      return [];
-    }
-  },
-
-  exitStudio: () => {
-    // Clear studio-scoped state so it never pollutes personal profile on exit (R1.5)
-    set({ activeWorkspace: null, workspaces: [], error: null });
-  },
+  setActiveWorkspace: (activeWorkspace) => set({ activeWorkspace }),
+  exitStudio: () => set({ activeWorkspace: null }),
 }));
 
-// ─── Scoped React Query keys (R5.3: must include workspaceId + campaignId) ──
+useAuthStore.subscribe((current, previous) => {
+  if (current.user?.id !== previous.user?.id || current.user?.accountType !== previous.user?.accountType) {
+    useBusinessStore.getState().exitStudio();
+  }
+});
 
+const key = (resource: string, ...ids: string[]) => queryKeys.business.studio(useAuthStore.getState().user?.id ?? '', resource, ...ids);
 export const businessQueryKeys = {
-  mine: () => ['businesses', 'mine'] as const,
-  overview: (workspaceId: string) =>
-    ['businesses', workspaceId, 'overview'] as const,
-  campaigns: (workspaceId: string) =>
-    ['businesses', workspaceId, 'campaigns'] as const,
-  campaign: (workspaceId: string, campaignId: string) =>
-    ['businesses', workspaceId, 'campaigns', campaignId] as const,
-  metrics: (workspaceId: string) =>
-    ['businesses', workspaceId, 'metrics'] as const,
-  followStatus: (workspaceId: string) =>
-    ['businesses', workspaceId, 'follow'] as const,
-  reactions: (workspaceId: string) =>
-    ['businesses', workspaceId, 'reactions'] as const,
-  publicCampaigns: (workspaceId: string) =>
-    ['businesses', workspaceId, 'campaigns', 'public'] as const,
-} as const;
+  mine: () => key('workspaces'),
+  overview: (workspaceId: string) => key('overview', workspaceId),
+  campaigns: (workspaceId: string) => key('campaigns', workspaceId),
+  metrics: (workspaceId: string) => key('metrics', workspaceId),
+  reactions: (workspaceId: string) => key('reactions', workspaceId),
+};

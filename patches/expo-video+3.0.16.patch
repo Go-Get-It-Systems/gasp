@@ -1,0 +1,29 @@
+diff --git a/node_modules/expo-video/ios/VideoManager.swift b/node_modules/expo-video/ios/VideoManager.swift
+index 8ef093e..4515a66 100644
+--- a/node_modules/expo-video/ios/VideoManager.swift
++++ b/node_modules/expo-video/ios/VideoManager.swift
+@@ -102,6 +102,24 @@ class VideoManager {
+       audioSessionCategoryOptions.remove(.duckOthers)
+     }
+ 
++    // GASP patch: while the front camera records a reaction, AVCaptureSession
++    // holds the session in .playAndRecord. Switching it to .playback (below)
++    // cuts the microphone mid-recording, so keep the recording category and
++    // only make sure playback is audible on the speaker and mixes in.
++    if audioSession.category == .playAndRecord {
++      var recordingOptions = audioSession.categoryOptions
++      recordingOptions.insert(.defaultToSpeaker)
++      recordingOptions.insert(.mixWithOthers)
++      if audioSession.categoryOptions != recordingOptions {
++        do {
++          try audioSession.setCategory(.playAndRecord, mode: audioSession.mode, options: recordingOptions)
++        } catch {
++          log.warn("Failed to keep the recording audio session while playing video. \(error.localizedDescription)")
++        }
++      }
++      return
++    }
++
+     if audioSession.categoryOptions != audioSessionCategoryOptions || audioSession.category != .playback || audioSession.mode != .moviePlayback {
+       do {
+         try audioSession.setCategory(.playback, mode: .moviePlayback, options: audioSessionCategoryOptions)

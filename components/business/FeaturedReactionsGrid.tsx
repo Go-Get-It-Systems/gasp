@@ -1,5 +1,5 @@
 import { colors } from '@/constants/colors';
-import { Image } from 'expo-image';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { Play } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';

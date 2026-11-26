@@ -1,38 +1,26 @@
-import { DraggableText } from '@/components/camera/DraggableText';
-import { PreviewBottomBar } from '@/components/camera/PreviewBottomBar';
-import { TextEditOverlay } from '@/components/camera/TextEditOverlay';
-import { TrashZone } from '@/components/camera/TrashZone';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Image, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import * as MediaLibrary from 'expo-media-library';
+import * as Sentry from '@sentry/react-native';
+import { X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
+import { DraggableText } from '@/components/camera/DraggableText';
+import { TextEditOverlay } from '@/components/camera/TextEditOverlay';
+import { PreviewBottomBar } from '@/components/camera/PreviewBottomBar';
+import { TrashZone } from '@/components/camera/TrashZone';
 import { colors } from '@/constants/colors';
 import { useTextOverlay } from '@/hooks/useTextOverlay';
 import { openSendGasp } from '@/services/navigation';
-import { useBusinessStore } from '@/stores/businessStore';
-import { useCameraStore } from '@/stores/cameraStore';
-import * as Sentry from '@sentry/react-native';
-import * as MediaLibrary from 'expo-media-library';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { X } from 'lucide-react-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { captureRef } from 'react-native-view-shot';
 
 export default function CameraPreviewScreen() {
-  const { imageUri, isVideo, fromGallery, mode } = useLocalSearchParams<{
-    imageUri: string;
-    isVideo?: string;
-    fromGallery?: string;
-    mode?: string;
-  }>();
-  const isCampaignMode = mode === 'campaign';
-  // Reaction mode — read from store (set before navigating to camera)
-  const reactionTarget = useCameraStore((s) => s.reactionTarget);
-  const setReactionTarget = useCameraStore((s) => s.setReactionTarget);
-  // Business workspace — needed to pass workspaceId to campaign-composer
-  const activeWorkspace = useBusinessStore((s) => s.activeWorkspace);
-  const isReactionMode = !!reactionTarget;
+  const { t } = useTranslation();
+  const { imageUri, isVideo, fromGallery } = useLocalSearchParams<{ imageUri: string; isVideo?: string; fromGallery?: string }>();
   const insets = useSafeAreaInsets();
   const isVideoMode = isVideo === 'true';
   const isFromGallery = fromGallery === 'true';
@@ -110,37 +98,6 @@ export default function CameraPreviewScreen() {
       }
     }
 
-    // ── Reaction mode: go to reaction-composer ───────────────────────
-    if (isReactionMode && reactionTarget) {
-      setReactionTarget(null); // clear before navigating
-      router.replace({
-        pathname: '/(modals)/reaction-composer' as any,
-        params: {
-          mediaUri: finalUri,
-          isVideo: isVideoMode ? 'true' : undefined,
-          workspaceId: reactionTarget.workspaceId,
-          campaignId: reactionTarget.campaignId,
-          campaignTitle: reactionTarget.campaignTitle,
-        },
-      });
-      setIsSending(false);
-      return;
-    }
-
-    // ── Campaign mode: go to campaign composer instead of send-gasp ──
-    if (isCampaignMode) {
-      router.replace({
-        pathname: '/(modals)/campaign-composer',
-        params: {
-          mediaUri: finalUri,
-          ...(isVideoMode && { isVideo: 'true' }),
-          ...(activeWorkspace?.id && { workspaceId: activeWorkspace.id }),
-        },
-      });
-      setIsSending(false);
-      return;
-    }
-
     const textOverlay = committedText && isVideoMode
       ? JSON.stringify({ text: committedText, ...textConfig, pos: textPosition })
       : undefined;
@@ -151,7 +108,7 @@ export default function CameraPreviewScreen() {
       ...(textOverlay && { textOverlay }),
     });
     setTimeout(() => setIsSending(false), 600);
-  }, [imageUri, isVideoMode, committedText, textConfig, textPosition, isSending, isCampaignMode]);
+  }, [imageUri, isVideoMode, committedText, textConfig, textPosition, isSending]);
 
   return (
     <View style={styles.container}>
@@ -169,7 +126,14 @@ export default function CameraPreviewScreen() {
               {!videoReady && <ActivityIndicator size="large" color="#FFFFFF" />}
             </View>
           ) : (
-            <Image source={{ uri: imageUri }} style={styles.preview} resizeMode={isFromGallery ? 'contain' : 'cover'} />
+            <View style={styles.preview}>
+              {/* Gallery photos keep their framing (contain) over a blurred
+                  fill of themselves instead of black bars. */}
+              {isFromGallery && (
+                <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={40} />
+              )}
+              <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} resizeMode={isFromGallery ? 'contain' : 'cover'} />
+            </View>
           )
         ) : (
           <View style={styles.preview}>
@@ -217,12 +181,12 @@ export default function CameraPreviewScreen() {
       {!isTextEditing && !isDragging && (
         <PreviewBottomBar
           onRetake={() => router.back()}
+          retakeLabel={isFromGallery ? t('cameraPreview.chooseAnother') : t('cameraPreview.retake')}
           onSend={handleSend}
           onSave={handleSave}
           onOpenText={handleOpenTextEditor}
           isSending={isSending}
           bottomInset={insets.bottom}
-          sendLabel={isCampaignMode ? 'Publish' : isReactionMode ? 'Use Video' : undefined}
         />
       )}
     </View>

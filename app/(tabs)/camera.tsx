@@ -1,22 +1,21 @@
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { StyleSheet, View, Pressable, ActivityIndicator, Linking } from 'react-native';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import { useIsFocused } from '@react-navigation/native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import { Text } from '@/components/ui/Text';
 import { CameraOverlay } from '@/components/camera/CameraOverlay';
 import { GridOverlay } from '@/components/camera/GridOverlay';
 import { TimerCountdown } from '@/components/camera/TimerCountdown';
-import { Text } from '@/components/ui/Text';
-import { colors } from '@/constants/colors';
-import { calculateZoomFromPinch } from '@/hooks/cameraZoom';
 import { useCamera } from '@/hooks/useCamera';
-import { openCameraPreview } from '@/services/navigation';
-import { useAppStore } from '@/stores/appStore';
 import { useCameraStore } from '@/stores/cameraStore';
-import { useIsFocused } from '@react-navigation/native';
-import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
+import { useAppStore } from '@/stores/appStore';
+import { calculateZoomFromPinch } from '@/hooks/cameraZoom';
+import { colors } from '@/constants/colors';
 import { CameraOff } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import { openCameraPreview } from '@/services/navigation';
 
 const CAMERA_MODE_SWITCH_DELAY = 600;
 
@@ -24,10 +23,6 @@ export default function CameraScreen() {
   const isFocused = useIsFocused();
   const isViewingGasp = useAppStore((s) => s.isViewingGasp);
   const isCameraActive = isFocused && !isViewingGasp;
-  // campaignMode: set by "New Campaign" button via cameraStore
-  const isCampaignMode = useCameraStore((s) => s.campaignMode);
-  const setCampaignMode = useCameraStore((s) => s.setCampaignMode);
-  const reactionTarget = useCameraStore((s) => s.reactionTarget);
   const [isLoadingGallery, setIsLoadingGallery] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEffectsPanel, setShowEffectsPanel] = useState(false);
@@ -36,7 +31,7 @@ export default function CameraScreen() {
   const recordingIntentRef = useRef(false);
   const modeSwitchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
-  const [micPermission, requestMicPermission] = useMicrophonePermissions();
+  const [, requestMicPermission] = useMicrophonePermissions();
   const {
     cameraRef,
     facing,
@@ -72,14 +67,6 @@ export default function CameraScreen() {
     };
   }, []);
 
-  // Reset campaign mode or reaction mode when camera loses focus
-  useEffect(() => {
-    if (!isFocused) {
-      if (isCampaignMode) setCampaignMode(false);
-      // Don't clear reactionTarget on unfocus — the preview needs it
-    }
-  }, [isFocused, isCampaignMode, setCampaignMode]);
-
   const lastCapturedUri = useCameraStore((s) => s.lastCapturedUri);
   const isRecording = useCameraStore((s) => s.isRecording);
   const timerDuration = useCameraStore((s) => s.timerDuration);
@@ -92,13 +79,12 @@ export default function CameraScreen() {
     try {
       const uri = await takePicture();
       if (uri) {
-        if (isCampaignMode) setCampaignMode(false);
-        openCameraPreview({ imageUri: uri, ...(isCampaignMode && { mode: 'campaign' }) });
+        openCameraPreview({ imageUri: uri });
       }
     } finally {
       setIsProcessing(false);
     }
-  }, [takePicture, isCampaignMode, setCampaignMode]);
+  }, [takePicture]);
 
   const handleTimerComplete = useCallback(() => {
     setIsCountingDown(false);
@@ -134,8 +120,7 @@ export default function CameraScreen() {
       }).then((uri) => {
         setCameraMode('picture');
         if (uri) {
-          if (isCampaignMode) setCampaignMode(false);
-          openCameraPreview({ imageUri: uri, isVideo: true, ...(isCampaignMode && { mode: 'campaign' }) });
+          openCameraPreview({ imageUri: uri, isVideo: true });
         }
       });
     }, CAMERA_MODE_SWITCH_DELAY);
@@ -195,33 +180,6 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Campaign mode banner */}
-      {isCampaignMode && (
-        <View style={styles.campaignBanner}>
-          <Text style={styles.campaignBannerText}>📹 Recording campaign video</Text>
-          <Pressable
-            onPress={() => { setCampaignMode(false); router.back(); }}
-            accessibilityLabel="Cancel"
-          >
-            <Text style={styles.campaignBannerCancel}>Cancel</Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* Reaction mode banner */}
-      {reactionTarget && (
-        <View style={[styles.campaignBanner, { backgroundColor: 'rgba(124, 58, 237, 0.85)' }]}>
-          <Text style={styles.campaignBannerText} numberOfLines={1}>
-            ⚡ Reacting to: {reactionTarget.campaignTitle}
-          </Text>
-          <Pressable
-            onPress={() => { useCameraStore.getState().setReactionTarget(null); router.back(); }}
-            accessibilityLabel="Cancel"
-          >
-            <Text style={styles.campaignBannerCancel}>Cancel</Text>
-          </Pressable>
-        </View>
-      )}
       {/* Only render camera when tab is focused and no modal is open */}
       {isCameraActive ? (
         <GestureDetector gesture={pinchGesture}>
@@ -293,29 +251,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  campaignBanner: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(124, 58, 237, 0.85)',
-  },
-  campaignBannerText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  campaignBannerCancel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
   },
   camera: {
     flex: 1,

@@ -1,6 +1,6 @@
 import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
-import { Image } from 'expo-image';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
 

@@ -19,9 +19,21 @@ export interface NotificationRoutePayload {
   actorName?: string;
   actorAvatarUrl?: string;
   senderName?: string;
+  route?: string;
 }
 
 export const NOTIFICATION_FALLBACK_ROUTE = '/(tabs)/inbox';
+
+/** Only the locally known business profile route is accepted from server payloads. */
+export function resolveBusinessNotificationRoute(route?: string): string | null {
+  if (!route || !route.startsWith('/(modals)/business-profile?')) return null;
+  const search = new URLSearchParams(route.slice(route.indexOf('?') + 1));
+  const handle = search.get('handle');
+  const campaignId = search.get('campaignId');
+  if (!handle || !/^[a-zA-Z0-9_-]{1,30}$/.test(handle) || !campaignId || !/^[a-zA-Z0-9_-]{1,128}$/.test(campaignId)) return null;
+  if (Array.from(search.keys()).some((key) => key !== 'handle' && key !== 'campaignId') || search.getAll('handle').length !== 1 || search.getAll('campaignId').length !== 1) return null;
+  return appendQueryParams('/(modals)/business-profile', { handle, campaignId });
+}
 
 function appendQueryParams(route: string, params: Record<string, string | undefined>) {
   const search = new URLSearchParams();
@@ -40,6 +52,11 @@ function fallback(message: string, payload: NotificationRoutePayload) {
 /** Resolves the single route contract shared by push and foreground notifications. */
 export function resolveNotificationRoute(payload: NotificationRoutePayload): string {
   const kind = payload.kind ?? payload.type;
+  if (kind === 'gasp.received' && payload.route) {
+    const business = resolveBusinessNotificationRoute(payload.route);
+    if (business) return business;
+    if (payload.route.includes('business-profile')) return fallback('resolveNotificationRoute: invalid business route', payload);
+  }
 
   switch (kind) {
     case 'gasp.received':

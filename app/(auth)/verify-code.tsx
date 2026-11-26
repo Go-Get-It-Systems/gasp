@@ -1,66 +1,96 @@
-import { OtpInput } from '@/components/auth/OtpInput';
-import { Text } from '@/components/ui/Text';
-import { colors } from '@/constants/colors';
-import { confirmCode } from '@/lib/phoneAuth';
-import { getApiErrorMessage } from '@/services/api';
-import { useAuthStore } from '@/stores/authStore';
+import { useEffect, useState } from 'react';
+import { isAxiosError } from 'axios';
+import { StyleSheet, View, Pressable, Alert, ActivityIndicator, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowLeft } from 'lucide-react-native';
+import { clearPhoneVerifier, confirmPhoneVerification, requestPhoneVerification } from '@/services/firebaseAuth';
+import { getPhoneAuthErrorMessage } from '@/utils/firebaseAuthErrors';
+import * as Sentry from '@sentry/react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/ui/Text';
+import { OtpInput } from '@/components/auth/OtpInput';
+import { useAuthStore } from '@/stores/authStore';
+import { getApiErrorMessage } from '@/services/api';
+import { colors } from '@/constants/colors';
+
+const RESEND_COOLDOWN_S = 30;
 
 export default function VerifyCodeScreen() {
   const insets = useSafeAreaInsets();
-  const { phoneNumber, verificationId } = useLocalSearchParams<{
+  const { t } = useTranslation();
+  const params = useLocalSearchParams<{
     phoneNumber: string;
     verificationId: string;
   }>();
+  const { phoneNumber } = params;
   const { login } = useAuthStore();
   const [isVerifying, setIsVerifying] = useState(false);
+  // A resend issues a new verificationId; codes from the old one stop working.
+  const [verificationId, setVerificationId] = useState(params.verificationId);
+  const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_S);
+  const [isResending, setIsResending] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+
+  useEffect(() => clearPhoneVerifier, []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResend = async () => {
+    if (!phoneNumber || resendCooldown > 0 || isResending) return;
+    setIsResending(true);
+    setVerificationError(null);
+    try {
+      const confirmation = await requestPhoneVerification(phoneNumber, true);
+      if (confirmation.verificationId) setVerificationId(confirmation.verificationId);
+      setResendCooldown(RESEND_COOLDOWN_S);
+      if (Platform.OS !== 'web') Alert.alert(t('auth.codeResentTitle'), t('auth.codeResentBody', { phone: phoneNumber }));
+    } catch (error: unknown) {
+      Sentry.captureException(error, { extra: { context: 'verify-code.resend' } });
+      const message = getPhoneAuthErrorMessage(error, t('auth.couldNotSendCode'));
+      setVerificationError(message);
+      if (Platform.OS !== 'web') Alert.alert(t('common.error'), message);
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleComplete = async (code: string) => {
     if (!verificationId || isVerifying) return;
 
     setIsVerifying(true);
+    setVerificationError(null);
     try {
-      // 1. Verify OTP with Firebase (works on both native and web via phoneAuth abstraction)
-      const firebaseToken = await confirmCode(verificationId, code);
+      const firebaseToken = await confirmPhoneVerification(verificationId, code);
 
       // 2. Login with backend
       try {
         await login(firebaseToken);
         router.replace('/(tabs)/camera');
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If 401 with "not registered" → user needs to create profile
-        const status = error?.response?.status;
-        const msg = error?.response?.data?.message ?? '';
-        console.log('[verify-code] Login error:', { status, msg });
+        const response = isAxiosError<{ message?: string }>(error) ? error.response : undefined;
+        const status = response?.status;
+        const msg = response?.data?.message ?? '';
         if (status === 401 && msg.toLowerCase().includes('not registered')) {
-          console.log('[verify-code] Redirecting to select-account-type');
           router.replace({
-            pathname: '/(auth)/select-account-type',
-            params: { firebaseToken, phoneNumber: phoneNumber ?? '' },
+            pathname: '/(auth)/create-profile',
+            params: { phoneNumber },
           });
         } else {
-          const errorMsg = getApiErrorMessage(error);
-          console.log('[verify-code] Login failed:', errorMsg);
-          if (Platform.OS === 'web') {
-            window.alert('Login failed: ' + errorMsg);
-          } else {
-            Alert.alert('Login failed', errorMsg);
-          }
+          const message = getApiErrorMessage(error);
+          setVerificationError(message);
+          if (Platform.OS !== 'web') Alert.alert('Login failed', message);
         }
       }
-    } catch (error: any) {
-      const code = error?.code ?? '';
-      const message =
-        code === 'auth/invalid-verification-code'
-          ? 'Invalid code. Please try again.'
-          : code === 'auth/code-expired'
-            ? 'Code expired. Please request a new one.'
-            : 'Verification failed. Please try again.';
-      Alert.alert('Error', message);
+    } catch (error: unknown) {
+      const message = getPhoneAuthErrorMessage(error, 'Verification failed. Please try again.');
+      setVerificationError(message);
+      if (Platform.OS !== 'web') Alert.alert('Error', message);
     } finally {
       setIsVerifying(false);
     }
@@ -93,11 +123,22 @@ export default function VerifyCodeScreen() {
           )}
         </View>
 
-        <Pressable style={styles.resendButton}>
+        {verificationError && <Text accessibilityRole="alert" style={styles.errorText}>{verificationError}</Text>}
+
+        <Pressable
+          style={styles.resendButton}
+          onPress={handleResend}
+          disabled={resendCooldown > 0 || isResending}
+          accessibilityRole="button"
+          accessibilityLabel={resendCooldown > 0
+            ? t('auth.resendIn', { seconds: resendCooldown })
+            : t('auth.resend')}
+          accessibilityState={{ disabled: resendCooldown > 0 || isResending }}
+        >
           <Text variant="body" style={styles.resendText}>
-            {"Didn't receive a code? "}
-            <Text variant="body" style={styles.resendLink}>
-              {'Resend'}
+            {t('auth.didntGetCode')}
+            <Text variant="body" style={resendCooldown > 0 ? styles.resendDisabled : styles.resendLink}>
+              {resendCooldown > 0 ? t('auth.resendIn', { seconds: resendCooldown }) : t('auth.resend')}
             </Text>
           </Text>
         </Pressable>
@@ -133,6 +174,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 16,
   },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+  },
   otpContainer: {
     marginVertical: 16,
   },
@@ -155,6 +200,10 @@ const styles = StyleSheet.create({
   },
   resendLink: {
     color: colors.primary,
+    fontWeight: '600',
+  },
+  resendDisabled: {
+    color: colors.textTertiary,
     fontWeight: '600',
   },
 });

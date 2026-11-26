@@ -36,6 +36,7 @@ import * as usersApi from '@/services/api/users';
 import { setApiToken, registerAuthCallbacks } from '@/services/api';
 import { connectSocket, disconnectSocket } from '@/services/socket';
 import * as SecureStore from 'expo-secure-store';
+import * as Sentry from '@sentry/react-native';
 
 declare global {
   var mockFirebaseCurrentUser: { uid: string } | null;
@@ -429,14 +430,41 @@ describe('authStore', () => {
       expect(useAuthStore.getState().isLoading).toBe(false);
     });
 
-    it('sets isLoading false even when init fails', async () => {
-      mockGetItemAsync.mockRejectedValueOnce(new Error('SecureStore error'));
+    it('finishes startup without authenticating or deleting data when storage fails', async () => {
+      const error = new Error('SecureStore error');
+      mockGetItemAsync.mockRejectedValueOnce(error);
 
-      await expect(
-        useAuthStore.getState().initializeAuth(),
-      ).rejects.toThrow();
+      await expect(useAuthStore.getState().initializeAuth()).resolves.toBe(false);
 
-      expect(useAuthStore.getState().isLoading).toBe(false);
+      expect(useAuthStore.getState()).toMatchObject({
+        isLoading: false,
+        isInitialized: true,
+        isAuthenticated: false,
+        token: null,
+        user: null,
+      });
+      expect(mockSetApiToken).toHaveBeenCalledWith(null);
+      expect(mockGetMe).not.toHaveBeenCalled();
+      expect(mockConnectSocket).not.toHaveBeenCalled();
+      expect(mockDeleteItemAsync).not.toHaveBeenCalled();
+      expect(Sentry.captureException).toHaveBeenCalledWith(error, {
+        extra: { context: 'authStore.initializeAuth.storage' },
+      });
+    });
+
+    it('finishes startup when expired session cleanup cannot access storage', async () => {
+      mockGetItemAsync.mockResolvedValueOnce(EXPIRED_TOKEN);
+      mockDeleteItemAsync.mockRejectedValue(new Error('Storage unavailable'));
+
+      await expect(useAuthStore.getState().initializeAuth()).resolves.toBe(false);
+
+      expect(useAuthStore.getState()).toMatchObject({
+        isLoading: false,
+        isInitialized: true,
+        isAuthenticated: false,
+        token: null,
+      });
+      expect(mockGetMe).not.toHaveBeenCalled();
     });
   });
 

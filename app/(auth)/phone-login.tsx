@@ -1,26 +1,28 @@
-import { PhoneInput } from '@/components/auth/PhoneInput';
+import { useEffect, useState, useRef } from 'react';
+import {
+  StyleSheet,
+  View,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  FlatList,
+  TextInput,
+  Platform,
+} from 'react-native';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowLeft, Search, X } from 'lucide-react-native';
+import { clearPhoneVerifier, requestPhoneVerification } from '@/services/firebaseAuth';
+import { getPhoneAuthErrorMessage } from '@/utils/firebaseAuthErrors';
 import { Text } from '@/components/ui/Text';
+import { PhoneInput } from '@/components/auth/PhoneInput';
 import { colors } from '@/constants/colors';
 import {
-    countries,
-    getDeviceDefaultCountry,
-    type Country,
+  countries,
+  getDeviceDefaultCountry,
+  type Country,
 } from '@/constants/countryCodes';
-import { cleanupRecaptcha, sendVerificationCode } from '@/lib/phoneAuth';
-import { router } from 'expo-router';
-import { ArrowLeft, Search, X } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    Pressable,
-    StyleSheet,
-    TextInput,
-    View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PhoneLoginScreen() {
   const insets = useSafeAreaInsets();
@@ -29,10 +31,13 @@ export default function PhoneLoginScreen() {
   const [country, setCountry] = useState<Country>(getDeviceDefaultCountry);
   const [showPicker, setShowPicker] = useState(false);
   const [search, setSearch] = useState('');
+  const sendingRef = useRef(false);
+  const requestIdRef = useRef(0);
+  const [sendError, setSendError] = useState<string | null>(null);
 
-  // Initialize reCAPTCHA for web (no-op on native)
-  useEffect(() => {
-    return () => cleanupRecaptcha();
+  useEffect(() => () => {
+    requestIdRef.current += 1;
+    clearPhoneVerifier();
   }, []);
 
   const filteredCountries = search
@@ -46,39 +51,38 @@ export default function PhoneLoginScreen() {
 
   const handleSelectCountry = (selected: Country) => {
     setCountry(selected);
+    setSendError(null);
     setShowPicker(false);
     setSearch('');
   };
 
   const handleContinue = async () => {
-    if (phone.length < 8 || isSending) return;
+    if (phone.length < 8 || sendingRef.current) return;
 
     const formattedPhone = `${country.code}${phone.replace(/\D/g, '')}`;
 
+    const requestId = ++requestIdRef.current;
+    sendingRef.current = true;
     setIsSending(true);
+    setSendError(null);
     try {
-      const verificationId = await sendVerificationCode(formattedPhone);
+      const confirmation = await requestPhoneVerification(formattedPhone);
+      if (requestIdRef.current !== requestId) return;
       router.push({
         pathname: '/(auth)/verify-code',
         params: {
           phoneNumber: formattedPhone,
-          verificationId,
+          verificationId: confirmation.verificationId,
         },
       });
-    } catch (error: any) {
-      const code = error?.code ?? '';
-      console.error('[phone-login] Firebase error code:', code, 'message:', error?.message);
-      const message =
-        code === 'auth/invalid-phone-number'
-          ? 'Invalid phone number. Please check and try again.'
-          : code === 'auth/too-many-requests'
-            ? 'Too many attempts. Please try again later.'
-            : code === 'auth/missing-client-identifier'
-              ? 'App verification failed. Please try again.'
-              : 'Could not send verification code. Please try again.';
-      Alert.alert('Error', message);
+    } catch (error: unknown) {
+      if (requestIdRef.current !== requestId) return;
+      const message = getPhoneAuthErrorMessage(error);
+      setSendError(message);
+      if (Platform.OS !== 'web') Alert.alert('Error', message);
     } finally {
-      setIsSending(false);
+      sendingRef.current = false;
+      if (requestIdRef.current === requestId) setIsSending(false);
     }
   };
 
@@ -117,14 +121,21 @@ export default function PhoneLoginScreen() {
         <View style={styles.inputContainer}>
           <PhoneInput
             value={phone}
-            onChangeText={setPhone}
+            onChangeText={(value) => {
+              setPhone(value);
+              setSendError(null);
+            }}
             country={country}
             onCountryPress={() => setShowPicker(true)}
           />
         </View>
 
+        {sendError && <Text accessibilityRole="alert" style={styles.errorText}>{sendError}</Text>}
+
         <Pressable
           onPress={handleContinue}
+          accessibilityRole="button"
+          accessibilityLabel="Continue"
           style={[
             styles.continueButton,
             phone.length < 8 || isSending
@@ -220,6 +231,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textSecondary,
     marginBottom: 12,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
   },
   inputContainer: {
     marginVertical: 8,

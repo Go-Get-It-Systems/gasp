@@ -1,16 +1,14 @@
-import { GradientCircle } from '@/components/ui/GradientCircle';
-import { Text } from '@/components/ui/Text';
-import { colors } from '@/constants/colors';
-import { followBusinessByHandle, getFollowStatusByHandle, unfollowBusinessByHandle } from '@/services/api/business';
-import type { RecommendedUser, UserBadge } from '@/services/api/schemas/user.schema';
-import { openProfile } from '@/services/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useState, memo, useMemo } from 'react';
+import { StyleSheet, View, Pressable, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Check, UserCheck, UserPlus, X } from 'lucide-react-native';
-import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
+import { GradientCircle } from '@/components/ui/GradientCircle';
+import { UserPlus, Check, X } from 'lucide-react-native';
+import { colors } from '@/constants/colors';
+import { openFriendProfile } from '@/services/navigation';
+import type { RecommendedUser, UserBadge } from '@/services/api/schemas/user.schema';
 
 const BADGE_CONFIG: Record<Exclude<UserBadge, null>, { label: string; color: string; bg: string }> = {
   top10: { label: 'Top 10%', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)' },
@@ -31,22 +29,9 @@ interface UserCardProps {
 
 function UserCardInner({ user, showGradientRing, onAdd, isFriend, pendingFriendshipId, onAccept, onReject }: UserCardProps) {
   const { t } = useTranslation();
-  const isBusiness = user.accountType === 'business';
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'accepted' | 'rejected'>(
     isFriend ? 'sent' : 'idle',
   );
-
-  // Fetch real follow status from server for business accounts
-  const { data: followData } = useQuery({
-    queryKey: ['business-follow-status', user.username],
-    queryFn: () => getFollowStatusByHandle(user.username),
-    enabled: isBusiness,
-    staleTime: 30_000,
-  });
-  const [localFollowing, setLocalFollowing] = useState<boolean | null>(null);
-  const isFollowing = localFollowing ?? followData?.isFollowing ?? false;
-
-  const [followProcessing, setFollowProcessing] = useState(false);
   const hasPendingRequest = !!pendingFriendshipId && status !== 'accepted' && status !== 'rejected';
 
   const handleAdd = async () => {
@@ -57,24 +42,6 @@ function UserCardInner({ user, showGradientRing, onAdd, isFriend, pendingFriends
       setStatus('sent');
     } catch {
       setStatus('idle');
-    }
-  };
-
-  const handleFollow = async () => {
-    if (followProcessing) return;
-    setFollowProcessing(true);
-    try {
-      if (isFollowing) {
-        await unfollowBusinessByHandle(user.username);
-        setLocalFollowing(false);
-      } else {
-        await followBusinessByHandle(user.username);
-        setLocalFollowing(true);
-      }
-    } catch (e) {
-      console.error('[UserCard follow]', e);
-    } finally {
-      setFollowProcessing(false);
     }
   };
 
@@ -97,12 +64,10 @@ function UserCardInner({ user, showGradientRing, onAdd, isFriend, pendingFriends
   if (user.mutualFriendsCount > 0) subtitleParts.push(`${user.mutualFriendsCount} mutual`);
 
   const handleOpenProfile = () => {
-    openProfile({
+    openFriendProfile({
       userId: user.id,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
-      accountType: user.accountType,
-      username: user.username,
     });
   };
 
@@ -151,101 +116,69 @@ function UserCardInner({ user, showGradientRing, onAdd, isFriend, pendingFriends
       <View style={styles.spacer} />
 
       {/* Action buttons */}
-      {isBusiness ? (
-        // Business account — Follow / Following
-        followProcessing ? (
-          <View style={styles.addButton}>
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          </View>
-        ) : isFollowing ? (
+      {hasPendingRequest && (
+        <View style={styles.requestActions}>
           <Pressable
-            style={[styles.addButton, styles.followingButton]}
-            onPress={handleFollow}
+            style={styles.acceptButton}
+            onPress={() => { setStatus('accepted'); onAccept?.(pendingFriendshipId!); }}
             accessibilityRole="button"
-            accessibilityLabel={`Unfollow ${user.displayName}`}
+            accessibilityLabel={`${t('friendRequest.accept')} ${user.displayName}`}
           >
-            <UserCheck size={14} color={colors.textPrimary} />
-            <Text variant="caption" style={styles.followingText}>Following</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={styles.addButton}
-            onPress={handleFollow}
-            accessibilityRole="button"
-            accessibilityLabel={`Follow ${user.displayName}`}
-          >
-            <UserPlus size={14} color="#FFFFFF" />
-            <Text variant="caption" style={styles.addText}>Follow</Text>
-          </Pressable>
-        )
-      ) : (
-        // Personal account — Add / Accept / Reject / Sent / Friends
-        <>
-          {hasPendingRequest && (
-            <View style={styles.requestActions}>
-              <Pressable
-                style={styles.acceptButton}
-                onPress={() => { setStatus('accepted'); onAccept?.(pendingFriendshipId!); }}
-                accessibilityRole="button"
-                accessibilityLabel={`${t('friendRequest.accept')} ${user.displayName}`}
-              >
-                <LinearGradient
-                  colors={['#7C3AED', '#EC4899']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.acceptGradient}
-                >
-                  <Check size={13} color="#FFFFFF" strokeWidth={3} />
-                  <Text variant="caption" style={styles.acceptText}>{t('friendRequest.accept')}</Text>
-                </LinearGradient>
-              </Pressable>
-              <Pressable
-                style={styles.rejectButton}
-                onPress={() => { setStatus('rejected'); onReject?.(pendingFriendshipId!); }}
-                accessibilityRole="button"
-                accessibilityLabel={`${t('friendRequest.reject')} ${user.displayName}`}
-              >
-                <X size={13} color={colors.textSecondary} strokeWidth={2.5} />
-              </Pressable>
-            </View>
-          )}
-          {status === 'accepted' && (
-            <View style={styles.sentButton}>
-              <Check size={14} color={colors.success} />
-              <Text variant="caption" style={styles.sentText}>{t('friendRequest.friends')}</Text>
-            </View>
-          )}
-          {status === 'rejected' && (
-            <View style={styles.sentButton}>
-              <X size={14} color={colors.textTertiary} />
-              <Text variant="caption" style={styles.sentText}>{t('friendRequest.declined')}</Text>
-            </View>
-          )}
-          {!hasPendingRequest && status === 'idle' && (
-            <Pressable
-              style={styles.addButton}
-              onPress={handleAdd}
-              accessibilityRole="button"
-              accessibilityLabel={`Add ${user.displayName}`}
+            <LinearGradient
+              colors={['#7C3AED', '#EC4899']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.acceptGradient}
             >
-              <UserPlus size={14} color="#FFFFFF" />
-              <Text variant="caption" style={styles.addText}>Add</Text>
-            </Pressable>
-          )}
-          {status === 'sending' && (
-            <View style={styles.addButton}>
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            </View>
-          )}
-          {status === 'sent' && (
-            <View style={styles.sentButton}>
-              <Check size={14} color={colors.success} />
-              <Text variant="caption" style={styles.sentText}>
-                {isFriend ? t('friendRequest.friends') : t('friendRequest.sent')}
-              </Text>
-            </View>
-          )}
-        </>
+              <Check size={13} color="#FFFFFF" strokeWidth={3} />
+              <Text variant="caption" style={styles.acceptText}>{t('friendRequest.accept')}</Text>
+            </LinearGradient>
+          </Pressable>
+          <Pressable
+            style={styles.rejectButton}
+            onPress={() => { setStatus('rejected'); onReject?.(pendingFriendshipId!); }}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('friendRequest.reject')} ${user.displayName}`}
+          >
+            <X size={13} color={colors.textSecondary} strokeWidth={2.5} />
+          </Pressable>
+        </View>
+      )}
+      {status === 'accepted' && (
+        <View style={styles.sentButton}>
+          <Check size={14} color={colors.success} />
+          <Text variant="caption" style={styles.sentText}>{t('friendRequest.friends')}</Text>
+        </View>
+      )}
+      {status === 'rejected' && (
+        <View style={styles.sentButton}>
+          <X size={14} color={colors.textTertiary} />
+          <Text variant="caption" style={styles.sentText}>{t('friendRequest.declined')}</Text>
+        </View>
+      )}
+      {!hasPendingRequest && status === 'idle' && (
+        <Pressable
+          style={styles.addButton}
+          onPress={handleAdd}
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${user.displayName}`}
+        >
+          <UserPlus size={14} color="#FFFFFF" />
+          <Text variant="caption" style={styles.addText}>Add</Text>
+        </Pressable>
+      )}
+      {status === 'sending' && (
+        <View style={styles.addButton}>
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        </View>
+      )}
+      {status === 'sent' && (
+        <View style={styles.sentButton}>
+          <Check size={14} color={colors.success} />
+          <Text variant="caption" style={styles.sentText}>
+            {isFriend ? t('friendRequest.friends') : t('friendRequest.sent')}
+          </Text>
+        </View>
       )}
     </Pressable>
   );
@@ -369,16 +302,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
-  },
-  followingButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  followingText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
   },
   sentButton: {
     flexDirection: 'row',

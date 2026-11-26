@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
+  ScrollView,
   Pressable,
   TextInput,
   Alert,
@@ -9,24 +10,26 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/stores/authStore';
 import { getApiErrorMessage } from '@/services/api';
+import { getFirebaseIdToken } from '@/services/firebaseAuth';
 import { colors } from '@/constants/colors';
+import { AccountTypeChoice } from '@/components/business/AccountTypeChoice';
 
 export default function CreateProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { firebaseToken, accountType } = useLocalSearchParams<{
-    firebaseToken: string;
-    phoneNumber: string;
-    accountType: 'personal' | 'business';
-  }>();
   const { register, isLoading } = useAuthStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+  const isBusy = isLoading || isSubmitting;
 
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
+  const [accountType, setAccountType] = useState<'personal' | 'business'>('personal');
 
   const isValid =
     displayName.trim().length >= 1 &&
@@ -36,18 +39,32 @@ export default function CreateProfileScreen() {
     /^[a-zA-Z0-9_]+$/.test(username.trim());
 
   const handleCreate = async () => {
-    if (!firebaseToken || !isValid || isLoading) return;
+    if (!isValid || isLoading || submittingRef.current) return;
 
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    setRegistrationError(null);
     try {
+      // Read the authenticated Firebase session instead of putting its token in a URL.
+      const firebaseToken = await getFirebaseIdToken();
+      if (!firebaseToken) {
+        setRegistrationError('Your verification session expired. Please verify your phone again.');
+        return;
+      }
       await register({
         firebaseToken,
         displayName: displayName.trim(),
         username: username.trim().toLowerCase(),
-        accountType: accountType ?? 'personal',
+        accountType,
       });
       router.replace('/(tabs)/camera');
     } catch (error) {
-      Alert.alert('Registration failed', getApiErrorMessage(error));
+      const message = getApiErrorMessage(error);
+      setRegistrationError(message);
+      if (Platform.OS !== 'web') Alert.alert('Registration failed', message);
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -56,7 +73,7 @@ export default function CreateProfileScreen() {
       style={[styles.container, { paddingTop: insets.top + 20 }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="title" style={styles.title}>
           {'Create your profile'}
         </Text>
@@ -101,15 +118,17 @@ export default function CreateProfileScreen() {
           )}
         </View>
 
+        {registrationError && <Text accessibilityRole="alert" style={styles.errorText}>{registrationError}</Text>}
+        <AccountTypeChoice value={accountType} onChange={setAccountType} disabled={isBusy} />
         <Pressable
           onPress={handleCreate}
-          disabled={!isValid || isLoading}
+          disabled={!isValid || isBusy}
           style={[
             styles.createButton,
-            (!isValid || isLoading) && styles.createButtonDisabled,
+            (!isValid || isBusy) && styles.createButtonDisabled,
           ]}
         >
-          {isLoading ? (
+          {isBusy ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text variant="body" style={styles.createText}>
@@ -117,7 +136,7 @@ export default function CreateProfileScreen() {
             </Text>
           )}
         </Pressable>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -141,6 +160,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textSecondary,
     marginBottom: 4,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
   },
   inputGroup: {
     gap: 8,

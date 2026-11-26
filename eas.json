@@ -7,7 +7,6 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "development",
       "ios": {
         "simulator": false
       }
@@ -33,6 +32,7 @@
     },
     "production": {
       "channel": "production",
+      "environment": "production",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://gasp-backend-production.up.railway.app",

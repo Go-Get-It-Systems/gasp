@@ -1,15 +1,16 @@
-﻿import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { BlurView } from "expo-blur";
 import type { LucideIcon } from "lucide-react-native";
 import {
-    BriefcaseBusiness,
     Camera,
+    Sparkles,
     Compass,
     Inbox,
     MessageCircle,
-    User
+    User,
 } from "lucide-react-native";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import Animated, {
     cancelAnimation,
@@ -22,26 +23,22 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { hasUnreadChatActivity, shouldClearChatUnreadHint } from "@/components/navigation/chatUnread";
 import { ContentTypeIndicator } from "@/components/ui/ContentTypeIndicator";
+import { hasUnreadChatActivity, shouldClearChatUnreadHint } from "@/components/navigation/chatUnread";
 import { useConversations } from "@/hooks/queries/useChat";
 import { usePendingGasps } from "@/hooks/queries/useGasps";
+import { withoutViewedOnceGasps } from "@/hooks/queries/useGasps.helpers";
+import { useGaspStore } from "@/stores/gaspStore";
 import { useAuthStore } from "@/stores/authStore";
-import { useCameraStore } from "@/stores/cameraStore";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { TabBarIcon } from "./TabBarIcon";
-
-// ─── Tab configuration ────────────────────────────────────────────────────────
-// personal accounts: chat shown, metrics hidden
-// business accounts: metrics shown, chat hidden
-// Filtering is applied in the render loop below.
 
 const TAB_ICONS: Record<string, LucideIcon> = {
   discover: Compass,
   camera: Camera,
   inbox: Inbox,
   chat: MessageCircle,
-  studio: BriefcaseBusiness,
+  studio: Sparkles,
   profile: User,
 };
 
@@ -50,7 +47,6 @@ const TAB_LABELS: Record<string, string> = {
   camera: "Camera",
   inbox: "Gasps",
   chat: "Chat",
-  studio: "Studio",
   profile: "Profile",
 };
 
@@ -60,10 +56,8 @@ export function CustomTabBar({
   navigation,
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const isBusiness = useAuthStore((s) => s.user?.accountType === 'business');
-  const isCampaignMode = useCameraStore((s) => s.campaignMode);
-  const isReactionMode = useCameraStore((s) => !!s.reactionTarget);
-  const setCampaignMode = useCameraStore((s) => s.setCampaignMode);
 
   const { data: conversations, dataUpdatedAt: conversationsUpdatedAt } = useConversations();
   const { data: pendingGasps } = usePendingGasps();
@@ -76,7 +70,8 @@ export function CustomTabBar({
 
   const conversationsHaveUnread = conversations?.some((conversation) => conversation.unreadCount > 0) ?? false;
   const hasUnreadChats = hasUnreadChatActivity(conversations, chatHasUnreadHint);
-  const hasUnreadGasps = (pendingGasps?.length ?? 0) > 0;
+  const viewedGaspUrls = useGaspStore((s) => s.viewedGaspUrls);
+  const hasUnreadGasps = withoutViewedOnceGasps(pendingGasps ?? [], viewedGaspUrls).length > 0;
 
   const pulseScaleSv = useSharedValue(1);
 
@@ -121,18 +116,6 @@ export function CustomTabBar({
     transform: [{ scale: pulseScaleSv.value }],
   }));
 
-  // Reset campaign/reaction mode if stuck on non-camera route (after all hooks)
-  const currentRouteName = state.routes[state.index]?.name;
-  useEffect(() => {
-    if (currentRouteName !== 'camera') {
-      if (isCampaignMode) setCampaignMode(false);
-      if (isReactionMode) useCameraStore.getState().setReactionTarget(null);
-    }
-  }, [isCampaignMode, isReactionMode, currentRouteName, setCampaignMode]);
-
-  // Hide the tab bar when camera is in campaign or reaction mode
-  if (isCampaignMode || isReactionMode) return null;
-
   return (
     <View
       style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}
@@ -143,14 +126,23 @@ export function CustomTabBar({
 
       <View style={styles.tabsRow}>
         {state.routes.map((route, index) => {
+          if (route.name === 'business' || (route.name === 'studio' && !isBusiness) || (route.name === 'chat' && isBusiness)) {
+            return null;
+          }
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
 
-          // ── Visibility filter ────────────────────────────────────────────
-          // personal accounts: hide the studio tab
-          // business accounts: hide the chat tab
-          if (!isBusiness && route.name === 'studio') return null;
-          if (isBusiness && route.name === 'chat') return null;
+          const onPress = () => {
+            const event = navigation.emit({
+              type: "tabPress",
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
 
           const onLongPress = () => {
             navigation.emit({
@@ -159,19 +151,8 @@ export function CustomTabBar({
             });
           };
 
-          const handlePress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
-            }
-          };
-
           const Icon = TAB_ICONS[route.name] ?? Compass;
-          const label = TAB_LABELS[route.name] ?? options.title ?? route.name;
+          const label = route.name === 'studio' ? 'Studio' : TAB_LABELS[route.name] ?? options.title ?? route.name;
 
           const showUnreadChat = route.name === "chat" && hasUnreadChats;
           const showUnreadGasps = route.name === "inbox" && hasUnreadGasps;
@@ -197,8 +178,9 @@ export function CustomTabBar({
               <TabBarIcon
                 icon={Icon}
                 label={label}
+                accessibilityLabel={route.name === 'studio' ? t('business.studio') : undefined}
                 focused={isFocused}
-                onPress={handlePress}
+                onPress={onPress}
                 onLongPress={onLongPress}
               />
             </View>

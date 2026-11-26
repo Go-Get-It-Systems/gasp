@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { VideoView } from 'expo-video';
+import { usePrivateVideoPlayer as useVideoPlayer } from '@/hooks/usePrivateVideoPlayer';
 import { colors } from '@/constants/colors';
 
 /** Inline looping video with loading spinner — controls play/pause without remounting */
@@ -35,7 +36,7 @@ export function InlineVideo({
       }
     });
     return () => sub.remove();
-  }, [player]);
+  }, [player, paused]);
 
   useEffect(() => {
     if (paused) {

@@ -5,7 +5,9 @@ export type NotificationKind =
   | 'gasp.received'
   | 'gasp.reaction_received'
   | 'friend.request'
-  | 'friend.accepted';
+  | 'friend.accepted'
+  /** Local confirmation after the user sends a gasp; has no route */
+  | 'gasp.sent';
 
 export interface ToastItem {
   id: string;

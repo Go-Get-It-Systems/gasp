@@ -1,9 +1,10 @@
 import "@/global.css";
 import "@/lib/i18n";
-import "@react-native-firebase/app";
 import "react-native-reanimated";
+import { getSentryPrivacyOptions } from "@/lib/sentryPrivacy";
+import { useBusinessRefresh } from "@/hooks/useBusinessRefresh";
 
-if (__DEV__) {
+if (__DEV__ && Platform.OS !== "web") {
   require("../reactotron.config");
 }
 
@@ -26,7 +27,7 @@ import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { AppState, type AppStateStatus, LogBox } from "react-native";
+import { AppState, type AppStateStatus, LogBox, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Suppress warnings from third-party dependencies we don't control
@@ -37,22 +38,18 @@ LogBox.ignoreLogs([
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? "",
-  enabled: true, //!__DEV__,
+  ...getSentryPrivacyOptions(__DEV__),
   tracesSampleRate: 0.2,
-  attachScreenshot: true,
   enableAutoSessionTracking: true,
   // Propagate `sentry-trace` and `baggage` headers on outgoing requests so
   // client errors and backend errors land in the same trace in Sentry.
   // The backend (@sentry/node) picks up these headers automatically.
-  integrations: [
-    Sentry.reactNativeTracingIntegration({
-      tracePropagationTargets: [
-        "gasp-backend-production.up.railway.app",
-        /^https:\/\/gasp-backend-production\.up\.railway\.app/,
-        "localhost",
-      ],
-    } as any),
+  tracePropagationTargets: [
+    "gasp-backend-production.up.railway.app",
+    /^https:\/\/gasp-backend-production\.up\.railway\.app/,
+    "localhost",
   ],
+  integrations: [Sentry.reactNativeTracingIntegration()],
 });
 
 // Keep splash screen visible while we initialize auth
@@ -70,11 +67,13 @@ function RootContent() {
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const token = useAuthStore((s) => s.token);
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
   // Register all Socket.IO listeners for real-time updates
   useSocketListeners();
+  useBusinessRefresh();
 
   // Fetch friends & pending gasps on auth
   useOnlineStatus();
@@ -122,16 +121,26 @@ function RootContent() {
   useEffect(() => {
     // Initialize media cache + preferences in parallel with auth
     initCache();
-    processQueue();
-    useMediaCacheStore.getState().loadPreferences();
-    // Always reset campaign mode on app start to prevent stale state
-    import('@/stores/cameraStore').then(({ useCameraStore }) => {
-      useCameraStore.getState().setCampaignMode(false);
+
+    void useMediaCacheStore.getState().loadPreferences().catch((error) => {
+      Sentry.captureException(error, {
+        extra: { context: "RootContent.loadMediaPreferences" },
+      });
     });
 
-    initializeAuth().finally(() => {
-      SplashScreen.hideAsync();
-    });
+    void initializeAuth()
+      .catch((error) => {
+        Sentry.captureException(error, {
+          extra: { context: "RootContent.initializeAuth" },
+        });
+      })
+      .finally(() => {
+        void SplashScreen.hideAsync().catch((error) => {
+          Sentry.captureException(error, {
+            extra: { context: "RootContent.hideSplash" },
+          });
+        });
+      });
   }, [initializeAuth]);
 
   useEffect(() => {
@@ -153,6 +162,8 @@ function RootContent() {
     );
   }, [isInitialized, token]);
 
+  useEffect(() => { if (user?.id && isAuthenticated) void processQueue(); }, [user?.id, isAuthenticated]);
+
   // Don't render routes until auth state is known
   if (!isInitialized) return null;
 
@@ -161,12 +172,16 @@ function RootContent() {
       <ToastBanner />
       <ConnectionBanner />
       <Stack
+        key={user?.id ?? "signed-out"}
         screenOptions={{
           contentStyle: { backgroundColor: "#0A0A0F" },
           animation: "fade",
         }}
       >
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Protected guard={!isAuthenticated}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(business)" options={{ headerShown: false }} />
         <Stack.Screen
@@ -176,8 +191,9 @@ function RootContent() {
             presentation: "modal",
           }}
         />
-        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />

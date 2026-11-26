@@ -45,6 +45,15 @@ describe('useHoldGesture', () => {
       expect(result.current.holdProgress.value).toBe(0);
     });
 
+    it('exposes the touch point as shared values (screen center by default)', () => {
+      const { result } = renderHook(() => useHoldGesture());
+
+      expect(typeof result.current.touchX.value).toBe('number');
+      expect(typeof result.current.touchY.value).toBe('number');
+      expect(result.current.touchX.value).toBeGreaterThan(0);
+      expect(result.current.touchY.value).toBeGreaterThan(0);
+    });
+
     it('gesture is defined (LongPress gesture object)', () => {
       const { result } = renderHook(() => useHoldGesture());
 

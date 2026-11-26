@@ -1,30 +1,31 @@
+import { StyleSheet, View, Pressable, ActivityIndicator } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import { Send, RotateCcw, Type, Download } from 'lucide-react-native';
 import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
-import { Download, RotateCcw, Send, Type } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
 
 interface PreviewBottomBarProps {
   onRetake: () => void;
+  /** "Retake" for camera captures, "Choose another" for gallery picks */
+  retakeLabel?: string;
   onSend: () => void;
   onOpenText: () => void;
   onSave?: () => void;
   isSending: boolean;
   bottomInset: number;
-  sendLabel?: string;
 }
 
-export function PreviewBottomBar({ onRetake, onSend, onOpenText, onSave, isSending, bottomInset, sendLabel }: PreviewBottomBarProps) {
+export function PreviewBottomBar({ onRetake, retakeLabel = 'Retake', onSend, onOpenText, onSave, isSending, bottomInset }: PreviewBottomBarProps) {
   return (
     <Animated.View
       entering={FadeInUp.duration(400).delay(200)}
       style={[styles.bottomBar, { paddingBottom: bottomInset + 16 }]}
     >
-      <Pressable onPress={onRetake} style={styles.bottomAction} accessibilityLabel="Retake" accessibilityRole="button">
+      <Pressable onPress={onRetake} style={styles.bottomAction} accessibilityLabel={retakeLabel} accessibilityRole="button">
         <View style={styles.actionCircle}>
           <RotateCcw size={22} color="#FFFFFF" />
         </View>
-        <Text variant="caption" style={styles.actionLabel}>Retake</Text>
+        <Text variant="caption" style={styles.actionLabel}>{retakeLabel}</Text>
       </Pressable>
 
       {onSave && (
@@ -36,13 +37,13 @@ export function PreviewBottomBar({ onRetake, onSend, onOpenText, onSave, isSendi
         </Pressable>
       )}
 
-      <Pressable onPress={onSend} disabled={isSending} style={[styles.sendButton, isSending && { opacity: 0.6 }]} accessibilityLabel={sendLabel ?? 'Send'} accessibilityRole="button">
+      <Pressable onPress={onSend} disabled={isSending} style={[styles.sendButton, isSending && { opacity: 0.6 }]} accessibilityLabel="Send" accessibilityRole="button">
         {isSending ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
           <Send size={24} color="#FFFFFF" />
         )}
-        <Text variant="body" style={styles.sendText}>{isSending ? 'Preparing...' : (sendLabel ?? 'Send')}</Text>
+        <Text variant="body" style={styles.sendText}>{isSending ? 'Preparing...' : 'Send'}</Text>
       </Pressable>
 
       <Pressable onPress={onOpenText} style={styles.bottomAction} accessibilityLabel="Add text" accessibilityRole="button">

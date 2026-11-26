@@ -1,11 +1,11 @@
-import { Text } from '@/components/ui/Text';
-import { colors } from '@/constants/colors';
-import { followBusinessByHandle, getFollowStatusByHandle, unfollowBusinessByHandle } from '@/services/api/business';
-import { openProfile } from '@/services/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { Check, Clock, UserCheck, UserPlus } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Pressable, ActivityIndicator } from 'react-native';
+import { Text } from '@/components/ui/Text';
+import { UserPlus, Check, Clock } from 'lucide-react-native';
+import { colors } from '@/constants/colors';
+import { openFriendProfile } from '@/services/navigation';
+import { BusinessSearchResult } from './BusinessSearchResult';
+import type { User } from '@/services/api/schemas/user.schema';
 
 export type RequestStatus = 'none' | 'sending' | 'sent' | 'already_friends';
 
@@ -14,34 +14,25 @@ interface UserSearchResultProps {
   displayName: string;
   username: string;
   avatarUrl: string | null;
-  accountType?: 'personal' | 'business';
+  accountType?: User['accountType'];
   status: RequestStatus;
   onAdd: (id: string) => Promise<void>;
 }
 
-export function UserSearchResult({
+export function UserSearchResult(props: UserSearchResultProps) {
+  return props.accountType === 'business' ? <BusinessSearchResult displayName={props.displayName} username={props.username} avatarUrl={props.avatarUrl} />
+    : <PersonalSearchResult {...props} />;
+}
+
+function PersonalSearchResult({
   id,
   displayName,
   username,
   avatarUrl,
-  accountType = 'personal',
   status,
   onAdd,
 }: UserSearchResultProps) {
-  const isBusiness = accountType === 'business';
   const [localStatus, setLocalStatus] = useState(status);
-
-  // Fetch real follow status from server for business accounts
-  const { data: followData } = useQuery({
-    queryKey: ['business-follow-status', username],
-    queryFn: () => getFollowStatusByHandle(username),
-    enabled: isBusiness,
-    staleTime: 30_000,
-  });
-  const [localFollowing, setLocalFollowing] = useState<boolean | null>(null);
-  const isFollowing = localFollowing ?? followData?.isFollowing ?? false;
-
-  const [followProcessing, setFollowProcessing] = useState(false);
 
   const handleAdd = async () => {
     if (localStatus !== 'none') return;
@@ -54,24 +45,6 @@ export function UserSearchResult({
     }
   };
 
-  const handleFollow = async () => {
-    if (followProcessing) return;
-    setFollowProcessing(true);
-    try {
-      if (isFollowing) {
-        await unfollowBusinessByHandle(username);
-        setLocalFollowing(false);
-      } else {
-        await followBusinessByHandle(username);
-        setLocalFollowing(true);
-      }
-    } catch (e) {
-      console.error('[UserSearchResult follow]', e);
-    } finally {
-      setFollowProcessing(false);
-    }
-  };
-
   const initials = displayName
     .split(' ')
     .map((n) => n[0])
@@ -79,12 +52,12 @@ export function UserSearchResult({
     .slice(0, 2)
     .toUpperCase();
 
+  const handleOpenProfile = () => {
+    openFriendProfile({ userId: id, displayName, avatarUrl });
+  };
+
   return (
-    <Pressable
-      style={styles.container}
-      onPress={() => openProfile({ userId: id, displayName, avatarUrl, accountType, username })}
-      accessibilityLabel={`View ${displayName}'s profile`}
-    >
+    <Pressable style={styles.container} onPress={handleOpenProfile} accessibilityLabel={`View ${displayName}'s profile`}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{initials}</Text>
       </View>
@@ -98,62 +71,37 @@ export function UserSearchResult({
         </Text>
       </View>
 
-      {/* ── Business account: Follow / Following ── */}
-      {isBusiness && (
-        followProcessing ? (
-          <View style={styles.statusButton}>
-            <ActivityIndicator size="small" color={colors.primary} />
-          </View>
-        ) : isFollowing ? (
-          <Pressable
-            style={[styles.statusButton, styles.followingButton]}
-            onPress={handleFollow}
-            accessibilityRole="button"
-            accessibilityLabel={`Unfollow ${displayName}`}
-          >
-            <UserCheck size={16} color={colors.textPrimary} />
-            <Text variant="caption" style={styles.followingText}>Following</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={styles.addButton}
-            onPress={handleFollow}
-            accessibilityRole="button"
-            accessibilityLabel={`Follow ${displayName}`}
-          >
-            <UserPlus size={18} color="#FFFFFF" />
-            <Text variant="caption" style={styles.addText}>Follow</Text>
-          </Pressable>
-        )
+      {localStatus === 'none' && (
+        <Pressable style={styles.addButton} onPress={handleAdd} accessibilityLabel={`Add ${displayName}`} accessibilityRole="button">
+          <UserPlus size={18} color="#FFFFFF" />
+          <Text variant="caption" style={styles.addText}>
+            {'Add'}
+          </Text>
+        </Pressable>
       )}
 
-      {/* ── Personal account: Add / Sending / Sent / Friends ── */}
-      {!isBusiness && (
-        <>
-          {localStatus === 'none' && (
-            <Pressable style={styles.addButton} onPress={handleAdd} accessibilityRole="button" accessibilityLabel={`Add ${displayName}`}>
-              <UserPlus size={18} color="#FFFFFF" />
-              <Text variant="caption" style={styles.addText}>Add</Text>
-            </Pressable>
-          )}
-          {localStatus === 'sending' && (
-            <View style={styles.statusButton}>
-              <ActivityIndicator size="small" color={colors.primary} />
-            </View>
-          )}
-          {localStatus === 'sent' && (
-            <View style={[styles.statusButton, styles.sentButton]}>
-              <Clock size={16} color={colors.textSecondary} />
-              <Text variant="caption" style={styles.sentText}>Sent</Text>
-            </View>
-          )}
-          {localStatus === 'already_friends' && (
-            <View style={[styles.statusButton, styles.friendsButton]}>
-              <Check size={16} color={colors.success} />
-              <Text variant="caption" style={styles.friendsText}>Friends</Text>
-            </View>
-          )}
-        </>
+      {localStatus === 'sending' && (
+        <View style={styles.statusButton}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      )}
+
+      {localStatus === 'sent' && (
+        <View style={[styles.statusButton, styles.sentButton]}>
+          <Clock size={16} color={colors.textSecondary} />
+          <Text variant="caption" style={styles.sentText}>
+            {'Sent'}
+          </Text>
+        </View>
+      )}
+
+      {localStatus === 'already_friends' && (
+        <View style={[styles.statusButton, styles.friendsButton]}>
+          <Check size={16} color={colors.success} />
+          <Text variant="caption" style={styles.friendsText}>
+            {'Friends'}
+          </Text>
+        </View>
       )}
     </Pressable>
   );
@@ -175,10 +123,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: { fontSize: 16, fontWeight: '700', color: colors.textSecondary },
-  info: { flex: 1, gap: 2 },
-  name: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
-  username: { fontSize: 13, color: colors.textSecondary },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  info: {
+    flex: 1,
+    gap: 2,
+  },
+  name: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  username: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -189,13 +151,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderCurve: 'continuous',
   },
-  addText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
-  followingButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+  addText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  followingText: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
   statusButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -205,8 +165,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderCurve: 'continuous',
   },
-  sentButton: { backgroundColor: colors.surface },
-  sentText: { fontSize: 13, color: colors.textSecondary },
-  friendsButton: { backgroundColor: colors.surface },
-  friendsText: { fontSize: 13, color: colors.success },
+  sentButton: {
+    backgroundColor: colors.surface,
+  },
+  sentText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  friendsButton: {
+    backgroundColor: colors.surface,
+  },
+  friendsText: {
+    fontSize: 13,
+    color: colors.success,
+  },
 });

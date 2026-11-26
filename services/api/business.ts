@@ -1,315 +1,127 @@
-import { api } from '@/services/api';
 import { z } from 'zod';
+import { api } from '@/services/api';
+import { validateResponse } from './schemas/common.schema';
+import * as s from './schemas/business.schema';
+import * as studio from './schemas/studio.schema';
 
-// ─── Schemas ────────────────────────────────────────────────────────────────
+export type { StudioCampaign as Campaign, CampaignMetric, CampaignReactionItem, MetricsResponse } from './schemas/studio.schema';
 
-export const BusinessWorkspaceSchema = z.object({
-  id: z.string(),
-  handle: z.string(),
-  displayName: z.string(),
-  avatarUrl: z.string().nullable(),
-  bio: z.string().nullable(),
-  isVerified: z.boolean(),
-  isActive: z.boolean(),
-  followerCount: z.number(),
-  followingCount: z.number().default(0),
-  isFollowedByViewer: z.boolean().optional(),
-});
-export type BusinessWorkspace = z.infer<typeof BusinessWorkspaceSchema>;
+// Unlike legacy adapters, business contracts fail closed after logging validation errors.
+async function request<T>(schema: z.ZodType<T>, path: string, method = 'get', data?: unknown): Promise<T> {
+  const response = await api.request({ url: `/businesses${path}`, method, data });
+  return schema.parse(validateResponse(schema, response.data, `business:${method}:${path}`, false));
+}
+const segment = (value: string) => encodeURIComponent(value);
+const workspace = (id: string) => `/${segment(id)}`;
+const campaign = (w: string, c: string) => `${workspace(w)}/campaigns/${segment(c)}`;
+export const getBusinessWorkspaces = () => request(z.array(s.BusinessOwnerSchema), '/workspaces');
+export const getBusinessDirectory = () => request(z.array(s.BusinessWorkspaceSchema), '/directory');
+export const getCampaignInbox = () => request(z.array(s.CampaignInboxSchema), '/inbox');
+export const getMyCampaignReactions = (cursor?: string) => request(s.MyCampaignReactionsPageSchema, `/reactions/mine${cursor ? `?cursor=${segment(cursor)}` : ''}`);
+export const getBusinessProfile = (handle: string) => request(s.BusinessWorkspaceSchema, `/${segment(handle)}`);
+export const getBusinessOverview = (w: string) => request(s.BusinessOverviewSchema, `${workspace(w)}/overview`);
+export const getBusinessCampaigns = (w: string) => request(z.array(s.BusinessCampaignSchema), `${workspace(w)}/campaigns`);
+export const getPublicCampaigns = (w: string) => request(z.array(s.PublicCampaignSchema), `${workspace(w)}/campaigns/public`);
+export const getBusinessCampaign = (w: string, c: string) => request(s.BusinessCampaignSchema, campaign(w, c));
+export const getCampaignMetrics = (w: string, c: string) => request(s.CampaignMetricsSchema, `${campaign(w, c)}/metrics`);
+export const getOwnerReactions = (w: string, c: string, selected: boolean) =>
+  request(z.array(s.OwnerCampaignReactionSchema), `${campaign(w, c)}/reactions?limit=100&filter=${selected ? 'selected' : 'newest'}`);
+export const getPublicReactions = (w: string, pinned = false) =>
+  request(z.array(s.PublicCampaignReactionSchema), `${workspace(w)}/reactions${pinned ? '/pinned' : ''}`);
+export const getMyCampaignReaction = (w: string, c: string) => request(s.OwnCampaignReactionSchema.nullable(), `${campaign(w, c)}/reactions/mine`);
+export const setBusinessFollow = (w: string, following: boolean) =>
+  request(z.object({ following: z.boolean() }), `${workspace(w)}/follow`, following ? 'post' : 'delete');
+export const createBusinessCampaign = (w: string, input: s.CampaignInput) =>
+  request(s.BusinessCampaignSchema, `${workspace(w)}/campaigns`, 'post', s.CampaignInputSchema.parse(input));
+export const updateBusinessCampaign = (w: string, c: string, input: Partial<s.CampaignInput>) =>
+  request(s.BusinessCampaignSchema, campaign(w, c), 'patch', s.CampaignInputSchema.partial().parse(input));
+export const deleteBusinessCampaign = (w: string, c: string) => request(z.object({ deleted: z.literal(true) }), campaign(w, c), 'delete');
+export const publishBusinessCampaign = (w: string, c: string) => request(s.BusinessCampaignSchema, `${campaign(w, c)}/publish`, 'post');
+export const closeBusinessCampaign = (w: string, c: string) => request(s.BusinessCampaignSchema, `${campaign(w, c)}/close`, 'post');
+export const markCampaignDelivery = (w: string, c: string, status: 'opened' | 'viewed') =>
+  request(z.object({ recorded: z.literal(true) }), `${campaign(w, c)}/delivery`, 'post', { status });
+export const submitCampaignReaction = (w: string, c: string, input: s.CampaignReactionInput) =>
+  request(s.OwnCampaignReactionSchema, `${campaign(w, c)}/reactions`, 'post', s.CampaignReactionInputSchema.parse(input));
+export const setCampaignReactionConsent = (w: string, c: string, consentToFeature: boolean) =>
+  request(s.OwnCampaignReactionSchema, `${campaign(w, c)}/reactions/mine/consent`, 'patch', { consentToFeature });
+export const setReactionPin = (w: string, c: string, r: string, pinned: boolean) =>
+  request(z.object({ selected: z.boolean() }), `${campaign(w, c)}/reactions/${segment(r)}/selection`, pinned ? 'put' : 'delete');
 
-export const CampaignStateSchema = z.enum([
-  'draft',
-  'publishing',
-  'live',
-  'failed',
-  'closed',
-]);
-export type CampaignState = z.infer<typeof CampaignStateSchema>;
-
-export const CampaignSchema = z.object({
-  id: z.string(),
-  workspaceId: z.string(),
-  title: z.string(),
-  mediaUrl: z.string(),
-  textOverlay: z.string().nullable(),
-  isReplayable: z.boolean(),
-  state: CampaignStateSchema,
-  createdAt: z.string(),
-  publishedAt: z.string().nullable(),
-  closedAt: z.string().nullable(),
-});
-export type Campaign = z.infer<typeof CampaignSchema>;
-
-export const CampaignDeliveryCountsSchema = z.object({
-  queued: z.number(),
-  delivered: z.number(),
-  failed: z.number(),
-  opened: z.number(),
-  viewed: z.number(),
-});
-export type CampaignDeliveryCounts = z.infer<typeof CampaignDeliveryCountsSchema>;
-
-export const StudioOverviewSchema = z.object({
-  workspace: BusinessWorkspaceSchema,
-  latestCampaign: CampaignSchema.nullable(),
-  deliveryCounts: CampaignDeliveryCountsSchema.nullable(),
-});
-export type StudioOverview = z.infer<typeof StudioOverviewSchema>;
-
-export const CreateCampaignInputSchema = z.object({
-  title: z.string().min(1).max(100),
-  mediaUrl: z.string().url(),
-  textOverlay: z.string().max(200).nullable().optional(),
-  isReplayable: z.boolean().optional(),
-});
-export type CreateCampaignInput = z.infer<typeof CreateCampaignInputSchema>;
-
-// ─── Metrics ────────────────────────────────────────────────────────────────
-
-export const CampaignMetricSchema = z.object({
-  campaignId: z.string(),
-  title: z.string(),
-  state: CampaignStateSchema,
-  publishedAt: z.string().nullable(),
-  queued: z.number(),
-  delivered: z.number(),
-  failed: z.number(),
-  opened: z.number(),
-  viewed: z.number(),
-  engagementRate: z.number(),
-  deliveryRate: z.number(),
-});
-export type CampaignMetric = z.infer<typeof CampaignMetricSchema>;
-
-export const MetricsResponseSchema = z.object({
-  workspaceId: z.string(),
-  totalCampaigns: z.number(),
-  totalDelivered: z.number(),
-  totalOpened: z.number(),
-  totalViewed: z.number(),
-  avgEngagementRate: z.number(),
-  campaigns: z.array(CampaignMetricSchema),
-});
-export type MetricsResponse = z.infer<typeof MetricsResponseSchema>;
-
-// ─── Campaign Reactions ──────────────────────────────────────────────────────
-
-export const CampaignReactionItemSchema = z.object({
-  id: z.string(),
-  campaignId: z.string(),
-  campaignTitle: z.string(),
-  campaignMediaUrl: z.string().nullable().optional(),
-  campaignMediaType: z.enum(['image', 'video']).optional().default('image'),
-  reactorId: z.string(),
-  reactorDisplayName: z.string(),
-  reactorAvatarUrl: z.string().nullable(),
-  videoUrl: z.string(),
-  thumbnailUrl: z.string().nullable(),
-  createdAt: z.string(),
-});
-export type CampaignReactionItem = z.infer<typeof CampaignReactionItemSchema>;
-
-export const CampaignReactionsResponseSchema = z.object({
-  workspaceId: z.string(),
-  total: z.number(),
-  reactions: z.array(CampaignReactionItemSchema),
-});
-export type CampaignReactionsResponse = z.infer<typeof CampaignReactionsResponseSchema>;
-
-// ─── API calls ──────────────────────────────────────────────────────────────
-
-/** Returns the active owner membership. Throws 404 if the user has no workspace. */
-export async function getMyBusinesses(): Promise<BusinessWorkspace[]> {
-  const res = await api.get<BusinessWorkspace[]>('/businesses/mine');
-  return res.data;
+// Compatibility for the original Studio screen. Keep its presentation intact
+// while using the current, validated owner endpoints and consent enforcement.
+export async function getMyBusinesses() {
+  const rows = await getBusinessWorkspaces();
+  return rows.map((row, index) => studio.StudioWorkspaceSchema.parse({ ...row, isActive: index === 0 }));
 }
 
-/** Public profile by handle (consumer-safe). */
-export async function getBusinessByHandle(handle: string): Promise<BusinessWorkspace> {
-  const res = await api.get<BusinessWorkspace>(`/businesses/${handle}`);
-  return res.data;
+export async function getCampaigns(workspaceId: string) {
+  const rows = await getBusinessCampaigns(workspaceId);
+  return rows.map((row) => studio.StudioCampaignSchema.parse({ ...row, isReplayable: row.replayable }));
 }
 
-/** Studio overview: active/latest campaign + aggregate delivery counts. */
-export async function getStudioOverview(workspaceId: string): Promise<StudioOverview> {
-  const res = await api.get<StudioOverview>(`/businesses/${workspaceId}/overview`);
-  return res.data;
+export async function getStudioOverview(workspaceId: string) {
+  const [workspaces, overview, campaigns] = await Promise.all([
+    getMyBusinesses(), getBusinessOverview(workspaceId), getCampaigns(workspaceId),
+  ]);
+  const workspace = workspaces.find((row) => row.id === workspaceId);
+  if (!workspace) throw new Error('Workspace is not available for this account.');
+  const latest = overview.activeCampaign ?? [...campaigns].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+  return studio.StudioOverviewSchema.parse({
+    workspace,
+    latestCampaign: latest ? { ...latest, isReplayable: latest.replayable } : null,
+    deliveryCounts: latest?.counts ?? null,
+  });
 }
 
-/** Follow a workspace (idempotent). */
-export async function followBusiness(workspaceId: string): Promise<void> {
-  await api.post(`/businesses/${workspaceId}/follow`);
+export async function getMetrics(workspaceId: string) {
+  const rows = await getBusinessCampaigns(workspaceId);
+  const campaigns = rows.map((row) => ({
+    campaignId: row.id, title: row.title, state: row.state, publishedAt: row.publishedAt,
+    queued: row.counts.queued, delivered: row.counts.delivered, failed: row.counts.failed,
+    opened: row.counts.opened, viewed: row.counts.viewed,
+    engagementRate: row.metrics.viewRate, deliveryRate: row.metrics.deliveryRate,
+  }));
+  const sum = (key: 'delivered' | 'opened' | 'viewed') => campaigns.reduce((total, row) => total + row[key], 0);
+  const totalDelivered = sum('delivered');
+  const totalViewed = sum('viewed');
+  return studio.MetricsResponseSchema.parse({
+    workspaceId, totalCampaigns: campaigns.length, totalDelivered, totalOpened: sum('opened'), totalViewed,
+    avgEngagementRate: totalDelivered ? Math.min(100, totalViewed / totalDelivered * 100) : 0,
+    campaigns,
+  });
 }
 
-/** Unfollow a workspace (idempotent). */
-export async function unfollowBusiness(workspaceId: string): Promise<void> {
-  await api.delete(`/businesses/${workspaceId}/follow`);
+export async function getCampaignReactions(workspaceId: string) {
+  const campaigns = await getBusinessCampaigns(workspaceId);
+  const groups = await Promise.all(campaigns.map(async (campaign) => {
+    const rows = await getOwnerReactions(workspaceId, campaign.id, false);
+    return rows.map((row) => ({
+      ...row, campaignTitle: campaign.title, campaignMediaUrl: campaign.mediaUrl, campaignMediaType: campaign.mediaType,
+      reactorId: row.reactorId, reactorDisplayName: row.actor.displayName, reactorAvatarUrl: row.actor.avatarUrl,
+    }));
+  }));
+  const reactions = groups.flat().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return studio.CampaignReactionsResponseSchema.parse({ workspaceId, total: reactions.length, reactions });
 }
 
-/** List campaigns for a workspace. */
-export async function getCampaigns(workspaceId: string): Promise<Campaign[]> {
-  const res = await api.get<Campaign[]>(`/businesses/${workspaceId}/campaigns`);
-  return res.data;
+export async function getPinnedReactions(workspaceId: string) {
+  const { reactions } = await getCampaignReactions(workspaceId);
+  return studio.PinnedReactionsResponseSchema.parse({
+    workspaceId, pinned: reactions.filter((row) => row.isPinned && row.consentToFeature),
+  });
 }
 
-/** Public list of live/closed campaigns — accessible to all authenticated users. */
-export async function getPublicCampaigns(workspaceId: string): Promise<Campaign[]> {
-  const res = await api.get<Campaign[]>(`/businesses/${workspaceId}/campaigns/public`);
-  return res.data;
+async function setStudioReactionPin(workspaceId: string, reactionId: string, pinned: boolean) {
+  const { reactions } = await getCampaignReactions(workspaceId);
+  const reaction = reactions.find((row) => row.id === reactionId);
+  if (!reaction) throw new Error('Reaction is not available for this workspace.');
+  return setReactionPin(workspaceId, reaction.campaignId, reaction.id, pinned);
 }
-
-/** Public campaigns fetched directly by handle — no workspaceId needed. */
-export async function getCampaignsByHandle(handle: string): Promise<Campaign[]> {
-  const res = await api.get<Campaign[]>(`/businesses/by-handle/${handle}/campaigns`);
-  return res.data;
-}
-
-/** Delete a campaign (draft or failed only). */
-export async function deleteCampaign(workspaceId: string, campaignId: string): Promise<void> {
-  await api.delete(`/businesses/${workspaceId}/campaigns/${campaignId}`);
-}
-
-/** Get single campaign detail. */
-export async function getCampaign(workspaceId: string, campaignId: string): Promise<Campaign> {
-  const res = await api.get<Campaign>(`/businesses/${workspaceId}/campaigns/${campaignId}`);
-  return res.data;
-}
-
-/** Create a campaign draft. */
-export async function createCampaign(
-  workspaceId: string,
-  input: CreateCampaignInput,
-): Promise<Campaign> {
-  const res = await api.post<Campaign>(`/businesses/${workspaceId}/campaigns`, input);
-  return res.data;
-}
-
-/** Update a draft campaign. */
-export async function updateCampaign(
-  workspaceId: string,
-  campaignId: string,
-  input: Partial<CreateCampaignInput>,
-): Promise<Campaign> {
-  const res = await api.patch<Campaign>(
-    `/businesses/${workspaceId}/campaigns/${campaignId}`,
-    input,
-  );
-  return res.data;
-}
-
-/**
- * Publish a campaign. The backend confirms live state asynchronously.
- * The client must poll getCampaign until state === 'live' | 'failed'.
- */
-export async function publishCampaign(workspaceId: string, campaignId: string): Promise<void> {
-  await api.post(`/businesses/${workspaceId}/campaigns/${campaignId}/publish`);
-}
-
-/** Workspace metrics: per-campaign breakdown + aggregate totals. R5.1 */
-export async function getMetrics(workspaceId: string): Promise<MetricsResponse> {
-  const res = await api.get<MetricsResponse>(`/businesses/${workspaceId}/metrics`);
-  return res.data;
-}
-
-/** Mark a campaign delivery as opened or viewed (followers only). */
-export async function markCampaignDelivery(
-  workspaceId: string,
-  campaignId: string,
-  status: 'opened' | 'viewed',
-): Promise<void> {
-  await api.patch(`/businesses/${workspaceId}/campaigns/${campaignId}/delivery`, { status });
-}
-
-/** Check follow status for the current user. */
-export async function getFollowStatus(workspaceId: string): Promise<{ isFollowing: boolean; followedAt: string | null }> {
-  const res = await api.get(`/businesses/${workspaceId}/follow`);
-  return res.data;
-}
-
-export async function getFollowStatusByHandle(handle: string): Promise<{ isFollowing: boolean; followedAt: string | null }> {
-  const res = await api.get(`/businesses/by-handle/${handle}/follow-status`);
-  return res.data;
-}
-
-/** Get all campaign reaction videos for a workspace. */
-export async function getCampaignReactions(workspaceId: string): Promise<CampaignReactionsResponse> {
-  const res = await api.get<CampaignReactionsResponse>(`/businesses/${workspaceId}/reactions`);
-  return res.data;
-}
-
-/** Get reactions directly by handle — no workspaceId needed. */
-export async function getCampaignReactionsByHandle(handle: string): Promise<CampaignReactionsResponse> {
-  const res = await api.get<CampaignReactionsResponse>(`/businesses/by-handle/${handle}/reactions`);
-  return res.data;
-}
-
-/** Submit a reaction video to a campaign (followers only). */
-export async function submitCampaignReaction(
-  workspaceId: string,
-  input: { campaignId: string; videoUrl: string; thumbnailUrl?: string },
-): Promise<void> {
-  await api.post(`/businesses/${workspaceId}/reactions`, input);
-}
-
-// ─── Pinned reactions ────────────────────────────────────────────────────────
-
-export const PinnedReactionItemSchema = z.object({
-  id: z.string(),
-  campaignId: z.string(),
-  campaignTitle: z.string(),
-  campaignMediaUrl: z.string().nullable(),
-  campaignMediaType: z.enum(['image', 'video']).default('image'),
-  reactorId: z.string(),
-  reactorDisplayName: z.string(),
-  reactorAvatarUrl: z.string().nullable(),
-  videoUrl: z.string(),
-  thumbnailUrl: z.string().nullable(),
-  pinnedOrder: z.number(),
-  createdAt: z.string(),
-});
-export type PinnedReactionItem = z.infer<typeof PinnedReactionItemSchema>;
-
-export const PinnedReactionsResponseSchema = z.object({
-  workspaceId: z.string(),
-  pinned: z.array(PinnedReactionItemSchema),
-});
-export type PinnedReactionsResponse = z.infer<typeof PinnedReactionsResponseSchema>;
-
-/** Get pinned (featured) reactions by workspace ID. */
-export async function getPinnedReactions(workspaceId: string): Promise<PinnedReactionsResponse> {
-  const res = await api.get<PinnedReactionsResponse>(`/businesses/${workspaceId}/reactions/pinned`);
-  return res.data;
-}
-
-/** Get pinned reactions by business handle (public). */
-export async function getPinnedReactionsByHandle(handle: string): Promise<PinnedReactionsResponse> {
-  const res = await api.get<PinnedReactionsResponse>(`/businesses/by-handle/${handle}/reactions/pinned`);
-  return res.data;
-}
-
-/** Pin a reaction (owner-only). */
-export async function pinReaction(workspaceId: string, reactionId: string): Promise<void> {
-  await api.post(`/businesses/${workspaceId}/reactions/${reactionId}/pin`);
-}
-
-/** Unpin a reaction (owner-only). */
-export async function unpinReaction(workspaceId: string, reactionId: string): Promise<void> {
-  await api.delete(`/businesses/${workspaceId}/reactions/${reactionId}/pin`);
-}
-
-/**
- * Follow a business by username/handle.
- * Resolves the workspaceId internally — use this when you only have the user's username.
- */
-export async function followBusinessByHandle(handle: string): Promise<void> {
-  const workspace = await getBusinessByHandle(handle);
-  await followBusiness(workspace.id);
-}
-
-/**
- * Unfollow a business by username/handle.
- */
-export async function unfollowBusinessByHandle(handle: string): Promise<void> {
-  const workspace = await getBusinessByHandle(handle);
-  await unfollowBusiness(workspace.id);
+export const pinReaction = (workspaceId: string, reactionId: string) => setStudioReactionPin(workspaceId, reactionId, true);
+export const unpinReaction = (workspaceId: string, reactionId: string) => setStudioReactionPin(workspaceId, reactionId, false);
+export const publishCampaign = publishBusinessCampaign;
+export const deleteCampaign = deleteBusinessCampaign;
+export async function getCampaignsByHandle(handle: string) {
+  const workspace = await getBusinessProfile(handle);
+  return getPublicCampaigns(workspace.id);
 }

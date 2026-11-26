@@ -1,37 +1,52 @@
 import { router } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import { cacheMedia } from './mediaCache';
+import { getSessionGeneration } from './session';
+import type { PublicCampaign, PublicCampaignReaction } from './api/schemas/business.schema';
+
+export function openBusinessStudio() { router.push('/(modals)/business-studio'); }
+export function openMyCampaignReactions() { router.push('/(modals)/my-campaign-reactions'); }
+export function openBusinessProfile(params: { handle: string; campaignId?: string }) {
+  router.push({ pathname: '/(modals)/business-profile', params });
+}
+export function openPublicCampaignReaction(params: { handle: string; reaction: PublicCampaignReaction; campaign?: PublicCampaign }) {
+  router.push({ pathname: '/(modals)/campaign-reaction-full', params: {
+    reactionVideoUri: params.reaction.videoUrl, reactorName: params.reaction.actor.displayName,
+    campaignMediaUri: params.campaign?.mediaUrl ?? '', campaignTitle: params.campaign?.title ?? '',
+    isVideo: params.campaign ? String(params.campaign.mediaType === 'video') : undefined,
+    handle: params.handle, campaignId: params.reaction.campaignId,
+  } });
+}
+export function openCampaignComposer(params: { workspaceId: string; campaignId?: string }) {
+  router.push({ pathname: '/(modals)/campaign-composer', params });
+}
+export function openCampaignDashboard(params: { workspaceId: string; campaignId: string }) {
+  router.push({ pathname: '/(modals)/campaign-dashboard', params });
+}
+export function openCampaignViewer(params: { workspaceId: string; campaignId: string; handle: string }) {
+  router.push({ pathname: '/(modals)/campaign-viewer', params });
+}
+export function openCampaignReactionComposer(params: { workspaceId: string; campaignId: string }) {
+  router.push({ pathname: '/(modals)/campaign-react', params });
+}
+export function openBusinessReaction({ owner, ...params }: { workspaceId: string; campaignId: string; reactionId: string; owner?: boolean }) {
+  router.push({ pathname: '/(modals)/business-reaction', params: { ...params, owner: owner ? 'true' : 'false' } });
+}
 
 // ── Camera Preview ───────────────────────────────────────────────────
 interface CameraPreviewParams {
   imageUri: string;
   isVideo?: boolean;
   fromGallery?: boolean;
-  mode?: 'campaign';
 }
 
-export function openCameraPreview({ imageUri, isVideo, fromGallery, mode }: CameraPreviewParams) {
+export function openCameraPreview({ imageUri, isVideo, fromGallery }: CameraPreviewParams) {
   router.push({
     pathname: '/(modals)/camera-preview',
     params: {
       imageUri,
       ...(isVideo && { isVideo: 'true' }),
       ...(fromGallery && { fromGallery: 'true' }),
-      ...(mode && { mode }),
-    },
-  });
-}
-
-/**
- * Opens the camera preview in campaign mode.
- * After recording, the user is taken to the campaign-composer instead of send-gasp.
- */
-export function openCampaignCameraPreview({ imageUri, isVideo }: { imageUri: string; isVideo?: boolean }) {
-  router.push({
-    pathname: '/(modals)/camera-preview',
-    params: {
-      imageUri,
-      ...(isVideo && { isVideo: 'true' }),
-      mode: 'campaign',
     },
   });
 }
@@ -67,6 +82,7 @@ interface GaspViewerParams {
 }
 
 export async function openGaspViewer(params: GaspViewerParams): Promise<void> {
+  const generation = getSessionGeneration();
   const { imageUri, senderName, mediaType, blurhash, gaspId, conversationId, messageId, textOverlay } = params;
 
   if (!imageUri) return;
@@ -84,6 +100,9 @@ export async function openGaspViewer(params: GaspViewerParams): Promise<void> {
   } catch {
     // Fallback to remote URL
   }
+
+  // A completed download must not reopen the previous account's viewer.
+  if (generation !== getSessionGeneration() || !localUri) return;
 
   router.push({
     pathname: '/(modals)/view-gasp',
@@ -133,32 +152,6 @@ export function openFriendProfile({ userId, displayName, avatarUrl }: FriendProf
   });
 }
 
-// ── Business Profile ──────────────────────────────────────────────────
-export function openBusinessProfile({ userId, displayName, avatarUrl, username }: FriendProfileParams & { username?: string }) {
-  router.push({
-    pathname: '/(modals)/business-profile',
-    params: { userId, displayName, avatarUrl: avatarUrl ?? '', ...(username && { workspaceHandle: username }) },
-  });
-}
-
-/**
- * Opens the correct profile modal based on the user's accountType.
- * business → business-profile, personal → friend-profile
- */
-export function openProfile({
-  userId,
-  displayName,
-  avatarUrl,
-  accountType,
-  username,
-}: FriendProfileParams & { accountType?: string; username?: string }) {
-  if (accountType === 'business') {
-    openBusinessProfile({ userId, displayName, avatarUrl, username });
-  } else {
-    openFriendProfile({ userId, displayName, avatarUrl });
-  }
-}
-
 // ── Reaction Result ──────────────────────────────────────────────────
 interface ReactionResultParams {
   reactionVideoUri: string;
@@ -173,4 +166,59 @@ export function openReactionResult({ reactionVideoUri, originalImageUri, senderN
     pathname: '/(modals)/reaction-result',
     params: { reactionVideoUri, originalImageUri, senderName, gaspId, originalMediaType: originalMediaType ?? 'image' },
   });
+}
+
+interface ReactionContinuationParams {
+  reactionId: string;
+  conversationId?: string | null;
+  messageId?: string | null;
+  gaspId: string;
+  reactionVideoUri?: string;
+  originalImageUri?: string;
+  senderName?: string;
+  originalMediaType?: 'image' | 'video';
+}
+
+export function openReactionContinuation({
+  reactionId,
+  conversationId,
+  messageId,
+  gaspId,
+  reactionVideoUri,
+  originalImageUri,
+  senderName,
+  originalMediaType,
+}: ReactionContinuationParams): 'chat' | 'reaction' | 'none' {
+  if (conversationId) {
+    router.push({
+      pathname: '/chat/[id]',
+      params: {
+        id: conversationId,
+        ...(messageId && { highlightMessageId: messageId }),
+      },
+    });
+    return 'chat';
+  }
+
+  const context = { reactionId, gaspId };
+  if (reactionVideoUri && originalImageUri && senderName) {
+    Sentry.captureMessage('openReactionContinuation: missing conversation context', {
+      level: 'warning',
+      extra: context,
+    });
+    openReactionResult({
+      reactionVideoUri,
+      originalImageUri,
+      senderName,
+      gaspId,
+      originalMediaType,
+    });
+    return 'reaction';
+  }
+
+  Sentry.captureMessage('openReactionContinuation: missing navigation context', {
+    level: 'warning',
+    extra: context,
+  });
+  return 'none';
 }

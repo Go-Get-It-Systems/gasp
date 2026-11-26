@@ -47,7 +47,3 @@ app-example
 # generated native folders
 /ios
 /android
-
-# E2E test secrets and binary assets
-e2e/config/.env.test
-e2e/test-assets/

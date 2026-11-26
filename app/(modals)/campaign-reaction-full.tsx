@@ -20,6 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReactionComposite } from '@/components/gasp/ReactionComposite';
 import { Text } from '@/components/ui/Text';
 import { getCampaignsByHandle } from '@/services/api/business';
+import { queryKeys } from '@/services/queryKeys';
+import { useBusinessActor } from '@/hooks/queries/useBusiness';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FRAME_HEIGHT = SCREEN_WIDTH * 1.54;
@@ -28,6 +30,7 @@ const ORIGINAL_FLEX = 55;
 
 export default function CampaignReactionFullScreen() {
   const insets = useSafeAreaInsets();
+  const actor = useBusinessActor();
 
   const {
     reactionVideoUri,
@@ -50,9 +53,9 @@ export default function CampaignReactionFullScreen() {
   // If campaignMediaUri is missing but we have handle + campaignId, fetch it
   const needsFetch = !campaignMediaUri && !!handle && !!campaignId;
   const { data: campaigns, isLoading: loadingCampaign } = useQuery({
-    queryKey: ['campaigns-by-handle', handle],
+    queryKey: queryKeys.business.campaignsByHandle(actor, handle ?? ''),
     queryFn: () => getCampaignsByHandle(handle!),
-    enabled: needsFetch,
+    enabled: !!actor && needsFetch,
     staleTime: 60_000,
   });
 

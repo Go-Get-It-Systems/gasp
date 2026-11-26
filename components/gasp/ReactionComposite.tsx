@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { PrivateImage as ExpoImage } from '@/components/ui/PrivateImage';
+import { VideoView } from 'expo-video';
+import { usePrivateVideoPlayer as useVideoPlayer } from '@/hooks/usePrivateVideoPlayer';
 import { InlineVideo } from '@/components/ui/InlineVideo';
 import { Text } from '@/components/ui/Text';
 

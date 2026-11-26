@@ -1,20 +1,22 @@
 import { useCallback, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';import { useState } from 'react';
-import { Image } from 'expo-image';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { StyleSheet, View } from 'react-native';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
+import { VideoView } from 'expo-video';
+import { usePrivateVideoPlayer as useVideoPlayer } from '@/hooks/usePrivateVideoPlayer';
 import * as Sentry from '@sentry/react-native';
-import { Text } from '@/components/ui/Text';
 import { parseTextOverlay, TextOverlayRenderer } from './TextOverlayRenderer';
-import { GaspTimer } from './GaspTimer';
-import Animated, {
-  useAnimatedStyle,
+import { CircleReveal } from './CircleReveal';
+import { HoldIntro } from './HoldIntro';
+import { RecordingHud } from './RecordingHud';
+import { COUNTDOWN_RING_SIZE } from './RecordingCountdown';
+import {
   useAnimatedReaction,
   runOnJS,
-  interpolate,
   type SharedValue,
 } from 'react-native-reanimated';
 import { colors } from '@/constants/colors';
 import { getCachedUri } from '@/services/mediaCache';
+import { traceFlow } from '@/services/flowTrace';
 import type { GaspMediaType } from '@/services/api/schemas/gasp.schema';
 
 
@@ -28,11 +30,15 @@ interface HoldToViewProps {
   isHolding: SharedValue<number>;
   holdProgress: SharedValue<number>;
   isRevealed: SharedValue<number>;
+  /** Where the finger landed; the gasp opens in a circle from this point. */
+  touchX: SharedValue<number>;
+  touchY: SharedValue<number>;
+  /** Gasp length in seconds, shown before holding (null while a video loads). */
+  durationS?: number | null;
   onVideoLoad?: (durationMs: number) => void;
-  /** When true, mutes/pauses the video player to free AVCapture for reaction recording */
+  /** Reaction recording state, for the REC indicator. */
   isRecording?: boolean;
-  /** Callback ref — call to stop video and free AVCapture session */
-  onStopVideoRef?: React.MutableRefObject<(() => void) | null>;
+  recordingStartedAt?: number | null;
 }
 
 export function HoldToView({
@@ -44,9 +50,12 @@ export function HoldToView({
   isHolding,
   holdProgress,
   isRevealed,
+  touchX,
+  touchY,
+  durationS,
   onVideoLoad,
   isRecording = false,
-  onStopVideoRef,
+  recordingStartedAt = null,
 }: HoldToViewProps) {
   const isVideo = mediaType === 'video';
   const textOverlay = textOverlayJson ? parseTextOverlay(textOverlayJson) : null;
@@ -94,7 +103,8 @@ export function HoldToView({
       }
     };
 
-    const sub = videoPlayer.addListener('statusChange', ({ status }: { status: string }) => {
+    const sub = videoPlayer.addListener('statusChange', ({ status, error }: { status: string; error?: { message: string } }) => {
+      traceFlow('video-status', { status, error: error?.message });
       if (status === 'readyToPlay') handleReady();
     });
     if (videoPlayer.status === 'readyToPlay') handleReady();
@@ -106,42 +116,19 @@ export function HoldToView({
     };
   }, [isVideo, videoPlayer, onVideoLoad]);
 
+  // The gasp video plays (with sound) while the reaction is recorded. This
+  // relies on patches/expo-video+*.patch: stock expo-video switches
+  // AVAudioSession to .playback on play, which would cut the recording's mic.
   const startVideo = useCallback(() => {
     if (!isVideo) return;
     try {
       videoPlayer.currentTime = 0;
       videoPlayer.play();
+      traceFlow('video-play', { muted: videoPlayer.muted, volume: videoPlayer.volume });
     } catch (e) {
       Sentry.captureException(e, { extra: { context: 'HoldToView.startVideo' } });
     }
   }, [videoPlayer, isVideo]);
-
-  // Expose stop function via ref so parent can stop video before recording starts
-  const [isVideoStopped, setIsVideoStopped] = useState(false);
-  useEffect(() => {
-    if (onStopVideoRef) {
-      onStopVideoRef.current = () => {
-        try { videoPlayer.pause(); } catch {}
-        setIsVideoStopped(true);
-      };
-    }
-    return () => {
-      if (onStopVideoRef) onStopVideoRef.current = null;
-    };
-  }, [videoPlayer, onStopVideoRef]);
-
-  // Pause video during reaction recording to free AVCapture session
-  useEffect(() => {
-    if (!isVideo) return;
-    if (isRecording) {
-      try { videoPlayer.pause(); } catch {}
-    } else {
-      // Resume only if revealed
-      if (isRevealed.get() === 1) {
-        try { videoPlayer.play(); } catch {}
-      }
-    }
-  }, [isRecording, isVideo, videoPlayer, isRevealed]);
 
   const pauseVideo = useCallback(() => {
     if (!isVideo) return;
@@ -155,32 +142,14 @@ export function HoldToView({
   useAnimatedReaction(
     () => isRevealed.get(),
     (current, previous) => {
-      if (current === 1 && previous !== 1) {
+      // Start as soon as the circle begins to open, not when it finishes.
+      if (current > 0 && (previous ?? 0) === 0) {
         runOnJS(startVideo)();
       } else if (current === 0 && previous !== 0) {
         runOnJS(pauseVideo)();
       }
     },
   );
-
-  // Media opacity: fade in when isRevealed transitions to 1
-  const imageStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(isRevealed.get(), [0, 1], [0, 1]),
-  }));
-
-  // Instruction overlay: hide as soon as user starts holding (isHolding),
-  // so the countdown is visible without the "HOLD TO VIEW" text in the way
-  const instructionStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(isHolding.get(), [0, 1], [1, 0]),
-    transform: [
-      { scale: interpolate(isHolding.get(), [0, 1], [1, 0.9]) },
-    ],
-  }));
-
-  // Ring timer: visible once revealed (recording in progress)
-  const timerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(isRevealed.get(), [0, 1], [0, 1]),
-  }));
 
   return (
     <View style={styles.container}>
@@ -209,42 +178,49 @@ export function HoldToView({
         </>
       )}
 
-      {/* Revealed media (visible on hold) */}
-      <Animated.View style={[styles.revealedContainer, imageStyle]}>
-        {isVideo && videoPlayer && !isVideoStopped ? (
+      {/* Revealed media: opens through a circle that grows from the finger */}
+      <CircleReveal progress={isRevealed} originX={touchX} originY={touchY}
+        startRadius={COUNTDOWN_RING_SIZE / 2}>
+        {isVideo && videoPlayer ? (
           <VideoView
             player={videoPlayer}
             style={styles.revealedImage}
             contentFit="contain"
             nativeControls={false}
+            // Android: a TextureView is clipped by the reveal circle; the
+            // default SurfaceView would draw over it. Ignored on iOS.
+            surfaceType="textureView"
           />
         ) : (
-          <Image
-            source={{ uri: resolvedUri }}
-            style={styles.revealedImage}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            transition={200}
-          />
+          <>
+            {/* Full image (contain) over a blurred fill of itself, so photos
+                that don't match the screen ratio don't get black bars. */}
+            <Image
+              source={{ uri: resolvedUri }}
+              style={styles.revealedImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              blurRadius={40}
+            />
+            <Image
+              source={{ uri: resolvedUri }}
+              style={styles.revealedImage}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+          </>
         )}
         {textOverlay && <TextOverlayRenderer data={textOverlay} />}
-      </Animated.View>
+      </CircleReveal>
 
-      {/* Hold instruction overlay */}
-      <Animated.View style={[styles.instructionOverlay, instructionStyle]}>
-        <GaspTimer progress={holdProgress} size={100} strokeWidth={3} />
-        <Text variant="subtitle" style={styles.senderName}>
-          {senderName}
-        </Text>
-        <Text variant="caption" style={styles.instruction}>
-          {'TAP TO VIEW'}
-        </Text>
-      </Animated.View>
+      {/* Before holding: who sent it, where to hold, camera notice */}
+      <HoldIntro senderName={senderName} mediaType={mediaType} durationS={durationS}
+        isHolding={isHolding} isRevealed={isRevealed} />
 
-      {/* Timer during hold */}
-      <Animated.View style={[styles.timerContainer, timerStyle]}>
-        <GaspTimer progress={holdProgress} size={60} strokeWidth={3} />
-      </Animated.View>
+      {/* While open and recording: one HUD (progress bar + REC timer) */}
+      <RecordingHud progress={holdProgress} isRevealed={isRevealed} isHolding={isHolding}
+        isRecording={isRecording} recordingStartedAt={recordingStartedAt} />
     </View>
   );
 }
@@ -261,33 +237,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
   },
-  revealedContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
   revealedImage: {
     ...StyleSheet.absoluteFillObject,
-  },
-  instructionOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    gap: 16,
-  },
-  senderName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  instruction: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
-    letterSpacing: 3,
-  },
-  timerContainer: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
   },
 });

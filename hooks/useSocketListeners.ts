@@ -4,6 +4,7 @@ import type { Conversation, Message } from '@/services/api/schemas/chat.schema';
 import { ApiReactionSchema, normalizeReaction, type Gasp } from '@/services/api/schemas/gasp.schema';
 import { validateResponse } from '@/services/api/schemas/common.schema';
 import { queryKeys } from '@/services/queryKeys';
+import { invalidateSocialPulseReactionCaches } from '@/services/socialPulseCache';
 import {
     getSocket,
     onChatConversationUpdated,
@@ -21,7 +22,8 @@ import {
     onPresenceUserOnline,
 } from '@/services/socket';
 import type { NotificationEvent } from '@/services/socket';
-import { resolveNotificationRoute } from '@/services/notificationRouting';
+import type { CampaignInboxItem } from '@/services/api/schemas/business.schema';
+import { resolveNotificationRoute, resolveBusinessNotificationRoute } from '@/services/notificationRouting';
 import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useGaspStore } from '@/stores/gaspStore';
@@ -46,6 +48,14 @@ export function useSocketListeners() {
     // ── Gasp events → React Query cache ─────────────────────────
     cleanups.push(
       onGaspReceived(({ gasp }) => {
+        if (gasp.campaignId) {
+          const actor = useAuthStore.getState().user?.id;
+          if (actor !== gasp.recipientId) return;
+          if (actor) void queryClient.invalidateQueries({ queryKey: queryKeys.business.inbox(actor) });
+          // The matching stable notification event supplies the business handle/route.
+          // Never insert campaign content or show a personal GASP toast.
+          return;
+        }
         const pendingGasps = queryClient.getQueryData<Gasp[]>(queryKeys.gasps.pending) ?? [];
         if (pendingGasps.some((existing) => existing.id === gasp.id)) return;
 
@@ -98,6 +108,7 @@ export function useSocketListeners() {
         };
 
         useGaspStore.getState().addReaction(normalizedReaction);
+        void invalidateSocialPulseReactionCaches(queryClient);
         useNotificationStore.getState().enqueueToast({
           id: normalizedReaction.id,
           kind: 'gasp.reaction_received',
@@ -124,6 +135,12 @@ export function useSocketListeners() {
         const activeConversationId = useChatStore.getState().activeConversationId;
         if (event.kind === 'message.new' && event.conversationId === activeConversationId) return;
 
+        if (event.kind === 'gasp.received' && resolveBusinessNotificationRoute(event.route)) {
+          const actor = useAuthStore.getState().user?.id;
+          if (actor !== event.recipientId) return;
+          if (actor) void queryClient.invalidateQueries({ queryKey: queryKeys.business.inbox(actor) });
+        }
+
         useNotificationStore.getState().enqueueToast(toastFromNotificationEvent(event));
 
         if (event.kind === 'message.new') {
@@ -142,6 +159,13 @@ export function useSocketListeners() {
 
     cleanups.push(
       onGaspExpired(({ gaspId }) => {
+        const actor = useAuthStore.getState().user?.id;
+        if (actor) {
+          const key = queryKeys.business.inbox(actor);
+          if (queryClient.getQueryData<CampaignInboxItem[]>(key)?.some((item) => item.id === gaspId)) {
+            queryClient.setQueryData<CampaignInboxItem[]>(key, (old) => old?.filter((item) => item.id !== gaspId));
+          }
+        }
         queryClient.setQueryData<Gasp[]>(queryKeys.gasps.pending, (old) =>
           old?.filter((g) => g.id !== gaspId) ?? [],
         );
