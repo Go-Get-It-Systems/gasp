@@ -110,3 +110,9 @@ Status: `aberto`, `decisão pendente`, `em andamento`, `feito (PR)`.
 - **Evidência:** E2E de 26/11/2026, `docs/e2e/2026-11-26/report.md`, `physical-trace.log` e `physical-audio-retest.log`. Ambas as reações entregues; primeira rota não instrumentada. Não atribuir causa a AirPods, commit ou autor sem reproduzir.
 - **Onde:** sessão/rota de áudio nativa, `components/gasp/HoldToView.tsx` e `patches/expo-video+3.0.16.patch`. Comparar saída do telefone e AirPods explicitamente antes de alterar código.
 - **Conclusão:** usuário confirmou depois que a validação com AirPods também estava correta. Pendência encerrada com base nessa confirmação; causa da primeira tentativa inaudível não isolada e nenhum conserto de código foi alegado.
+
+## B-010 · Reconexão perde ouvintes ao voltar ao app
+- **Prioridade:** P2 · **Área:** app · **Status:** em andamento
+- **Contexto:** o ciclo de segundo plano removia os ouvintes e recriava o socket sem mudar o estado de autenticação observado pelos hooks. A faixa de conexão também só escutava a instância existente ao montar; chamadas simultâneas de conexão podiam criar sockets paralelos. Isso pode interromper atualizações em tempo real mesmo após reconectar.
+- **Evidência:** em 26/11/2026, dois testes novos reproduziram criação duplicada durante conexão pendente e descarte do ouvinte na instância errada. Após o ajuste, sete testes direcionados, 598 testes completos, tipos e lint passaram (51 avisos preexistentes). Reteste físico de segundo plano ainda pendente; não atribuir os timeouts/TLS de B-008 a este defeito.
+- **Onde:** `services/socket.ts`, `hooks/useConnectionStatus.ts`, `app/_layout.tsx`. A integração preserva ouvintes durante suspensão, reutiliza o socket da mesma sessão, acompanha o estado atual e descarta conexões ao trocar de sessão. Sem publicação em produção.

@@ -16,7 +16,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSocketListeners } from "@/hooks/useSocketListeners";
 import { queryClient } from "@/lib/queryClient";
 import { initCache } from "@/services/mediaCache";
-import { connectSocket, disconnectSocket, sendNotificationAppState } from "@/services/socket";
+import { connectSocket, suspendSocket, sendNotificationAppState } from "@/services/socket";
 import { processQueue } from "@/services/uploadQueue";
 import { useAuthStore } from "@/stores/authStore";
 import { useChatStore } from "@/stores/chatStore";
@@ -104,12 +104,12 @@ function RootContent() {
         emitNotificationState(nextState === 'active' ? 'active' : nextState === 'inactive' ? 'inactive' : 'background');
       }
 
-      if (prev === 'active' && nextState === 'background' && token) {
-        disconnectSocket();
+      if (prev !== 'background' && nextState === 'background' && token) {
+        suspendSocket();
         if (__DEV__) console.tronLog?.log('AppState | background → socket disconnected');
       }
 
-      if (prev === 'background' && nextState === 'active' && token) {
+      if (prev !== 'active' && nextState === 'active' && token) {
         connectSocket(token);
         emitNotificationState('active');
         if (__DEV__) console.tronLog?.log('AppState | foreground → socket reconnected');

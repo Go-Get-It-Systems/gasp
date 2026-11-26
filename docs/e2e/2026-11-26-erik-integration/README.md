@@ -86,6 +86,14 @@ deploy; os logs mostraram desconexões/reconexões. Três consultas seguintes
 à saúde retornaram 200, assim como a caixa de entrada. Causa ainda não
 isolada; não afirmar que o servidor reiniciou ou que houve correção.
 
+Investigação seguinte encontrou defeito independente de ciclo de vida do
+socket, registrado em B-010. Corrigido na branch de integração: suspensão
+preserva ouvintes, conexão pendente é reutilizada, a faixa acompanha o
+estado atual, e logout mantém descarte completo da sessão. Dois testes
+reproduziram as falhas antes do ajuste; depois passaram sete direcionados,
+598 testes completos, tipos e lint (51 avisos existentes). Isso ainda exige
+reteste de segundo plano no iPhone e não encerra B-008 nem C3/C6.
+
 ## Segurança implantada — verificação pela API
 
 Upload privado: leitura anônima 403; destinatário antes do envio 403;

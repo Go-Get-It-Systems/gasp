@@ -7,6 +7,22 @@ import { assertCurrentSession, getSessionGeneration } from './session';
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 let socket: Socket | null = null;
+let socketGeneration: number | null = null;
+let suspended = false;
+const connectionListeners = new Set<() => void>();
+
+export function getSocketConnectionStatus(): 'idle' | 'connecting' | 'connected' {
+  return !socket ? 'idle' : socket.connected ? 'connected' : 'connecting';
+}
+
+export function subscribeSocketConnection(listener: () => void) {
+  connectionListeners.add(listener);
+  return () => { connectionListeners.delete(listener); };
+}
+
+function notifyConnectionChanged() {
+  connectionListeners.forEach((listener) => listener());
+}
 
 // ── Event buffer ───────────────────────────────────────────────────
 
@@ -30,9 +46,15 @@ function bufferedEmit(event: string, data: unknown) {
 
 export function connectSocket(token: string): Socket {
   const generation = getSessionGeneration();
-  if (socket?.connected) return socket;
+  if (socket && socketGeneration !== generation) disconnectSocket();
+  suspended = false;
+  if (socket) {
+    socket.auth = { token };
+    if (!socket.connected) socket.connect();
+    return socket;
+  }
 
-  socket = io(API_URL, {
+  const current = io(API_URL, {
     auth: { token },
     extraHeaders: { 'ngrok-skip-browser-warning': 'true' },
     transports: ['websocket'],
@@ -42,26 +64,35 @@ export function connectSocket(token: string): Socket {
     reconnectionDelayMax: 10_000,
   });
 
-  socket.on('connect', () => {
+  socket = current;
+  socketGeneration = generation;
+  notifyConnectionChanged();
+
+  current.on('connect', () => {
+    if (socket !== current || generation !== getSessionGeneration()) return;
+    notifyConnectionChanged();
     // Flush buffered events
     while (eventBuffer.length > 0) {
       const item = eventBuffer.shift()!;
-      socket?.emit(item.event, item.data);
+      current.emit(item.event, item.data);
     }
     if (__DEV__) {
-      console.tronLog?.log('socket | connected', { id: socket?.id });
-      console.log('[socket] connected:', socket?.id);
+      console.tronLog?.log('socket | connected', { id: current.id });
+      console.log('[socket] connected:', current.id);
     }
   });
 
-  socket.on('disconnect', (reason) => {
+  current.on('disconnect', (reason) => {
+    if (socket !== current) return;
+    notifyConnectionChanged();
     if (__DEV__) {
       console.tronLog?.warn('socket | disconnected', { reason });
       console.log('[socket] disconnected:', reason);
     }
   });
 
-  socket.on('connect_error', async (err) => {
+  current.on('connect_error', async (err) => {
+    if (socket !== current || generation !== getSessionGeneration() || suspended) return;
     if (__DEV__) {
       console.tronLog?.error('socket | connect_error', { message: err.message });
       console.warn('[socket] connect error:', err.message);
@@ -83,9 +114,9 @@ export function connectSocket(token: string): Socket {
           await setAuthToken(response.token);
           assertCurrentSession(generation);
           setApiToken(response.token);
-          if (socket) {
-            socket.auth = { token: response.token };
-            socket.connect();
+          if (socket === current && !suspended) {
+            current.auth = { token: response.token };
+            current.connect();
           }
         }
       } catch {
@@ -94,16 +125,25 @@ export function connectSocket(token: string): Socket {
     }
   });
 
-  return socket;
+  return current;
+}
+
+/** Pause transport in the background without losing this session's listeners. */
+export function suspendSocket() {
+  suspended = true;
+  socket?.disconnect();
+  notifyConnectionChanged();
 }
 
 export function disconnectSocket() {
   eventBuffer.length = 0;
-  if (socket) {
-    socket.removeAllListeners();
-    socket.disconnect();
-    socket = null;
-  }
+  const previous = socket;
+  socket = null;
+  socketGeneration = null;
+  suspended = false;
+  previous?.removeAllListeners();
+  previous?.disconnect();
+  notifyConnectionChanged();
 }
 
 export function getSocket(): Socket | null {
@@ -112,8 +152,9 @@ export function getSocket(): Socket | null {
 
 /** Subscribes to reconnects without exposing the socket singleton to screens. */
 export function onSocketConnect(handler: () => void) {
-  socket?.on('connect', handler);
-  return () => { socket?.off('connect', handler); };
+  const current = socket;
+  current?.on('connect', handler);
+  return () => { current?.off('connect', handler); };
 }
 
 // ── Notification app-state events ─────────────────────────────────
@@ -246,38 +287,45 @@ export function onChatNewMessage(handler: EventHandler<ChatNewMessage>) {
     if (__DEV__) console.tronLog?.debug('socket ◀ chat:new_message', { conversationId: data.conversationId, messageId: data.message.id });
     handler(data);
   };
-  socket?.on('chat:new_message', wrappedHandler);
-  return () => { socket?.off('chat:new_message', wrappedHandler); };
+  const current = socket;
+  current?.on('chat:new_message', wrappedHandler);
+  return () => { current?.off('chat:new_message', wrappedHandler); };
 }
 
 export function onChatConversationUpdated(handler: EventHandler<ChatConversationUpdated>) {
-  socket?.on('chat:conversation_updated', handler);
-  return () => { socket?.off('chat:conversation_updated', handler); };
+  const current = socket;
+  current?.on('chat:conversation_updated', handler);
+  return () => { current?.off('chat:conversation_updated', handler); };
 }
 
 export function onChatTyping(handler: EventHandler<ChatTyping>) {
-  socket?.on('chat:typing', handler);
-  return () => { socket?.off('chat:typing', handler); };
+  const current = socket;
+  current?.on('chat:typing', handler);
+  return () => { current?.off('chat:typing', handler); };
 }
 
 export function onChatMessageRead(handler: EventHandler<ChatMessageRead>) {
-  socket?.on('chat:message_read', handler);
-  return () => { socket?.off('chat:message_read', handler); };
+  const current = socket;
+  current?.on('chat:message_read', handler);
+  return () => { current?.off('chat:message_read', handler); };
 }
 
 export function onPresenceUserOnline(handler: EventHandler<PresenceStatus>) {
-  socket?.on('presence:user_online', handler);
-  return () => { socket?.off('presence:user_online', handler); };
+  const current = socket;
+  current?.on('presence:user_online', handler);
+  return () => { current?.off('presence:user_online', handler); };
 }
 
 export function onPresenceUserOffline(handler: EventHandler<PresenceStatus>) {
-  socket?.on('presence:user_offline', handler);
-  return () => { socket?.off('presence:user_offline', handler); };
+  const current = socket;
+  current?.on('presence:user_offline', handler);
+  return () => { current?.off('presence:user_offline', handler); };
 }
 
 export function onPresenceBulkStatus(handler: EventHandler<PresenceBulkStatus>) {
-  socket?.on('presence:bulk_status', handler);
-  return () => { socket?.off('presence:bulk_status', handler); };
+  const current = socket;
+  current?.on('presence:bulk_status', handler);
+  return () => { current?.off('presence:bulk_status', handler); };
 }
 
 export function onGaspReceived(handler: EventHandler<GaspReceived>) {
@@ -285,8 +333,9 @@ export function onGaspReceived(handler: EventHandler<GaspReceived>) {
     if (__DEV__) console.tronLog?.log('socket ◀ gasp:received', { gaspId: data.gasp.id, from: data.gasp.senderId });
     handler(data);
   };
-  socket?.on('gasp:received', wrappedHandler);
-  return () => { socket?.off('gasp:received', wrappedHandler); };
+  const current = socket;
+  current?.on('gasp:received', wrappedHandler);
+  return () => { current?.off('gasp:received', wrappedHandler); };
 }
 
 export function onGaspViewed(handler: EventHandler<GaspViewed>) {
@@ -294,8 +343,9 @@ export function onGaspViewed(handler: EventHandler<GaspViewed>) {
     if (__DEV__) console.tronLog?.debug('socket ◀ gasp:viewed', { gaspId: data.gaspId });
     handler(data);
   };
-  socket?.on('gasp:viewed', wrappedHandler);
-  return () => { socket?.off('gasp:viewed', wrappedHandler); };
+  const current = socket;
+  current?.on('gasp:viewed', wrappedHandler);
+  return () => { current?.off('gasp:viewed', wrappedHandler); };
 }
 
 export function onGaspReactionReceived(handler: EventHandler<GaspReactionReceived>) {
@@ -303,8 +353,9 @@ export function onGaspReactionReceived(handler: EventHandler<GaspReactionReceive
     if (__DEV__) console.tronLog?.log('socket ◀ gasp:reaction_received', { gaspId: data.gaspId, reactionId: data.reaction.id });
     handler(data);
   };
-  socket?.on('gasp:reaction_received', wrappedHandler);
-  return () => { socket?.off('gasp:reaction_received', wrappedHandler); };
+  const current = socket;
+  current?.on('gasp:reaction_received', wrappedHandler);
+  return () => { current?.off('gasp:reaction_received', wrappedHandler); };
 }
 
 export function onNotificationEvent(handler: EventHandler<NotificationEvent>) {
@@ -312,13 +363,15 @@ export function onNotificationEvent(handler: EventHandler<NotificationEvent>) {
     if (__DEV__) console.tronLog?.log('socket ◀ notification:event', { kind: data.kind, eventId: data.eventId });
     handler(data);
   };
-  socket?.on('notification:event', wrappedHandler);
-  return () => { socket?.off('notification:event', wrappedHandler); };
+  const current = socket;
+  current?.on('notification:event', wrappedHandler);
+  return () => { current?.off('notification:event', wrappedHandler); };
 }
 
 export function onGaspExpired(handler: EventHandler<GaspExpired>) {
-  socket?.on('gasp:expired', handler);
-  return () => { socket?.off('gasp:expired', handler); };
+  const current = socket;
+  current?.on('gasp:expired', handler);
+  return () => { current?.off('gasp:expired', handler); };
 }
 
 export function onGaspStatusUpdated(handler: EventHandler<GaspStatusUpdated>) {
@@ -326,6 +379,7 @@ export function onGaspStatusUpdated(handler: EventHandler<GaspStatusUpdated>) {
     if (__DEV__) console.tronLog?.debug('socket ◀ gasp:status_updated', { gaspId: data.gaspId, status: data.deliveryStatus });
     handler(data);
   };
-  socket?.on('gasp:status_updated', wrappedHandler);
-  return () => { socket?.off('gasp:status_updated', wrappedHandler); };
+  const current = socket;
+  current?.on('gasp:status_updated', wrappedHandler);
+  return () => { current?.off('gasp:status_updated', wrappedHandler); };
 }
