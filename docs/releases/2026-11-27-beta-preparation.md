@@ -53,14 +53,13 @@ somente os dois participantes indicados pelo responsável, distribuição manual
 e zero builds. A lista nominal permanece no App Store Connect, fora deste Git.
 
 Na conferência de 27/11, os grupos internos antigos `Internal` e `Family`
-possuíam quatro testadores cada e zero builds, mas ambos estavam configurados
-como `Automatic for Xcode Builds`. O grupo novo estar manual não desativa os
-outros: **não enviar o pacote enquanto esse risco de distribuição estiver
-aberto**. A Apple informa na criação que essa configuração não pode ser
-alterada depois. Os grupos antigos não foram removidos nem seus membros
-alterados. Proposta para aprovação: substituí-los por grupos manuais,
-preservando seus membros, e remover os grupos automáticos somente depois da
-conferência da cópia. Não alterar permissões de equipe nem grupos externos.
+recebiam builds automaticamente. Após autorização explícita, foram substituídos
+por `Internal - Manual` e `Family - Manual`, ambos com distribuição manual,
+quatro participantes preservados e zero builds. Os membros foram conferidos
+antes da remoção dos dois grupos automáticos. Nenhum usuário foi removido do
+TestFlight ou da equipe. Os grupos externos Family/Friends ficaram inalterados.
+O risco identificado de distribuição automática pelos grupos internos antigos
+foi resolvido. Conferir novamente os grupos imediatamente antes do envio.
 
 O contrato atualizado da Apple ainda exige aceite pelo Account Holder.
 O responsável informou que já entrou em contato com ele. O botão de contato
@@ -68,8 +67,8 @@ apenas abre um e-mail e não enviou notificação automaticamente.
 
 ## Sequência de liberação (não executada)
 
-1. Confirmar aceite do contrato e resolver os grupos automáticos conforme
-   decisão do responsável; verificar novamente todos os grupos internos.
+1. Confirmar aceite do contrato e verificar novamente que todos os grupos
+   internos continuam manuais e o grupo restrito tem somente os dois indicados.
 2. Confirmar autenticação de submissão para a equipe correta. Não reutilizar
    implicitamente a conta pessoal antiga nem criar chaves sem necessidade.
 3. Publicar a API a partir da main revisada, após autorização, mantendo o
