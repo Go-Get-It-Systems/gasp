@@ -16,9 +16,9 @@ export function useCampaignInbox() {
   const actor = useBusinessActor();
   return useQuery({ queryKey: queryKeys.business.inbox(actor), queryFn: api.getCampaignInbox, enabled: !!actor });
 }
-export function useBusinessProfile(handle: string) {
+export function useBusinessProfile(handle: string, enabled = true) {
   const actor = useBusinessActor();
-  return useQuery({ queryKey: queryKeys.business.profile(actor, handle), queryFn: () => api.getBusinessProfile(handle), enabled: !!actor && !!handle });
+  return useQuery({ queryKey: queryKeys.business.profile(actor, handle), queryFn: () => api.getBusinessProfile(handle), enabled: enabled && !!actor && !!handle });
 }
 export function useBusinessOverview(w: string) {
   const actor = useBusinessActor();

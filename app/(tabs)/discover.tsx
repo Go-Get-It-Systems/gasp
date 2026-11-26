@@ -123,6 +123,7 @@ export default function DiscoverScreen() {
       displayName={item.displayName}
       username={item.username}
       avatarUrl={item.avatarUrl}
+      accountType={item.accountType}
       status={getRequestStatus(item.id)}
       onAdd={handleAdd}
     />

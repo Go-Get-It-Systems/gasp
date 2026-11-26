@@ -406,8 +406,9 @@ export function AnimatedFace({ size, animated = true, interval = 2500 }: Animate
 
   // SVG animated props
   const eyeAnimatedProps = useAnimatedProps(() => ({
-    rx: eyeRx.value,
-    ry: eyeRy.value * blinkScale.value,
+    // Springs can overshoot zero while the eyes fade out; SVG radii cannot.
+    rx: Math.max(0, eyeRx.value),
+    ry: Math.max(0, eyeRy.value * blinkScale.value),
     opacity: eyeOpacity.value,
   }));
   const pupilAnimatedProps = useAnimatedProps(() => ({

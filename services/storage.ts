@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { api } from '@/services/api';
+import { assertCurrentSession, getSessionActor, getSessionGeneration } from './session';
 
 export type MediaType = 'gasps' | 'reactions' | 'avatars';
 
@@ -28,10 +29,12 @@ function getMimeType(extension: string): string {
     png: 'image/png',
     gif: 'image/gif',
     webp: 'image/webp',
+    avif: 'image/avif',
     heic: 'image/heic',
     mp4: 'video/mp4',
     mov: 'video/quicktime',
     m4v: 'video/x-m4v',
+    webm: 'video/webm',
   };
   return map[extension] ?? 'application/octet-stream';
 }
@@ -44,24 +47,38 @@ export async function uploadMedia(
   _userId: string,
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<UploadResult> {
+  const generation = getSessionGeneration();
+  if (getSessionActor() && getSessionActor() !== _userId) throw new Error('Upload account changed');
   const extension = getExtension(uri);
   const mimeType = getMimeType(extension);
 
   const formData = new FormData();
   formData.append('type', type);
-  formData.append('file', {
-    uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-    name: `upload.${extension}`,
-    type: mimeType,
-  } as unknown as Blob);
+  if (Platform.OS === 'web') {
+    const resource = await fetch(uri);
+    if (!resource.ok) throw new Error('Could not read the selected media.');
+    const blob = await resource.blob();
+    const browserMime = blob.type || mimeType;
+    const browserExtension = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
+      'image/webp': 'webp', 'image/avif': 'avif', 'image/heic': 'heic',
+      'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm',
+    } as Record<string, string>)[browserMime] ?? extension;
+    formData.append('file', blob.type ? blob : new Blob([blob], { type: browserMime }), `upload.${browserExtension}`);
+  } else {
+    formData.append('file', {
+      uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+      name: `upload.${extension}`,
+      type: mimeType,
+    } as unknown as Blob);
+  }
 
+  assertCurrentSession(generation);
   const response = await api.post<UploadResult>('/uploads', formData, {
     timeout: UPLOAD_TIMEOUT_MS,
     headers: {
-      // React Native's axios cannot introspect FormData like the browser does,
-      // so it won't set Content-Type automatically. We set it explicitly here;
-      // the native bridge fills in the proper `boundary` parameter.
-      'Content-Type': 'multipart/form-data',
+      // Browsers generate their multipart boundary; the native bridge needs
+      // the explicit content type. Clear the API's JSON default on web.
+      'Content-Type': Platform.OS === 'web' ? undefined : 'multipart/form-data',
     },
     onUploadProgress: (event) => {
       const total = event.total;
@@ -75,6 +92,7 @@ export async function uploadMedia(
     },
   });
 
+  assertCurrentSession(generation);
   return response.data;
 }
 

@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { OwnerCampaignReaction, PublicCampaignReaction } from '@/services/api/schemas/business.schema';

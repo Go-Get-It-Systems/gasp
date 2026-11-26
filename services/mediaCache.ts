@@ -1,5 +1,7 @@
 import { File, Directory, Paths } from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getSessionGeneration } from './session';
+import { resolveMediaUri } from './privateMedia';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -21,7 +23,8 @@ const STORAGE_KEY = 'gasp_media_cache_index';
 
 let index: CacheIndex = {};
 let cacheDir: Directory | null = null;
-let initialized = false;
+let cacheGeneration = 0;
+let pendingWrites: Promise<void> = Promise.resolve();
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -56,17 +59,18 @@ function getExtension(url: string): string {
 
 /** Persist the in-memory index to AsyncStorage. */
 async function persistIndex(): Promise<void> {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(index));
-  } catch (err) {
-    console.warn('[mediaCache] Failed to persist index:', err);
-  }
+  const expected = cacheGeneration;
+  const snapshot = JSON.stringify(index);
+  pendingWrites = pendingWrites.catch(() => {}).then(async () => {
+    if (expected === cacheGeneration) await AsyncStorage.setItem(STORAGE_KEY, snapshot);
+  });
+  await pendingWrites;
 }
 
 /** Ensure the cache directory exists and return it. */
 function ensureDirectory(): Directory {
   if (!cacheDir) {
-    cacheDir = new Directory(Paths.cache, CACHE_DIR_NAME);
+    cacheDir = new Directory(Paths.cache, CACHE_DIR_NAME, `session-${getSessionGeneration()}`);
   }
   if (!cacheDir.exists) {
     cacheDir.create();
@@ -83,13 +87,15 @@ function ensureDirectory(): Directory {
  * 3. Run a cleanup pass for expired entries.
  */
 export async function initCache(): Promise<void> {
+  const expected = cacheGeneration;
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (expected !== cacheGeneration) return;
     index = raw ? (JSON.parse(raw) as CacheIndex) : {};
     ensureDirectory();
     await cleanupExpired();
-    initialized = true;
   } catch (err) {
+    if (expected !== cacheGeneration) return;
     console.warn('[mediaCache] initCache failed:', err);
     index = {};
   }
@@ -105,12 +111,14 @@ export async function initCache(): Promise<void> {
  */
 export async function cacheMedia(url: string, expiresAt: string): Promise<string> {
   if (!url) return url;
+  const session = getSessionGeneration();
+  const expected = cacheGeneration;
   try {
     const key = hashUrl(url);
     const existing = index[key];
 
     // Already cached — verify the file still exists on disk
-    if (existing) {
+    if (existing && new Date(existing.expiresAt).getTime() > Date.now()) {
       const file = new File(existing.localPath);
       if (file.exists) {
         return existing.localPath;
@@ -123,7 +131,13 @@ export async function cacheMedia(url: string, expiresAt: string): Promise<string
     const fileName = `${key}${ext}`;
 
     // Download to cache directory
-    const downloaded = await File.downloadFileAsync(url, dir);
+    const readUrl = await resolveMediaUri(url);
+    if (session !== getSessionGeneration() || expected !== cacheGeneration) return '';
+    const downloaded = await File.downloadFileAsync(readUrl, dir);
+    if (session !== getSessionGeneration() || expected !== cacheGeneration) {
+      if (downloaded.exists) downloaded.delete();
+      return '';
+    }
 
     // Rename to our hashed filename
     const targetPath = `${dir.uri}${fileName}`;
@@ -140,8 +154,9 @@ export async function cacheMedia(url: string, expiresAt: string): Promise<string
     await persistIndex();
 
     return localPath;
-  } catch (err) {
-    console.warn('[mediaCache] cacheMedia failed for URL:', url, err);
+  } catch {
+    if (session !== getSessionGeneration() || expected !== cacheGeneration) return '';
+    console.warn('[mediaCache] cacheMedia failed');
     // Caller can fall back to the remote URL
     return url;
   }
@@ -171,18 +186,22 @@ export function getCachedUri(url: string): string | null {
  * Delete all cached files and clear the index (both in-memory and AsyncStorage).
  */
 export async function clearAllCache(): Promise<void> {
+  ++cacheGeneration;
+  index = {};
+  cacheDir = null;
   try {
+    await pendingWrites.catch(() => {});
     const dir = new Directory(Paths.cache, CACHE_DIR_NAME);
     if (dir.exists) {
       dir.delete();
     }
     dir.create();
-    cacheDir = dir;
-
-    index = {};
-    await AsyncStorage.removeItem(STORAGE_KEY);
   } catch (err) {
     console.warn('[mediaCache] clearAllCache failed:', err);
+  }
+  // A filesystem failure must not leave the persisted index pointing at old files.
+  try { await AsyncStorage.removeItem(STORAGE_KEY); } catch {
+    console.warn('[mediaCache] Failed to remove the cache index');
   }
 }
 

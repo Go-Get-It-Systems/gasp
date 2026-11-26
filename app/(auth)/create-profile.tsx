@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,21 +10,22 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/stores/authStore';
 import { getApiErrorMessage } from '@/services/api';
+import { getFirebaseIdToken } from '@/services/firebaseAuth';
 import { colors } from '@/constants/colors';
 import { AccountTypeChoice } from '@/components/business/AccountTypeChoice';
 
 export default function CreateProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { firebaseToken } = useLocalSearchParams<{
-    firebaseToken: string;
-    phoneNumber: string;
-  }>();
   const { register, isLoading } = useAuthStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+  const isBusy = isLoading || isSubmitting;
 
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -38,9 +39,18 @@ export default function CreateProfileScreen() {
     /^[a-zA-Z0-9_]+$/.test(username.trim());
 
   const handleCreate = async () => {
-    if (!firebaseToken || !isValid || isLoading) return;
+    if (!isValid || isLoading || submittingRef.current) return;
 
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    setRegistrationError(null);
     try {
+      // Read the authenticated Firebase session instead of putting its token in a URL.
+      const firebaseToken = await getFirebaseIdToken();
+      if (!firebaseToken) {
+        setRegistrationError('Your verification session expired. Please verify your phone again.');
+        return;
+      }
       await register({
         firebaseToken,
         displayName: displayName.trim(),
@@ -49,7 +59,12 @@ export default function CreateProfileScreen() {
       });
       router.replace('/(tabs)/camera');
     } catch (error) {
-      Alert.alert('Registration failed', getApiErrorMessage(error));
+      const message = getApiErrorMessage(error);
+      setRegistrationError(message);
+      if (Platform.OS !== 'web') Alert.alert('Registration failed', message);
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -103,16 +118,17 @@ export default function CreateProfileScreen() {
           )}
         </View>
 
-        <AccountTypeChoice value={accountType} onChange={setAccountType} disabled={isLoading} />
+        {registrationError && <Text accessibilityRole="alert" style={styles.errorText}>{registrationError}</Text>}
+        <AccountTypeChoice value={accountType} onChange={setAccountType} disabled={isBusy} />
         <Pressable
           onPress={handleCreate}
-          disabled={!isValid || isLoading}
+          disabled={!isValid || isBusy}
           style={[
             styles.createButton,
-            (!isValid || isLoading) && styles.createButtonDisabled,
+            (!isValid || isBusy) && styles.createButtonDisabled,
           ]}
         >
-          {isLoading ? (
+          {isBusy ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text variant="body" style={styles.createText}>
@@ -144,6 +160,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textSecondary,
     marginBottom: 4,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
   },
   inputGroup: {
     gap: 8,

@@ -12,6 +12,7 @@ export default function ModalsLayout() {
           animation: 'slide_from_bottom',
         }}
       >
+        <Stack.Screen name="campaign-reaction-full" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="view-gasp" options={{ presentation: 'fullScreenModal' }} />
       </Stack>
     </ErrorBoundary>

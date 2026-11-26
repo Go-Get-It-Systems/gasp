@@ -2,7 +2,7 @@ import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
 import type { ToastItem } from '@/stores/notificationStore';
 import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { EyeOff } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 

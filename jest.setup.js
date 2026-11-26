@@ -121,6 +121,11 @@ jest.mock('react-native-gesture-handler', () => {
 });
 
 // ── Mock @tanstack/react-query ───────────────────────────────────────
+// Session cleanup now exercises the real native cache adapter in store tests.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
 jest.mock('@tanstack/react-query', () => ({
   useQuery: jest.fn(() => ({ data: undefined, isLoading: false, error: null })),
   useInfiniteQuery: jest.fn(() => ({ data: undefined, isLoading: false, fetchNextPage: jest.fn() })),

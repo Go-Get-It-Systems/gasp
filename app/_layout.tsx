@@ -4,7 +4,7 @@ import "react-native-reanimated";
 import { getSentryPrivacyOptions } from "@/lib/sentryPrivacy";
 import { useBusinessRefresh } from "@/hooks/useBusinessRefresh";
 
-if (__DEV__) {
+if (__DEV__ && Platform.OS !== "web") {
   require("../reactotron.config");
 }
 
@@ -16,7 +16,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSocketListeners } from "@/hooks/useSocketListeners";
 import { queryClient } from "@/lib/queryClient";
 import { initCache } from "@/services/mediaCache";
-import { connectSocket, disconnectSocket, sendNotificationAppState } from "@/services/socket";
+import { connectSocket, suspendSocket, sendNotificationAppState } from "@/services/socket";
 import { processQueue } from "@/services/uploadQueue";
 import { useAuthStore } from "@/stores/authStore";
 import { useChatStore } from "@/stores/chatStore";
@@ -28,7 +28,7 @@ import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { AppState, type AppStateStatus, LogBox } from "react-native";
+import { AppState, type AppStateStatus, LogBox, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Suppress warnings from third-party dependencies we don't control
@@ -68,6 +68,7 @@ function RootContent() {
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const token = useAuthStore((s) => s.token);
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
@@ -103,12 +104,12 @@ function RootContent() {
         emitNotificationState(nextState === 'active' ? 'active' : nextState === 'inactive' ? 'inactive' : 'background');
       }
 
-      if (prev === 'active' && nextState === 'background' && token) {
-        disconnectSocket();
+      if (prev !== 'background' && nextState === 'background' && token) {
+        suspendSocket();
         if (__DEV__) console.tronLog?.log('AppState | background → socket disconnected');
       }
 
-      if (prev === 'background' && nextState === 'active' && token) {
+      if (prev !== 'active' && nextState === 'active' && token) {
         connectSocket(token);
         emitNotificationState('active');
         if (__DEV__) console.tronLog?.log('AppState | foreground → socket reconnected');
@@ -121,12 +122,26 @@ function RootContent() {
   useEffect(() => {
     // Initialize media cache + preferences in parallel with auth
     initCache();
-    processQueue();
-    useMediaCacheStore.getState().loadPreferences();
 
-    initializeAuth().finally(() => {
-      SplashScreen.hideAsync();
+    void useMediaCacheStore.getState().loadPreferences().catch((error) => {
+      Sentry.captureException(error, {
+        extra: { context: "RootContent.loadMediaPreferences" },
+      });
     });
+
+    void initializeAuth()
+      .catch((error) => {
+        Sentry.captureException(error, {
+          extra: { context: "RootContent.initializeAuth" },
+        });
+      })
+      .finally(() => {
+        void SplashScreen.hideAsync().catch((error) => {
+          Sentry.captureException(error, {
+            extra: { context: "RootContent.hideSplash" },
+          });
+        });
+      });
   }, [initializeAuth]);
 
   useEffect(() => {
@@ -148,6 +163,8 @@ function RootContent() {
     );
   }, [isInitialized, token]);
 
+  useEffect(() => { if (user?.id && isAuthenticated) void processQueue(); }, [user?.id, isAuthenticated]);
+
   // Don't render routes until auth state is known
   if (!isInitialized) return null;
 
@@ -156,26 +173,32 @@ function RootContent() {
       <ToastBanner />
       <ConnectionBanner />
       <Stack
+        key={user?.id ?? "signed-out"}
         screenOptions={{
           contentStyle: { backgroundColor: "#0A0A0F" },
           animation: "fade",
         }}
       >
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Protected guard={!isAuthenticated}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(business)" options={{ headerShown: false }} />
         <Stack.Screen
           name="(modals)"
           options={({ route }) => ({
             headerShown: false,
             // The parent presentation must also fill the display: a full-screen
             // child cannot escape an iOS sheet's rounded, inset container.
-            presentation: getFocusedRouteNameFromRoute(route) === "view-gasp"
+            presentation: ["view-gasp", "campaign-reaction-full"].includes(getFocusedRouteNameFromRoute(route) ?? "")
               ? "fullScreenModal"
               : "modal",
           })}
         />
-        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />

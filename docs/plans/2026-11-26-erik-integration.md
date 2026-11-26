@@ -1,0 +1,104 @@
+# Integração Business e segurança — 26/11/2026
+
+## Escopo autorizado
+Preservar a versão atual, integrar as branches do Erik em branches próprias e reiniciar a validação: fluxo pessoal primeiro, Business depois. Sem merge na main, publicação de produção ou TestFlight nesta etapa.
+
+## Referências imutáveis e recuperação
+| Repositório | Base validada | Origem Erik | Recuperação publicada |
+|---|---|---|---|
+| App | main 3885c32acc87fa87a802c62ff6bee6df328f30b4 | 0e465f5f4e74fb50941d042abb1fbc4b051556e3 | recovery/main-pre-erik-20261126 |
+| App + relatório Business | 61bf23b48c97d3efe88ca5794bca0b81acb27731 | — | recovery/pre-erik-integration-20261126 |
+| API | main 3c6b7b7604d6b93eca14d36ae7b6f2ae6296abed | d4bfde9e7c179282fd8b0934ed390f0fd2cc29e9 | recovery/pre-erik-integration-20261126 |
+
+As duas integrações usam `codex/erik-business-security-integration`, em worktrees irmãs separadas dos checkouts que alimentam o app atual. O relatório Business foi reaplicado antes da integração. Logs locais antigos ficam preservados no checkout original, sem publicar possíveis dados de sessão.
+
+## Plano e critérios de passagem
+### Revisão de escopo — 27/11/2026
+
+O usuário dispensou compatibilidade com vídeos antigos por se tratar de beta:
+eventual perda de acesso a essas mídias é aceita e deixa de bloquear o merge.
+Isso não autoriza apagar arquivos, abrir mídias privadas ao público ou deixar
+clientes antigos criarem novos envios incompatíveis sem um plano de atualização.
+Os itens históricos abaixo sobre reprodução legada são substituídos por essa
+decisão para a aprovação desta integração.
+
+Sequência prática para fechar a revisão:
+
+1. **Troca de conta:** repetir os testes automatizados de sessão/cache/mídia;
+   depois, no mesmo simulador, sair do Iaco business e entrar na Bi personal.
+   Conferir limpeza de conversas, players, filas e Studio; voltar ao Iaco e
+   confirmar seus próprios workspaces. Uma falha de isolamento bloqueia merge.
+2. **Studio novo:** acessar pela aba Studio, não pelo atalho legado do perfil.
+   Exercitar Overview, Reactions e Metrics; criar/publicar uma campanha e
+   conferir acesso à mídia privada, entrega à Bi e retorno da reação. Verificar
+   qual empresa está selecionada, inclusive com duas empresas vinculadas.
+   Os testes anteriores de câmera/voz/consentimento continuam válidos para
+   seus caminhos; não representam cobertura dessa navegação nova.
+3. **Correções e evidências:** corrigir regressões encontradas na integração,
+   executar os testes relevantes e registrar o resultado nativo. Conferir o
+   limite diário exibido. Precisão de sincronização, rede e push continuam
+   identificados separadamente; não declarar a liberação completa sem decisão.
+4. **Transição do beta:** confirmar a versão que os participantes usarão e a
+   ordem coordenada de API/app. Em 27/11, a configuração Railway consultada
+   apontava produção para main com checkSuites habilitado: merge do backend
+   pode publicar automaticamente. Se for integrar antes de distribuir o app,
+   preparar uma separação explícita entre merge e deploy, com aprovação antes
+   de alterar a configuração de produção. Recuperação deve suportar as novas
+   mídias privadas; aceitar perder vídeos antigos não resolve esse caso.
+5. **Merge:** revisar os commits finais, testes verdes e ausência de conflitos;
+   apresentar o resultado e o impacto de publicação para autorização final.
+   Não executar merge, alterar produção ou enviar TestFlight nesta revisão.
+
+Estado conferido em 27/11: as duas propostas estão sem conflitos, testes remotos
+aprovados e ainda em rascunho. Árvores locais limpas antes desta atualização.
+
+Primeira execução desta sequência: 39 testes passaram em oito suites de
+isolamento de sessão, API/navegação, armazenamento/mídia privada, papéis e
+fluxos Business. Isso não substitui a troca nativa no mesmo aparelho.
+Revisão do Studio novo encontrou e corrigiu um defeito: `StudioScreen`
+atribuía `counts.opened` a Reactions e `counts.delivered` a Opens. Agora usa
+`reacted` e `opened`, inclusive no subtítulo da campanha. Teste de regressão
+da tela com 20 entregas, 12 aberturas, 8 visualizações e 3 reações falhou antes
+e passou depois; estado sem contadores mantém zeros. Passaram 21 testes em
+quatro suites relacionadas, tipos e lint dos arquivos alterados. Validação
+nativa da navegação e troca de conta continuam pendentes.
+
+### Plano original e histórico
+
+1. **Checkpoint:** tags anotadas remotas, bases e origens registradas; checkouts originais preservados.
+2. **Integração:** manter histórico do Erik, composição vertical, reprodução legada, patch de áudio, retries/logs de expiração; resolver conflito do compositor combinando layout atual e leitores privados.
+3. **Ajustes de compatibilidade:** revisar acesso/renovação de mídia privada e troca de conta; alinhar reprodução Business ao padrão vertical aprovado; conferir aviso de limite diário.
+4. **Gate local:** contrato do core, suites completas, tipos, lint, build da API, regressões de composição FFmpeg; testes de banco somente em banco descartável.
+5. **E2E pessoal:** dois simuladores, foto/vídeo, soltura antecipada, revelação, consumo, falha esperada de câmera do simulador; depois iPhone com rosto, voz, REC, áudio, sincronização e recebimento vertical; reprodução antiga e troca de conta.
+6. **E2E Business:** acesso por papel, campanha foto/vídeo, rascunho/publicação, entrega/métricas, câmera e áudio, consentimento desligado/ligado, destaque e retirada, limite configurado de dez.
+7. **Publicação das branches:** commits revisáveis e evidências, sem integrar main. Aprovação do produto e plano de rollout antes de produção/TestFlight.
+
+## Ambiente e rollout
+A API do Erik passa a criar mídia privada e o app usa `/uploads/access`. Não publicar essa API isoladamente para usuários com clientes antigos. O teste integrado precisa de API com esse endpoint e armazenamento privado corretamente configurado. Preferir ambiente isolado; não tratar testes contra a API antiga como validação desta integração.
+
+Antes de rollout: inventariar clientes instalados, definir atualização mínima/obrigatória ou fase de compatibilidade, validar IAM/ACL e URLs históricas do bucket. `storage.rules` sozinho não prova que arquivos históricos ou permissões públicas de bucket foram revogados. Não tornar mídia privada pública para contornar falhas.
+
+## Rollback
+- **Nesta etapa:** encerrar o Metro da integração e reconectar ao checkout original; nenhum dado de produção ou schema foi alterado pela integração.
+- **Código:** abrir nova branch/worktree na tag de recuperação apropriada; não usar reset destrutivo nem reescrever main. Tags já publicadas em ambos os repositórios.
+- **Após eventual deploy:** restaurar o release compatível e configuração registrada. Apenas voltar o código antigo pode deixar uploads privados novos inacessíveis: preparar previamente uma versão de recuperação que mantenha leitura autorizada, ou bloquear a publicação até resolver essa compatibilidade.
+- **Dados/configuração:** tags Git não são backup do banco, bucket ou variáveis. A integração não altera schema, ACL ou configuração de produção. O usuário autorizou um ambiente remoto separado e credenciais exclusivas, com permissões limitadas ao bucket de teste. O limite do piloto permanece dez; uma restauração do banco nunca é implícita no rollback de código.
+
+## Estado inicial
+585 testes do app e 343 da API passaram nas branches isoladas do Erik; 18 testes de banco não foram executados nessa análise. Esses resultados não equivalem ao gate da integração nem ao E2E no aparelho. Resultados integrados serão registrados separadamente.
+
+## Preparação do ambiente isolado
+O usuário escolheu ambiente separado e autorizou identidade/chave exclusivas, acesso somente ao bucket novo e segredo no Railway de integração.
+
+- Railway: `integration-erik`; API `gasp-api-integration`, Postgres e Redis exclusivos, sem cópia de produção.
+- Bucket novo: `gasp-integration-erik-20261126`, separado dos arquivos existentes, sem vínculo público no IAM. Mídias usam ACL privada; apenas uploads do tipo avatar recebem ACL pública. Testes reais confirmaram leitura anônima 403 para mídia e 200 para avatar.
+- Firebase Auth permanece no projeto do app para permitir os logins de teste existentes; não equivale a Firebase totalmente separado.
+- O usuário autorizou habilitar IAM e criar identidade/chave exclusivas. A sessão pessoal tinha acesso ao projeto correto `gasp-react-app`; API habilitada, identidade criada, permissões de armazenamento concedidas somente no bucket novo e chave guardada no Railway de integração. A cópia temporária foi removida após conferir o valor salvo. A credencial de teste recebeu 403 ao tentar consultar o bucket de produção. Nenhum papel amplo foi concedido no projeto.
+- Fixtures de banco exclusivamente sintéticas; não clonar dados, fila ou dispositivos reais de produção.
+- Gate integrado: 592 testes do app, tipos e lint passaram (51 avisos, zero erros). API: 353 testes unitários/rotas, 18 Business com PostgreSQL, três permissões de mídia com PostgreSQL e 12 montagens FFmpeg passaram; tipos/build/migrações passaram (lint: seis avisos, zero erros).
+- API isolada publicada: https://gasp-api-integration-integration-erik.up.railway.app. Migrações aplicadas e logins reais de Bi e Iaco confirmados nos dois simuladores. O primeiro deploy respondia `/health`, mas não havia aplicado migrações; a configuração explícita de pré-deploy e um novo deploy resolveram isso. Não usar `/health` sozinho como prova de prontidão do banco.
+- Preparação das empresas executada dentro da rede privada, por rotina versionada e restrita ao ambiente/host/bucket/usuários de teste. Duas empresas, Iaco proprietário e Bi única seguidora. As contas continuam pessoais para testar primeiro o core; o papel de conta necessário à nova aba Studio será tratado na fase Business.
+- A revisão automática rejeitou a criação de proxy TCP público; nenhum proxy foi criado. O banco permanece privado, e não foram adicionadas chaves SSH ao Railway.
+- Checagem da API implantada: upload privado, acesso negado antes do envio, acesso do destinatário enquanto pendente, resposta sem cache e bloqueio depois do consumo passaram. Isso não substitui E2E nativo.
+- Rodada dos simuladores concluída: foto/vídeo enviados pela interface, soltura antecipada preservada, revelação com um único open, reprodução de vídeo até o fim e close-view ao sair sem reação. Evidências e contrato parcial em [relatório E2E](../e2e/2026-11-26-erik-integration/README.md).
+- iPhone/Iaco: usuário confirmou som na captura, REC/cronômetro e rosto/voz na prévia; API confirmou envio e status reacted. Reprodução vertical recebida foi conferida na Bi. Precisão temporal de início da captura/offset, reprodução legada, troca de conta e Business seguem pendentes. Reconexão intermitente registrada em B-008, sem causa fechada. A credencial restrita não tem permissão FCM: push em segundo plano segue separado e não validado.

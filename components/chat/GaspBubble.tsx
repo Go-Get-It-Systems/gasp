@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';

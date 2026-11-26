@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { Image } from 'expo-image';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { CornerDownRight } from 'lucide-react-native';
 import { Text } from '@/components/ui/Text';
 import { getCachedUri } from '@/services/mediaCache';

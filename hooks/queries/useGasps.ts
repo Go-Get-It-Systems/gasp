@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { queryKeys } from '@/services/queryKeys';
+import { getSessionGeneration } from '@/services/session';
 import * as gaspsApi from '@/services/api/gasps';
 import * as reactionsApi from '@/services/api/reactions';
 import type { Gasp } from '@/services/api/schemas/gasp.schema';
@@ -120,15 +121,17 @@ export function useViewGasp() {
   return useMutation({
     mutationFn: (gaspId: string) => gaspsApi.markViewed(gaspId),
     onMutate: async (gaspId) => {
+      const generation = getSessionGeneration();
       await queryClient.cancelQueries({ queryKey: queryKeys.gasps.pending });
+      if (generation !== getSessionGeneration()) return { previous: undefined, generation };
       const previous = queryClient.getQueryData<Gasp[]>(queryKeys.gasps.pending);
       queryClient.setQueryData<Gasp[]>(queryKeys.gasps.pending, (old) =>
         removeFromList(old, gaspId),
       );
-      return { previous };
+      return { previous, generation };
     },
     onError: (_err, _gaspId, context) => {
-      if (context?.previous) {
+      if (context?.previous && context.generation === getSessionGeneration()) {
         queryClient.setQueryData(queryKeys.gasps.pending, context.previous);
       }
     },

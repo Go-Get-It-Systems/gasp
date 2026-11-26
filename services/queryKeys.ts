@@ -1,5 +1,6 @@
 export const queryKeys = {
   business: {
+    studio: (actor: string, resource: string, ...ids: string[]) => ['business', actor, 'studio', resource, ...ids] as const,
     all: ['business'] as const,
     actor: (actor: string) => ['business', actor] as const,
     workspaces: (actor: string) => ['business', actor, 'workspaces'] as const,
@@ -7,7 +8,9 @@ export const queryKeys = {
     inbox: (actor: string) => ['business', actor, 'inbox'] as const,
     myReactions: (actor: string) => ['business', actor, 'myReactions'] as const,
     profile: (actor: string, handle: string) => ['business', actor, 'profile', handle] as const,
+    campaignsByHandle: (actor: string, handle: string) => ['business', actor, 'campaignsByHandle', handle] as const,
     workspace: (actor: string, workspace: string, resource: string) => ['business', actor, workspace, resource] as const,
+    workspaceAll: (actor: string, workspace: string) => ['business', actor, workspace] as const,
     campaign: (actor: string, workspace: string, campaign: string, resource: string) => ['business', actor, workspace, campaign, resource] as const,
   },
   conversations: {

@@ -108,6 +108,10 @@ Expo 54 + React Native 0.81 + TypeScript (strict) + NativeWind v4 (Tailwind) + Z
 - `app/_layout.tsx` — Root layout: GestureHandlerRootView, auth initialization, splash screen, socket listeners
 - `app/(auth)/` — Auth flow: welcome, phone-login, verify-code, create-profile
 - `app/(tabs)/` — Main tabs: discover, **camera** (initial), inbox, chat, profile. Custom tab bar via `CustomTabBar`
+- `app/(tabs)/studio.tsx` — Studio replaces Chat in the fourth bottom-tab slot only for `accountType: business`. The former `business` route is hidden from the navbar. `components/business/StudioScreen.tsx` and its visual components are preserved verbatim from `origin/feat/business-studio-local`; keep presentation changes outside them. The route guards direct access and mounts a separate query client per signed-in account.
+- `app/(modals)/campaign-composer.tsx` — New campaigns use the original Studio composer presentation, split into `CampaignComposerScreen`, media/success components and the original stylesheet. `useCampaignPublishing` integrates owner workspace resolution, uploads and publication with the current API; publication retries reuse the created draft. Existing draft editing uses `CampaignForm`. Web uploads send real blobs through multipart FormData. Studio's session refreshes its isolated cache when returning from a campaign modal.
+- Discover's business directory uses `BusinessDiscoverCard`, with the original business card styling, public follower counts and server-backed follow state. Business search results open `/(modals)/business-profile`, whose original public profile presentation is split into identity, campaign/reaction lists and featured components. These read only public campaign/reaction endpoints; campaign previews do not record delivery or grant reaction eligibility. Follow state is shared through actor-scoped React Query invalidation, and ownership comes from `/businesses/workspaces`.
+- Company avatars use `CompanyAvatar`, which converts legacy Clearbit URLs to Google favicon URLs and falls back to initials on image errors. `BusinessWorkspaceSchema` also normalizes legacy URLs at the API boundary for every business surface, including Studio. `scripts/migrate-company-logos.cjs <backend-directory> --apply` updates old URLs in local business workspaces and business accounts together, saving a backup in the system temp directory; it refuses nonlocal databases. Uploaded avatar URLs are preserved.
 - `app/(modals)/` — Modal screens: view-gasp, send-gasp, camera-preview, reaction-result, edit-profile, friend-profile, settings
 - `app/chat/[id].tsx` — Individual chat conversation (not inside tabs)
 
@@ -162,9 +166,9 @@ Stores contain **UI/client state only**. Server state (friends, gasps, profile s
 ### Firebase
 
 - **`@react-native-firebase/app` + `/auth`** — Native modules for phone SMS authentication.
-- **No Firebase JS SDK in the client.** Storage uploads go through the backend (`POST /api/v1/uploads`), which uses `firebase-admin` server-side and returns a public download URL. This avoids the auth-state mismatch between native `@react-native-firebase/auth` and the JS SDK.
+- Storage uploads go through the backend (`POST /api/v1/uploads`). Media references require an authenticated `/uploads/access` grant; only avatars are deliberately public. Native authentication uses `@react-native-firebase/auth`; the web authentication adapter uses the Firebase JS SDK.
 
-Project ID: `gasp-cab37`
+Project ID: `gasp-react-app` (verified against the native app configuration and Railway). The isolated integration shares this Firebase Auth project but uses its own database, Redis, bucket and bucket-scoped service account.
 
 ## Styling
 

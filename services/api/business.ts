@@ -2,6 +2,9 @@ import { z } from 'zod';
 import { api } from '@/services/api';
 import { validateResponse } from './schemas/common.schema';
 import * as s from './schemas/business.schema';
+import * as studio from './schemas/studio.schema';
+
+export type { StudioCampaign as Campaign, CampaignMetric, CampaignReactionItem, MetricsResponse } from './schemas/studio.schema';
 
 // Unlike legacy adapters, business contracts fail closed after logging validation errors.
 async function request<T>(schema: z.ZodType<T>, path: string, method = 'get', data?: unknown): Promise<T> {
@@ -43,3 +46,82 @@ export const setCampaignReactionConsent = (w: string, c: string, consentToFeatur
   request(s.OwnCampaignReactionSchema, `${campaign(w, c)}/reactions/mine/consent`, 'patch', { consentToFeature });
 export const setReactionPin = (w: string, c: string, r: string, pinned: boolean) =>
   request(z.object({ selected: z.boolean() }), `${campaign(w, c)}/reactions/${segment(r)}/selection`, pinned ? 'put' : 'delete');
+
+// Compatibility for the original Studio screen. Keep its presentation intact
+// while using the current, validated owner endpoints and consent enforcement.
+export async function getMyBusinesses() {
+  const rows = await getBusinessWorkspaces();
+  return rows.map((row, index) => studio.StudioWorkspaceSchema.parse({ ...row, isActive: index === 0 }));
+}
+
+export async function getCampaigns(workspaceId: string) {
+  const rows = await getBusinessCampaigns(workspaceId);
+  return rows.map((row) => studio.StudioCampaignSchema.parse({ ...row, isReplayable: row.replayable }));
+}
+
+export async function getStudioOverview(workspaceId: string) {
+  const [workspaces, overview, campaigns] = await Promise.all([
+    getMyBusinesses(), getBusinessOverview(workspaceId), getCampaigns(workspaceId),
+  ]);
+  const workspace = workspaces.find((row) => row.id === workspaceId);
+  if (!workspace) throw new Error('Workspace is not available for this account.');
+  const latest = overview.activeCampaign ?? [...campaigns].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+  return studio.StudioOverviewSchema.parse({
+    workspace,
+    latestCampaign: latest ? { ...latest, isReplayable: latest.replayable } : null,
+    deliveryCounts: latest?.counts ?? null,
+  });
+}
+
+export async function getMetrics(workspaceId: string) {
+  const rows = await getBusinessCampaigns(workspaceId);
+  const campaigns = rows.map((row) => ({
+    campaignId: row.id, title: row.title, state: row.state, publishedAt: row.publishedAt,
+    queued: row.counts.queued, delivered: row.counts.delivered, failed: row.counts.failed,
+    opened: row.counts.opened, viewed: row.counts.viewed,
+    engagementRate: row.metrics.viewRate, deliveryRate: row.metrics.deliveryRate,
+  }));
+  const sum = (key: 'delivered' | 'opened' | 'viewed') => campaigns.reduce((total, row) => total + row[key], 0);
+  const totalDelivered = sum('delivered');
+  const totalViewed = sum('viewed');
+  return studio.MetricsResponseSchema.parse({
+    workspaceId, totalCampaigns: campaigns.length, totalDelivered, totalOpened: sum('opened'), totalViewed,
+    avgEngagementRate: totalDelivered ? Math.min(100, totalViewed / totalDelivered * 100) : 0,
+    campaigns,
+  });
+}
+
+export async function getCampaignReactions(workspaceId: string) {
+  const campaigns = await getBusinessCampaigns(workspaceId);
+  const groups = await Promise.all(campaigns.map(async (campaign) => {
+    const rows = await getOwnerReactions(workspaceId, campaign.id, false);
+    return rows.map((row) => ({
+      ...row, campaignTitle: campaign.title, campaignMediaUrl: campaign.mediaUrl, campaignMediaType: campaign.mediaType,
+      reactorId: row.reactorId, reactorDisplayName: row.actor.displayName, reactorAvatarUrl: row.actor.avatarUrl,
+    }));
+  }));
+  const reactions = groups.flat().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return studio.CampaignReactionsResponseSchema.parse({ workspaceId, total: reactions.length, reactions });
+}
+
+export async function getPinnedReactions(workspaceId: string) {
+  const { reactions } = await getCampaignReactions(workspaceId);
+  return studio.PinnedReactionsResponseSchema.parse({
+    workspaceId, pinned: reactions.filter((row) => row.isPinned && row.consentToFeature),
+  });
+}
+
+async function setStudioReactionPin(workspaceId: string, reactionId: string, pinned: boolean) {
+  const { reactions } = await getCampaignReactions(workspaceId);
+  const reaction = reactions.find((row) => row.id === reactionId);
+  if (!reaction) throw new Error('Reaction is not available for this workspace.');
+  return setReactionPin(workspaceId, reaction.campaignId, reaction.id, pinned);
+}
+export const pinReaction = (workspaceId: string, reactionId: string) => setStudioReactionPin(workspaceId, reactionId, true);
+export const unpinReaction = (workspaceId: string, reactionId: string) => setStudioReactionPin(workspaceId, reactionId, false);
+export const publishCampaign = publishBusinessCampaign;
+export const deleteCampaign = deleteBusinessCampaign;
+export async function getCampaignsByHandle(handle: string) {
+  const workspace = await getBusinessProfile(handle);
+  return getPublicCampaigns(workspace.id);
+}

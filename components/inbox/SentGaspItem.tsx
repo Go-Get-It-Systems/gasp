@@ -3,7 +3,7 @@ import { Text } from "@/components/ui/Text";
 import { colors } from "@/constants/colors";
 import type { Gasp } from "@/services/api/schemas/gasp.schema";
 import { formatRelativeTime } from "@/utils/format";
-import { Image } from "expo-image";
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { ImageOff, Play } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 

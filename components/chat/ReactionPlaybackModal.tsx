@@ -14,6 +14,7 @@ interface ReactionPlaybackModalProps {
   visible: boolean;
   reactionUri?: string;
   originalUri?: string;
+  originalMediaType?: 'image' | 'video';
   reactionLabel: string;
   originalLabel: string;
   hasCompositeMedia: boolean;
@@ -21,10 +22,20 @@ interface ReactionPlaybackModalProps {
   onClose: () => void;
 }
 
-export function ReactionPlaybackModal({
-  visible, reactionUri, originalUri, reactionLabel, originalLabel, hasCompositeMedia, onClose,
-  isVerticalComposite = false,
-}: ReactionPlaybackModalProps) {
+export function ReactionPlaybackModal({ visible, ...props }: ReactionPlaybackModalProps) {
+  if (!visible) return null;
+  return (
+    <Modal visible animationType="fade" presentationStyle="fullScreen" onRequestClose={props.onClose}>
+      <ReactionPlaybackContent {...props} />
+    </Modal>
+  );
+}
+
+/** Screen routes own their presentation; only inline callers need the modal wrapper. */
+export function ReactionPlaybackContent({
+  reactionUri, originalUri, reactionLabel, originalLabel, hasCompositeMedia, onClose,
+  isVerticalComposite = false, originalMediaType = 'image',
+}: Omit<ReactionPlaybackModalProps, 'visible'>) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const topContextLabel = t('reaction.reactedBy', { name: reactionLabel });
@@ -33,10 +44,7 @@ export function ReactionPlaybackModal({
     ? t('reaction.yourReaction')
     : t('reaction.reactionOnly', { name: reactionLabel });
 
-  if (!visible) return null;
-
   return (
-    <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={onClose}>
       <View testID="reaction-playback-modal" style={styles.container}>
         <View style={styles.content}>
           <View testID="reaction-playback-top-context" pointerEvents="none" style={[styles.topContext, { top: insets.top + 16 }]}>
@@ -73,6 +81,7 @@ export function ReactionPlaybackModal({
             {hasCompositeMedia && reactionUri && originalUri ? (
               <ReactionComposite
                 originalUri={originalUri}
+                originalMediaType={originalMediaType}
                 reactionVideoUri={reactionUri}
                 showDivider
                 watermarkMode="subtle"
@@ -110,7 +119,6 @@ export function ReactionPlaybackModal({
           <X size={28} color="#FFFFFF" />
         </Pressable>
       </View>
-    </Modal>
   );
 }
 

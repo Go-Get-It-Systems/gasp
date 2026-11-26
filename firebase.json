@@ -1,8 +1,20 @@
 {
+  "storage": {
+    "rules": "storage.rules"
+  },
   "auth": {
     "providers": {
       "anonymous": false,
       "emailPassword": false
+    }
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
     }
   }
 }

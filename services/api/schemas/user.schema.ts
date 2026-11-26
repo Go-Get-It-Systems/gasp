@@ -57,6 +57,7 @@ export type UserStats = z.infer<typeof UserStatsSchema>;
 export type UserBadge = 'top10' | 'rising' | 'new' | 'active' | null;
 
 export const RecommendedUserSchema = z.object({
+  accountType: UserSchema.shape.accountType,
   id: z.string(),
   displayName: z.string(),
   username: z.string(),

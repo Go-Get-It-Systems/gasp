@@ -1,5 +1,6 @@
-import { Image } from 'expo-image';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { PrivateImage as Image } from '@/components/ui/PrivateImage';
+import { VideoView } from 'expo-video';
+import { usePrivateVideoPlayer as useVideoPlayer } from '@/hooks/usePrivateVideoPlayer';
 import { useIsFocused } from '@react-navigation/native';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';

@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { writeSessionValue } from './sessionStorageQueue';
 
 const KEYS = {
   AUTH_TOKEN: 'gasp_auth_token',
@@ -11,11 +12,11 @@ export async function getAuthToken(): Promise<string | null> {
 }
 
 export async function setAuthToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(KEYS.AUTH_TOKEN, token);
+  await writeSessionValue(KEYS.AUTH_TOKEN, () => SecureStore.setItemAsync(KEYS.AUTH_TOKEN, token));
 }
 
 export async function removeAuthToken(): Promise<void> {
-  await SecureStore.deleteItemAsync(KEYS.AUTH_TOKEN);
+  await writeSessionValue(KEYS.AUTH_TOKEN, () => SecureStore.deleteItemAsync(KEYS.AUTH_TOKEN));
 }
 
 export async function getUserData(): Promise<string | null> {
@@ -23,11 +24,11 @@ export async function getUserData(): Promise<string | null> {
 }
 
 export async function setUserData(data: string): Promise<void> {
-  await SecureStore.setItemAsync(KEYS.USER_DATA, data);
+  await writeSessionValue(KEYS.USER_DATA, () => SecureStore.setItemAsync(KEYS.USER_DATA, data));
 }
 
 export async function removeUserData(): Promise<void> {
-  await SecureStore.deleteItemAsync(KEYS.USER_DATA);
+  await writeSessionValue(KEYS.USER_DATA, () => SecureStore.deleteItemAsync(KEYS.USER_DATA));
 }
 
 export async function getOnboardingComplete(): Promise<boolean> {

@@ -1,14 +1,16 @@
-﻿import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { BlurView } from "expo-blur";
 import type { LucideIcon } from "lucide-react-native";
 import {
     Camera,
+    Sparkles,
     Compass,
     Inbox,
     MessageCircle,
     User,
 } from "lucide-react-native";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import Animated, {
     cancelAnimation,
@@ -27,6 +29,7 @@ import { useConversations } from "@/hooks/queries/useChat";
 import { usePendingGasps } from "@/hooks/queries/useGasps";
 import { withoutViewedOnceGasps } from "@/hooks/queries/useGasps.helpers";
 import { useGaspStore } from "@/stores/gaspStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { TabBarIcon } from "./TabBarIcon";
 
@@ -35,6 +38,7 @@ const TAB_ICONS: Record<string, LucideIcon> = {
   camera: Camera,
   inbox: Inbox,
   chat: MessageCircle,
+  studio: Sparkles,
   profile: User,
 };
 
@@ -52,6 +56,8 @@ export function CustomTabBar({
   navigation,
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const isBusiness = useAuthStore((s) => s.user?.accountType === 'business');
 
   const { data: conversations, dataUpdatedAt: conversationsUpdatedAt } = useConversations();
   const { data: pendingGasps } = usePendingGasps();
@@ -120,6 +126,9 @@ export function CustomTabBar({
 
       <View style={styles.tabsRow}>
         {state.routes.map((route, index) => {
+          if (route.name === 'business' || (route.name === 'studio' && !isBusiness) || (route.name === 'chat' && isBusiness)) {
+            return null;
+          }
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
 
@@ -143,7 +152,7 @@ export function CustomTabBar({
           };
 
           const Icon = TAB_ICONS[route.name] ?? Compass;
-          const label = TAB_LABELS[route.name] ?? options.title ?? route.name;
+          const label = route.name === 'studio' ? 'Studio' : TAB_LABELS[route.name] ?? options.title ?? route.name;
 
           const showUnreadChat = route.name === "chat" && hasUnreadChats;
           const showUnreadGasps = route.name === "inbox" && hasUnreadGasps;
@@ -169,6 +178,7 @@ export function CustomTabBar({
               <TabBarIcon
                 icon={Icon}
                 label={label}
+                accessibilityLabel={route.name === 'studio' ? t('business.studio') : undefined}
                 focused={isFocused}
                 onPress={onPress}
                 onLongPress={onLongPress}

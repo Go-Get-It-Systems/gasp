@@ -1,11 +1,21 @@
 import { router } from 'expo-router';
 import * as Sentry from '@sentry/react-native';
 import { cacheMedia } from './mediaCache';
+import { getSessionGeneration } from './session';
+import type { PublicCampaign, PublicCampaignReaction } from './api/schemas/business.schema';
 
 export function openBusinessStudio() { router.push('/(modals)/business-studio'); }
 export function openMyCampaignReactions() { router.push('/(modals)/my-campaign-reactions'); }
 export function openBusinessProfile(params: { handle: string; campaignId?: string }) {
   router.push({ pathname: '/(modals)/business-profile', params });
+}
+export function openPublicCampaignReaction(params: { handle: string; reaction: PublicCampaignReaction; campaign?: PublicCampaign }) {
+  router.push({ pathname: '/(modals)/campaign-reaction-full', params: {
+    reactionVideoUri: params.reaction.videoUrl, reactorName: params.reaction.actor.displayName,
+    campaignMediaUri: params.campaign?.mediaUrl ?? '', campaignTitle: params.campaign?.title ?? '',
+    isVideo: params.campaign ? String(params.campaign.mediaType === 'video') : undefined,
+    handle: params.handle, campaignId: params.reaction.campaignId,
+  } });
 }
 export function openCampaignComposer(params: { workspaceId: string; campaignId?: string }) {
   router.push({ pathname: '/(modals)/campaign-composer', params });
@@ -72,6 +82,7 @@ interface GaspViewerParams {
 }
 
 export async function openGaspViewer(params: GaspViewerParams): Promise<void> {
+  const generation = getSessionGeneration();
   const { imageUri, senderName, mediaType, blurhash, gaspId, conversationId, messageId, textOverlay } = params;
 
   if (!imageUri) return;
@@ -89,6 +100,9 @@ export async function openGaspViewer(params: GaspViewerParams): Promise<void> {
   } catch {
     // Fallback to remote URL
   }
+
+  // A completed download must not reopen the previous account's viewer.
+  if (generation !== getSessionGeneration() || !localUri) return;
 
   router.push({
     pathname: '/(modals)/view-gasp',

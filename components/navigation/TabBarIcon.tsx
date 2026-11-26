@@ -11,6 +11,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 interface TabBarIconProps {
   icon: LucideIcon;
   label: string;
+  accessibilityLabel?: string;
   focused: boolean;
   onPress: () => void;
   onLongPress: () => void;
@@ -19,6 +20,7 @@ interface TabBarIconProps {
 export function TabBarIcon({
   icon: Icon,
   label,
+  accessibilityLabel,
   focused,
   onPress,
   onLongPress,
@@ -61,7 +63,7 @@ export function TabBarIcon({
       ]}
       accessibilityRole="tab"
       accessibilityState={{ selected: focused }}
-      accessibilityLabel={`${label} tab`}
+      accessibilityLabel={accessibilityLabel ?? `${label} tab`}
     >
       <Icon
         size={22}
