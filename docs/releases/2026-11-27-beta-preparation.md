@@ -33,16 +33,73 @@ pelo EAS. Não usar auto-submit.
   fluxos pessoal/Business no ambiente isolado. Esta checagem de Storage não
   substitui o smoke test após o futuro deploy da API de produção.
 
-## Próximas etapas
+## Pacote compilado
 
-1. Gerar o build iOS com as credenciais existentes, sem renová-las implicitamente.
-2. Conferir o resultado e registrar o identificador do pacote.
-3. Autorizar e executar separadamente o deploy da API; testar login, upload,
-   acesso protegido, composição e Business no ambiente de destino.
-4. Submeter à Apple somente com autorização; configurar acesso restrito aos
-   participantes indicados e conferir aprovação/processamento necessários.
-5. Preparar recuperação compatível com mídias privadas. As tags de recuperação
-   guardam código, não backups de dados ou configuração de serviços.
+- EAS: `11d6aefa-256c-47b8-9037-202950ec88c3`, status `FINISHED`, artefato disponível.
+- iOS 1.1.0 (6), runtime 1.1.0, canal beta, distribuição store.
+- Commit compilado: `cba3283f56fa92d2129cb5b936f3779fc8938540`.
+- Certificados existentes reutilizados. Nenhuma submissão à Apple realizada.
+- [Compilação no Expo](https://expo.dev/accounts/go-get-it-systems/projects/gasp/builds/11d6aefa-256c-47b8-9037-202950ec88c3).
+- O perfil de submissão `beta` usa o app e a equipe existentes, sem herdar o
+  Apple ID pessoal antigo do perfil `production`. A autenticação de submissão
+  ainda deverá ser confirmada no envio; login no navegador não a substitui.
+  Não há grupos nem auto-submit configurados nesse perfil. Essas mudanças de
+  preparação não alteram o binário já compilado nem exigem nova compilação.
+
+## Grupo restrito e bloqueios de distribuição
+
+Foi criado no App Store Connect o grupo interno `GASP Beta - Core Team`, com
+somente os dois participantes indicados pelo responsável, distribuição manual
+e zero builds. A lista nominal permanece no App Store Connect, fora deste Git.
+
+Na conferência de 27/11, os grupos internos antigos `Internal` e `Family`
+possuíam quatro testadores cada e zero builds, mas ambos estavam configurados
+como `Automatic for Xcode Builds`. O grupo novo estar manual não desativa os
+outros: **não enviar o pacote enquanto esse risco de distribuição estiver
+aberto**. A Apple informa na criação que essa configuração não pode ser
+alterada depois. Os grupos antigos não foram removidos nem seus membros
+alterados. Proposta para aprovação: substituí-los por grupos manuais,
+preservando seus membros, e remover os grupos automáticos somente depois da
+conferência da cópia. Não alterar permissões de equipe nem grupos externos.
+
+O contrato atualizado da Apple ainda exige aceite pelo Account Holder.
+O responsável informou que já entrou em contato com ele. O botão de contato
+apenas abre um e-mail e não enviou notificação automaticamente.
+
+## Sequência de liberação (não executada)
+
+1. Confirmar aceite do contrato e resolver os grupos automáticos conforme
+   decisão do responsável; verificar novamente todos os grupos internos.
+2. Confirmar autenticação de submissão para a equipe correta. Não reutilizar
+   implicitamente a conta pessoal antiga nem criar chaves sem necessidade.
+3. Publicar a API a partir da main revisada, após autorização, mantendo o
+   auto-deploy desligado. Validar saúde, login, upload, mídia privada,
+   composição vertical e Business no ambiente de destino antes de distribuir.
+4. Enviar exatamente o pacote acima com o perfil `beta`, nunca `--latest`.
+   Aguardar processamento e resolver eventuais exigências da Apple. Conferir
+   versão, número de build, grupo e API antes de disponibilizar o app.
+5. Associar manualmente somente `GASP Beta - Core Team`, sem links públicos ou
+   associação a outros grupos. Conferir os dois destinatários imediatamente
+   antes da liberação e validar instalação, login, fluxo pessoal e Business.
+6. Se houver regressão, interromper o teste desse build e preservar evidências.
+   As tags de recuperação guardam código, não backups de dados/configuração;
+   voltar à API pública antiga não garante acesso às mídias privadas novas.
+   Preferir correção compatível e revalidada antes de reabrir o beta.
+
+## Texto preparado para “What to Test”
+
+Validate sign-in and account switching; send and receive photo/video gasps;
+check reaction camera, microphone, playback and the vertical split layout.
+In Business Studio, switch companies, publish a test campaign, check metrics,
+play received reactions, and verify featuring consent and withdrawal.
+Report the steps to reproduce any issue, your iPhone model and iOS version.
+
+Internal Testing é para usuários elegíveis da equipe App Store Connect.
+External Testing atende convidados sem acesso administrativo; a primeira
+build externa precisa da revisão beta da Apple. Nenhum grupo externo novo
+foi criado e nenhuma versão foi distribuída nesta preparação.
 
 Referências: [runtime e atualizações](https://docs.expo.dev/eas-update/runtime-versions/),
 [configuração EAS](https://docs.expo.dev/eas/json/).
+Referências Apple: [testadores internos](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers),
+[testadores externos](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/).

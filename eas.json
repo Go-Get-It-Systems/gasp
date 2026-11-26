@@ -46,6 +46,12 @@
     }
   },
   "submit": {
+    "beta": {
+      "ios": {
+        "ascAppId": "6763954977",
+        "appleTeamId": "RNYP352KSW"
+      }
+    },
     "production": {
       "ios": {
         "appleId": "gabrielpt201111@gmail.com",
