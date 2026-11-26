@@ -166,9 +166,9 @@ Stores contain **UI/client state only**. Server state (friends, gasps, profile s
 ### Firebase
 
 - **`@react-native-firebase/app` + `/auth`** — Native modules for phone SMS authentication.
-- **No Firebase JS SDK in the client.** Storage uploads go through the backend (`POST /api/v1/uploads`), which uses `firebase-admin` server-side and returns a public download URL. This avoids the auth-state mismatch between native `@react-native-firebase/auth` and the JS SDK.
+- Storage uploads go through the backend (`POST /api/v1/uploads`). Media references require an authenticated `/uploads/access` grant; only avatars are deliberately public. Native authentication uses `@react-native-firebase/auth`; the web authentication adapter uses the Firebase JS SDK.
 
-Project ID: `gasp-cab37`
+Project ID: `gasp-react-app` (verified against the native app configuration and Railway). The isolated integration shares this Firebase Auth project but uses its own database, Redis, bucket and bucket-scoped service account.
 
 ## Styling
 
