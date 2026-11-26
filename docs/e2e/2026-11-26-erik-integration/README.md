@@ -135,6 +135,23 @@ recebida, encerrando essa pendência. O viewer acessado pelo Studio legado
 mostra mídias em dois players separados dentro de folha modal, não composição
 vertical de tela inteira. Nenhum frame com rosto foi adicionado ao Git.
 
+### Consentimento, destaque e revogação — aprovado nesta rodada
+
+Campanha `htwzrm95bpo3hu3nuau8t1y4` (Adidas Demo — teste com consentimento),
+preparada pela API do Iaco usando o mesmo trecho privado. Bi recebeu,
+gravou no iPhone e ativou consentimento antes de enviar. API confirmou
+`consentToFeature: true` na reação `dbqvz28bdm6yxurtqli8086b`; no painel
+nativo do Iaco, Feature reaction estava habilitado. Ao acioná-lo, Featured
+passou para 1, o botão virou Remove featured reaction, e a reação apareceu
+nos endpoints de galeria e destaques consultados pela Bi.
+
+O usuário retirou o consentimento pelo Profile / My campaign reactions
+no iPhone. Depois: API retornou consentToFeature false e isPinned false;
+galeria e destaques vazios. O painel nativo do Iaco refletiu Featured 0,
+Feature reaction desabilitado e Not approved for featuring. Delivered,
+opened, viewed e reacted permaneceram 1; failed 0. Esse ciclo passou,
+sem implicar aprovação integral da integração ou autorização de merge.
+
 ## Próximos passos
 
 1. Complementar evidência temporal de início da captura e sincronização;
