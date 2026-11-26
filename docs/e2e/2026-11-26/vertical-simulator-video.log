@@ -1,0 +1,39 @@
+ WARN  [expo-notifications]: `shouldShowAlert` is deprecated. Specify `shouldShowBanner` and / or `shouldShowList` instead.
+ LOG  [gasp-flow] video-status at=1795654660924 status=readyToPlay
+ LOG  [gasp-flow] hold-start at=1795654677503
+ LOG  [gasp-flow] reveal at=1795654680569 recording=false
+ LOG  [gasp-flow] recording-started at=1795654680570 duringCountdown=false maxDuration=14 attempt=1
+ LOG  [gasp-flow] server-open at=1795654680607 gaspId=kwax2mqcib5f57rag68gr4fq
+ LOG  [gasp-flow] recording-failed at=1795654680609 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=1 retry=true
+ LOG  [gasp-flow] video-play at=1795654680622 muted=false volume=1
+ LOG  [gasp-flow] recording-started at=1795654680769 duringCountdown=false maxDuration=14 attempt=2
+ LOG  [gasp-flow] recording-failed at=1795654680799 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=2 retry=true
+ LOG  [gasp-flow] recording-started at=1795654680952 duringCountdown=false maxDuration=14 attempt=3
+ LOG  [gasp-flow] recording-failed at=1795654680985 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=3 retry=true
+ LOG  [gasp-flow] recording-started at=1795654681152 duringCountdown=false maxDuration=14 attempt=4
+ LOG  [gasp-flow] recording-failed at=1795654681154 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=4 retry=true
+ LOG  [gasp-flow] recording-started at=1795654681319 duringCountdown=false maxDuration=14 attempt=5
+ LOG  [gasp-flow] recording-failed at=1795654681320 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=5 retry=true
+ LOG  [gasp-flow] recording-started at=1795654681485 duringCountdown=false maxDuration=14 attempt=6
+ LOG  [gasp-flow] recording-failed at=1795654681486 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=6 retry=true
+ LOG  [gasp-flow] recording-started at=1795654681652 duringCountdown=false maxDuration=14 attempt=7
+ LOG  [gasp-flow] recording-failed at=1795654681653 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=7 retry=true
+ LOG  [gasp-flow] recording-started at=1795654681819 duringCountdown=false maxDuration=14 attempt=8
+ LOG  [gasp-flow] recording-failed at=1795654681820 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=8 retry=true
+ LOG  [gasp-flow] recording-started at=1795654681985 duringCountdown=false maxDuration=14 attempt=9
+ LOG  [gasp-flow] recording-failed at=1795654681986 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=9 retry=true
+ LOG  [gasp-flow] recording-started at=1795654682152 duringCountdown=false maxDuration=14 attempt=10
+ LOG  [gasp-flow] recording-failed at=1795654682155 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=10 retry=false
+ LOG  [gasp-flow] release at=1795654690019 revealed=true
+ LOG  [gasp-flow] no-clip at=1795654690019
+ LOG  [gasp-flow] close-view at=1795654694216 why=unmount

@@ -1,0 +1,282 @@
+[
+  {
+    "timestamp": "2026-11-26T00:53:07.042209850Z",
+    "method": "POST",
+    "path": "/api/v1/uploads",
+    "httpStatus": 200,
+    "totalDuration": 1228
+  },
+  {
+    "timestamp": "2026-11-26T00:53:07.473865818Z",
+    "method": "POST",
+    "path": "/api/v1/gasps/batch",
+    "httpStatus": 201,
+    "totalDuration": 84
+  },
+  {
+    "timestamp": "2026-11-26T00:53:07.853897410Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/moments/latest",
+    "httpStatus": 200,
+    "totalDuration": 57
+  },
+  {
+    "timestamp": "2026-11-26T00:53:08.023592865Z",
+    "method": "GET",
+    "path": "/api/v1/conversations",
+    "httpStatus": 200,
+    "totalDuration": 75
+  },
+  {
+    "timestamp": "2026-11-26T00:53:08.099600867Z",
+    "method": "POST",
+    "path": "/api/v1/conversations",
+    "httpStatus": 201,
+    "totalDuration": 151
+  },
+  {
+    "timestamp": "2026-11-26T00:53:08.356743166Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/pending",
+    "httpStatus": 200,
+    "totalDuration": 33
+  },
+  {
+    "timestamp": "2026-11-26T00:53:16.809422044Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 261640
+  },
+  {
+    "timestamp": "2026-11-26T00:53:16.811265868Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 261933
+  },
+  {
+    "timestamp": "2026-11-26T00:53:19.907584911Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 37392
+  },
+  {
+    "timestamp": "2026-11-26T00:53:19.907918785Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 37374
+  },
+  {
+    "timestamp": "2026-11-26T00:53:19.908010411Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 37995
+  },
+  {
+    "timestamp": "2026-11-26T00:53:19.908038509Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 36981
+  },
+  {
+    "timestamp": "2026-11-26T00:53:19.908946706Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 37348
+  },
+  {
+    "timestamp": "2026-11-26T00:53:19.909224576Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 37085
+  },
+  {
+    "timestamp": "2026-11-26T00:53:25.249558931Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/pending",
+    "httpStatus": 401,
+    "totalDuration": 5
+  },
+  {
+    "timestamp": "2026-11-26T00:53:25.268163021Z",
+    "method": "GET",
+    "path": "/api/v1/users/me",
+    "httpStatus": 200,
+    "totalDuration": 23
+  },
+  {
+    "timestamp": "2026-11-26T00:53:25.603633062Z",
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "httpStatus": 200,
+    "totalDuration": 12
+  },
+  {
+    "timestamp": "2026-11-26T00:53:25.849724474Z",
+    "method": "GET",
+    "path": "/api/v1/friends",
+    "httpStatus": 200,
+    "totalDuration": 48
+  },
+  {
+    "timestamp": "2026-11-26T00:53:25.857692727Z",
+    "method": "GET",
+    "path": "/api/v1/conversations",
+    "httpStatus": 200,
+    "totalDuration": 57
+  },
+  {
+    "timestamp": "2026-11-26T00:53:26.037387470Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/pending",
+    "httpStatus": 200,
+    "totalDuration": 38
+  },
+  {
+    "timestamp": "2026-11-26T00:53:29.494196498Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 11124
+  },
+  {
+    "timestamp": "2026-11-26T00:53:29.498846726Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 10669
+  },
+  {
+    "timestamp": "2026-11-26T00:53:38.369172220Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/pending",
+    "httpStatus": 200,
+    "totalDuration": 37
+  },
+  {
+    "timestamp": "2026-11-26T00:54:25.737102965Z",
+    "method": "GET",
+    "path": "/api/v1/businesses/inbox",
+    "httpStatus": 200,
+    "totalDuration": 67
+  },
+  {
+    "timestamp": "2026-11-26T00:54:25.747068059Z",
+    "method": "GET",
+    "path": "/api/v1/friends/requests",
+    "httpStatus": 200,
+    "totalDuration": 77
+  },
+  {
+    "timestamp": "2026-11-26T00:54:25.747640795Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/sent",
+    "httpStatus": 200,
+    "totalDuration": 77
+  },
+  {
+    "timestamp": "2026-11-26T00:54:25.748330127Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/pending",
+    "httpStatus": 200,
+    "totalDuration": 79
+  },
+  {
+    "timestamp": "2026-11-26T00:54:25.752309523Z",
+    "method": "GET",
+    "path": "/api/v1/reactions/received",
+    "httpStatus": 200,
+    "totalDuration": 82
+  },
+  {
+    "timestamp": "2026-11-26T00:54:25.755892041Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/moments/latest",
+    "httpStatus": 200,
+    "totalDuration": 85
+  },
+  {
+    "timestamp": "2026-11-26T00:55:15.895077087Z",
+    "method": "PATCH",
+    "path": "/api/v1/gasps/ch9i8huzo0sl13yx84i4ki25/open",
+    "httpStatus": 200,
+    "totalDuration": 48
+  },
+  {
+    "timestamp": "2026-11-26T00:55:27.109189854Z",
+    "method": "PATCH",
+    "path": "/api/v1/gasps/ch9i8huzo0sl13yx84i4ki25/close-view",
+    "httpStatus": 200,
+    "totalDuration": 47
+  },
+  {
+    "timestamp": "2026-11-26T00:57:21.827200519Z",
+    "method": "POST",
+    "path": "/api/v1/uploads",
+    "httpStatus": 200,
+    "totalDuration": 1206
+  },
+  {
+    "timestamp": "2026-11-26T00:57:22.238669432Z",
+    "method": "POST",
+    "path": "/api/v1/gasps/batch",
+    "httpStatus": 201,
+    "totalDuration": 89
+  },
+  {
+    "timestamp": "2026-11-26T00:57:22.610409859Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/moments/latest",
+    "httpStatus": 200,
+    "totalDuration": 51
+  },
+  {
+    "timestamp": "2026-11-26T00:57:22.738872741Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/pending",
+    "httpStatus": 200,
+    "totalDuration": 31
+  },
+  {
+    "timestamp": "2026-11-26T00:57:22.808703230Z",
+    "method": "GET",
+    "path": "/api/v1/conversations",
+    "httpStatus": 200,
+    "totalDuration": 100
+  },
+  {
+    "timestamp": "2026-11-26T00:57:22.875223110Z",
+    "method": "POST",
+    "path": "/api/v1/conversations",
+    "httpStatus": 201,
+    "totalDuration": 167
+  },
+  {
+    "timestamp": "2026-11-26T00:58:01.116483273Z",
+    "method": "PATCH",
+    "path": "/api/v1/gasps/kwax2mqcib5f57rag68gr4fq/open",
+    "httpStatus": 200,
+    "totalDuration": 51
+  },
+  {
+    "timestamp": "2026-11-26T00:58:14.464672848Z",
+    "method": "PATCH",
+    "path": "/api/v1/gasps/kwax2mqcib5f57rag68gr4fq/close-view",
+    "httpStatus": 200,
+    "totalDuration": 44
+  },
+  {
+    "timestamp": "2026-11-26T00:58:49.719380537Z",
+    "method": "GET",
+    "path": "/api/v1/businesses/inbox",
+    "httpStatus": 200,
+    "totalDuration": 60
+  }
+]

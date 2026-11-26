@@ -1,0 +1,128 @@
+[
+  {
+    "timestamp": "2026-11-26T00:49:30.789066290Z",
+    "method": "GET",
+    "path": "/api/v1/businesses/inbox",
+    "httpStatus": 200,
+    "totalDuration": 80
+  },
+  {
+    "timestamp": "2026-11-26T00:49:30.836002712Z",
+    "method": "GET",
+    "path": "/api/v1/businesses/workspaces",
+    "httpStatus": 200,
+    "totalDuration": 126
+  },
+  {
+    "timestamp": "2026-11-26T00:49:30.859131217Z",
+    "method": "GET",
+    "path": "/api/v1/businesses/directory",
+    "httpStatus": 200,
+    "totalDuration": 150
+  },
+  {
+    "timestamp": "2026-11-26T00:49:40.980356124Z",
+    "method": "POST",
+    "path": "/api/v1/uploads",
+    "httpStatus": 200,
+    "totalDuration": 484
+  },
+  {
+    "timestamp": "2026-11-26T00:49:43.387134983Z",
+    "method": "POST",
+    "path": "/api/v1/gasps/batch",
+    "httpStatus": 201,
+    "totalDuration": 91
+  },
+  {
+    "timestamp": "2026-11-26T00:49:43.770949459Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/moments/latest",
+    "httpStatus": 200,
+    "totalDuration": 54
+  },
+  {
+    "timestamp": "2026-11-26T00:49:43.871106775Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/pending",
+    "httpStatus": 200,
+    "totalDuration": 35
+  },
+  {
+    "timestamp": "2026-11-26T00:49:43.898717425Z",
+    "method": "GET",
+    "path": "/api/v1/conversations",
+    "httpStatus": 200,
+    "totalDuration": 62
+  },
+  {
+    "timestamp": "2026-11-26T00:49:43.964977367Z",
+    "method": "POST",
+    "path": "/api/v1/conversations",
+    "httpStatus": 201,
+    "totalDuration": 128
+  },
+  {
+    "timestamp": "2026-11-26T00:49:59.472410445Z",
+    "method": "GET",
+    "path": "/health",
+    "httpStatus": 200,
+    "totalDuration": 7
+  },
+  {
+    "timestamp": "2026-11-26T00:50:29.177407188Z",
+    "method": "GET",
+    "path": "/api/v1/gasps/pending",
+    "httpStatus": 200,
+    "totalDuration": 79
+  },
+  {
+    "timestamp": "2026-11-26T00:50:53.956727792Z",
+    "method": "PATCH",
+    "path": "/api/v1/gasps/j5s18f02jftbpy7rg7rdulfg/open",
+    "httpStatus": 200,
+    "totalDuration": 87
+  },
+  {
+    "timestamp": "2026-11-26T00:51:11.852396618Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 100512
+  },
+  {
+    "timestamp": "2026-11-26T00:51:11.878533354Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 100520
+  },
+  {
+    "timestamp": "2026-11-26T00:51:12.090125695Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 100514
+  },
+  {
+    "timestamp": "2026-11-26T00:51:12.310609321Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 100511
+  },
+  {
+    "timestamp": "2026-11-26T00:51:12.572702312Z",
+    "method": "GET",
+    "path": "/socket.io/",
+    "httpStatus": 0,
+    "totalDuration": 100512
+  },
+  {
+    "timestamp": "2026-11-26T00:51:46.547299038Z",
+    "method": "PATCH",
+    "path": "/api/v1/gasps/j5s18f02jftbpy7rg7rdulfg/close-view",
+    "httpStatus": 200,
+    "totalDuration": 91
+  }
+]

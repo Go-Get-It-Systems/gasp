@@ -1,0 +1,37 @@
+ LOG  [gasp-flow] hold-start at=1795654233850
+ LOG  [gasp-flow] release at=1795654235349 revealed=false
+ LOG  [gasp-flow] hold-start at=1795654250533
+ LOG  [gasp-flow] reveal at=1795654253599 recording=false
+ LOG  [gasp-flow] recording-started at=1795654253600 duringCountdown=false maxDuration=14 attempt=1
+ LOG  [gasp-flow] server-open at=1795654253677 gaspId=j5s18f02jftbpy7rg7rdulfg
+ LOG  [gasp-flow] recording-failed at=1795654253679 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=1 retry=true
+ LOG  [gasp-flow] recording-started at=1795654253832 duringCountdown=false maxDuration=14 attempt=2
+ LOG  [gasp-flow] recording-failed at=1795654253864 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=2 retry=true
+ LOG  [gasp-flow] recording-started at=1795654254015 duringCountdown=false maxDuration=14 attempt=3
+ LOG  [gasp-flow] recording-failed at=1795654254066 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=3 retry=true
+ LOG  [gasp-flow] recording-started at=1795654254232 duringCountdown=false maxDuration=14 attempt=4
+ LOG  [gasp-flow] recording-failed at=1795654254265 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=4 retry=true
+ LOG  [gasp-flow] recording-started at=1795654254432 duringCountdown=false maxDuration=14 attempt=5
+ LOG  [gasp-flow] recording-failed at=1795654254433 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=5 retry=true
+ LOG  [gasp-flow] recording-started at=1795654254599 duringCountdown=false maxDuration=14 attempt=6
+ LOG  [gasp-flow] recording-failed at=1795654254601 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=6 retry=true
+ LOG  [gasp-flow] recording-started at=1795654254765 duringCountdown=false maxDuration=14 attempt=7
+ LOG  [gasp-flow] recording-failed at=1795654254768 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=7 retry=true
+ LOG  [gasp-flow] recording-started at=1795654254932 duringCountdown=false maxDuration=14 attempt=8
+ LOG  [gasp-flow] recording-failed at=1795654254936 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=8 retry=true
+ LOG  [gasp-flow] recording-started at=1795654255098 duringCountdown=false maxDuration=14 attempt=9
+ LOG  [gasp-flow] recording-failed at=1795654255100 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=9 retry=true
+ LOG  [gasp-flow] recording-started at=1795654255265 duringCountdown=false maxDuration=14 attempt=10
+ LOG  [gasp-flow] recording-failed at=1795654255266 error=Error: Calling the 'record' function has failed
+→ Caused by: This operation is not supported on the simulator attempt=10 retry=false
+ LOG  [gasp-flow] release at=1795654263682 revealed=true
+ LOG  [gasp-flow] no-clip at=1795654263682
