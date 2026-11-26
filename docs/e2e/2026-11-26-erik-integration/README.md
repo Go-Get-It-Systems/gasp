@@ -262,6 +262,16 @@ O experimento de conexão continua local e fora desta alteração versionada.
 O texto de consentimento e a revisão final de integração seguem pendentes.
 Nenhum merge na main, deploy de produção ou envio ao TestFlight foi feito.
 
+### Aviso de consentimento atualizado — 27 de novembro
+
+Atualizado o aviso em inglês e português: o acesso às mídias é protegido;
+retirar consentimento remove a reação do perfil e da galeria da empresa,
+mas não apaga cópias já salvas por outras pessoas. Removida a afirmação
+obsoleta de que as reações usam links públicos. Nenhuma regra de consentimento,
+autorização ou armazenamento foi alterada. Os dois arquivos de tradução
+foram verificados como JSON válido. A revisão final de integração segue
+pendente, sem merge na main ou publicação.
+
 ## Próximos passos
 
 1. Complementar evidência temporal de início da captura e sincronização;

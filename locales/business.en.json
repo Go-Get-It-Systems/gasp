@@ -40,7 +40,7 @@
   "finishViewing": "Finish viewing", "react": "Record a reaction", "recordVideo": "Record reaction video", "chooseVideo": "Choose reaction video",
   "consent": "Allow this business to feature my reaction on its profile and gallery for other signed-in users to see.",
   "consentHint": "Optional. Leave unchecked to keep this reaction out of the public gallery.",
-  "storageNotice": "Reactions use public media links. Withdrawal removes gallery visibility, but cannot invalidate copied links or downloaded files.",
+  "storageNotice": "Access to reaction media is protected. Withdrawing consent removes your reaction from the business profile and gallery, but does not delete copies already saved by others.",
   "sendReaction": "Send reaction", "reactionSent": "Reaction sent", "withdraw": "Withdraw featuring consent", "withdrawn": "Featuring consent is off",
   "noOwnReaction": "No reaction submitted for this campaign", "recording": "Recording…", "stopRecording": "Stop recording",
   "recordHint": "Record a video reaction, up to 30 seconds.", "retake": "Retake", "useVideo": "Use video",

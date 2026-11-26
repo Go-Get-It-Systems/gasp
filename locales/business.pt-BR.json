@@ -40,7 +40,7 @@
   "finishViewing": "Concluir visualização", "react": "Gravar reação", "recordVideo": "Gravar vídeo de reação", "chooseVideo": "Escolher vídeo de reação",
   "consent": "Permitir que esta empresa destaque minha reação no perfil e na galeria para outros usuários conectados verem.",
   "consentHint": "Opcional. Deixe desmarcado para manter esta reação fora da galeria pública.",
-  "storageNotice": "As reações usam links públicos de mídia. Retirar o consentimento remove a visibilidade na galeria, mas não invalida links copiados ou arquivos baixados.",
+  "storageNotice": "O acesso à mídia das reações é protegido. Retirar o consentimento remove sua reação do perfil e da galeria da empresa, mas não apaga cópias já salvas por outras pessoas.",
   "sendReaction": "Enviar reação", "reactionSent": "Reação enviada", "withdraw": "Retirar consentimento para destaque", "withdrawn": "Consentimento para destaque desativado",
   "noOwnReaction": "Nenhuma reação enviada para esta campanha", "recording": "Gravando…", "stopRecording": "Parar gravação",
   "recordHint": "Grave uma reação em vídeo, com até 30 segundos.", "retake": "Gravar novamente", "useVideo": "Usar vídeo",
