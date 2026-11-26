@@ -11,7 +11,9 @@ export default function ModalsLayout() {
           contentStyle: { backgroundColor: '#0A0A0F' },
           animation: 'slide_from_bottom',
         }}
-      />
+      >
+        <Stack.Screen name="view-gasp" options={{ presentation: 'fullScreenModal' }} />
+      </Stack>
     </ErrorBoundary>
   );
 }

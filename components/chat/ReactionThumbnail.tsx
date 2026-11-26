@@ -25,8 +25,8 @@ export function ReactionThumbnail({ reactionUri, originalUri }: ReactionThumbnai
             watermarkMode="hidden"
             reactionPaused
             reactionMuted
-            reactionFlex={45}
-            originalFlex={55}
+            reactionFlex={50}
+            originalFlex={50}
           />
         ) : (
           <LinearGradient

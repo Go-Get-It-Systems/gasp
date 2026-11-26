@@ -23,6 +23,7 @@ import { useChatStore } from "@/stores/chatStore";
 import { useMediaCacheStore } from "@/stores/mediaCacheStore";
 import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -164,10 +165,14 @@ function RootContent() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="(modals)"
-          options={{
+          options={({ route }) => ({
             headerShown: false,
-            presentation: "modal",
-          }}
+            // The parent presentation must also fill the display: a full-screen
+            // child cannot escape an iOS sheet's rounded, inset container.
+            presentation: getFocusedRouteNameFromRoute(route) === "view-gasp"
+              ? "fullScreenModal"
+              : "modal",
+          })}
         />
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />

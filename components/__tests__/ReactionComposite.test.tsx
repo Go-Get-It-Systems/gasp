@@ -26,34 +26,38 @@ const DEFAULT_PROPS = {
 
 describe('ReactionComposite', () => {
   describe('layout', () => {
-    it('renders a row container', () => {
-      // Container has flexDirection row via styles — verify by checking panels exist
-      expect(() => render(<ReactionComposite {...DEFAULT_PROPS} />)).not.toThrow();
+    it('stacks the original above the reaction in equal full-width panels', () => {
+      const { getByTestId } = render(<ReactionComposite {...DEFAULT_PROPS} />);
+      const container = getByTestId('reaction-composite');
+      expect(StyleSheet.flatten(container.props.style).flexDirection).toBe('column');
+      expect(container.props.children.filter(Boolean).map((child: React.ReactElement<{ testID: string }>) => child.props.testID)).toEqual([
+        'reaction-composite-gasp-panel', 'reaction-composite-divider', 'reaction-composite-reaction-panel',
+      ]);
     });
 
-    it('renders the default 45/55 reaction-to-gasp split', () => {
+    it('renders the default 50/50 reaction-to-gasp split', () => {
       const { getByTestId } = render(
         <ReactionComposite {...DEFAULT_PROPS} />,
       );
       const reactionStyle = StyleSheet.flatten(getByTestId('reaction-composite-reaction-panel').props.style) as ViewStyle;
       const gaspStyle = StyleSheet.flatten(getByTestId('reaction-composite-gasp-panel').props.style) as ViewStyle;
 
-      expect(reactionStyle.flex).toBe(45);
-      expect(gaspStyle.flex).toBe(55);
+      expect(reactionStyle.flex).toBe(50);
+      expect(gaspStyle.flex).toBe(50);
     });
 
     it('allows playback to override the panel split', () => {
       const { getByTestId } = render(
-        <ReactionComposite {...DEFAULT_PROPS} reactionFlex={45} originalFlex={55} />,
+        <ReactionComposite {...DEFAULT_PROPS} reactionFlex={50} originalFlex={50} />,
       );
       const reactionStyle = StyleSheet.flatten(getByTestId('reaction-composite-reaction-panel').props.style) as ViewStyle;
       const gaspStyle = StyleSheet.flatten(getByTestId('reaction-composite-gasp-panel').props.style) as ViewStyle;
 
-      expect(reactionStyle.flex).toBe(45);
-      expect(gaspStyle.flex).toBe(55);
+      expect(reactionStyle.flex).toBe(50);
+      expect(gaspStyle.flex).toBe(50);
     });
 
-    it('renders the container with flexDirection row', () => {
+    it('renders the vertical container', () => {
       expect(() => render(<ReactionComposite {...DEFAULT_PROPS} />)).not.toThrow();
     });
 

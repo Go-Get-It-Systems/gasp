@@ -1,13 +1,16 @@
-import { StyleSheet, View, Dimensions, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Pressable, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { colors } from '@/constants/colors';
-import { Send, RotateCcw, Download } from 'lucide-react-native';
-import Animated, { FadeIn, FadeInDown, ZoomIn, Easing } from 'react-native-reanimated';
-import { ReactionComposite } from '@/components/gasp/ReactionComposite';
+import { Send, RotateCcw, Download, Trash2 } from 'lucide-react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { ReactionComposite, REACTION_WATERMARK } from '@/components/gasp/ReactionComposite';
 import { useTranslation } from 'react-i18next';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const COMPOSITE_HEIGHT = SCREEN_WIDTH * 1.4;
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ACTION_SIZE = 28;
+const TOUCH_SIZE = 48;
+const VISUAL_GAP = 32;
 
 interface ReactionPreviewProps {
   originalImageUri: string;
@@ -34,19 +37,31 @@ export function ReactionPreview({
   isSending = false,
 }: ReactionPreviewProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  // Match the watermark's center axis and keep equal visible gaps between
+  // the logo, send and discard, independently of their larger touch targets.
+  const actionRight = width * (REACTION_WATERMARK.right + REACTION_WATERMARK.width / 2) - TOUCH_SIZE / 2;
+  const actionTop = -(height / 2) * REACTION_WATERMARK.bottom + VISUAL_GAP - (TOUCH_SIZE - ACTION_SIZE) / 2;
+  const confirmDiscard = () => {
+    if (isSending) return;
+    Alert.alert(t('reaction.discardTitle'), t('reaction.discardMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('reaction.discard'), style: 'destructive', onPress: onDiscard },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Animated.View entering={FadeIn.delay(50).duration(300)}>
-          <Text variant="title" style={styles.title}>{t('reaction.yourReaction')}</Text>
-          <Text variant="caption" style={styles.subtitle}>{t('reaction.reactionTo', { name: senderName })}</Text>
+        <Animated.View pointerEvents="none" entering={FadeIn.delay(50).duration(300)} style={[styles.header, { top: insets.top + 12 }]}>
+          <Text variant="caption" style={styles.contextText}>{t('reaction.previewContext', { name: senderName })}</Text>
         </Animated.View>
 
-        {/* Composite zooms in with back-easing for a "ta-da" feel */}
+        {/* Media fills the screen; controls overlay it without changing the split. */}
         <Animated.View
-          entering={ZoomIn.delay(100).duration(400).easing(Easing.out(Easing.back(1.3)))}
-          style={[styles.compositeWrapper, { height: COMPOSITE_HEIGHT }]}
+          testID="reaction-preview-frame"
+          style={styles.compositeWrapper}
         >
           <ReactionComposite
             originalUri={originalImageUri}
@@ -54,56 +69,62 @@ export function ReactionPreview({
             reactionVideoUri={reactionVideoUri}
             reactionLabel={t('reaction.you')}
             originalLabel={t('reaction.senderGasp', { name: senderName })}
-            showLabels
             showDivider
+            dividerStyle={styles.previewDivider}
             watermarkMode="subtle"
-            reactionFlex={45}
-            originalFlex={55}
+            reactionFlex={50}
+            originalFlex={50}
           />
         </Animated.View>
 
-        {/* Buttons slide up after composite */}
-        <Animated.View entering={FadeInDown.delay(300).duration(250)} style={styles.actions}>
-          {/* The live gasp flow omits retakes so reactions stay authentic (06/06 decision). */}
-          {onRetake && (
-            <Pressable
-              onPress={onRetake}
-              style={styles.retakeButton}
-              accessibilityRole="button"
-              accessibilityLabel={t('reaction.reRecord')}
-            >
-              <RotateCcw size={20} color={colors.textPrimary} />
-              <Text variant="body" style={styles.retakeText}>{t('reaction.reRecord')}</Text>
-            </Pressable>
-          )}
-          <Pressable
-            onPress={onSend}
-            disabled={isSending}
-            accessibilityState={{ disabled: isSending }}
-            style={[styles.sendButton, isSending && styles.sendButtonDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel={t('reaction.sendReaction')}
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Send size={20} color="#FFFFFF" />
+        <View pointerEvents="box-none" style={[styles.controls, { right: actionRight, marginTop: actionTop }]}>
+          {/* Buttons overlay the lower panel. */}
+          <Animated.View entering={FadeInDown.delay(300).duration(250)} style={styles.actions}>
+            {/* The live gasp flow omits retakes so reactions stay authentic (06/06 decision). */}
+            {onRetake && (
+              <Pressable
+                onPress={onRetake}
+                style={styles.iconButton}
+                accessibilityRole="button"
+                accessibilityLabel={t('reaction.reRecord')}
+              >
+                <RotateCcw size={ACTION_SIZE} color="#FFFFFF" />
+              </Pressable>
             )}
-            <Text variant="body" style={styles.sendText}>{t('reaction.sendReaction')}</Text>
-          </Pressable>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(400).duration(250)} style={styles.secondaryActions}>
-          {onSave && (
-            <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel={t('reaction.saveToCameraRoll')}>
-              <Download size={18} color={colors.textSecondary} />
-              <Text variant="body" style={styles.saveText}>{t('reaction.saveToCameraRoll')}</Text>
+            <Pressable
+              onPress={onSend}
+              disabled={isSending}
+              accessibilityState={{ disabled: isSending }}
+              style={[styles.iconButton, isSending && styles.sendButtonDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={t('reaction.sendReaction')}
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Send size={ACTION_SIZE} color="#FFFFFF" />
+              )}
             </Pressable>
+            <Pressable
+              onPress={confirmDiscard}
+              disabled={isSending}
+              accessibilityState={{ disabled: isSending }}
+              style={[styles.iconButton, isSending && styles.sendButtonDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={t('reaction.discard')}
+            >
+              <Trash2 size={ACTION_SIZE} color="#FFFFFF" />
+            </Pressable>
+          </Animated.View>
+
+          {onSave && (
+            <Animated.View entering={FadeInDown.delay(400).duration(250)} style={styles.secondaryActions}>
+              <Pressable onPress={onSave} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={t('reaction.saveToCameraRoll')}>
+                <Download size={ACTION_SIZE} color="#FFFFFF" />
+              </Pressable>
+            </Animated.View>
           )}
-          <Pressable onPress={onDiscard} style={styles.discardButton} accessibilityRole="button" accessibilityLabel={t('reaction.discard')}>
-            <Text variant="body" style={styles.discardText}>{t('reaction.discard')}</Text>
-          </Pressable>
-        </Animated.View>
+        </View>
       </View>
     </View>
   );
@@ -113,82 +134,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
   },
-  content: {
-    gap: 16,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
+  content: { flex: 1 },
+  header: { position: 'absolute', left: 20, right: 72, zIndex: 2 },
+  controls: { position: 'absolute', top: '50%', zIndex: 2 },
+  contextText: {
+    color: '#FFFFFF', fontSize: 14, fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
   compositeWrapper: {
-    width: SCREEN_WIDTH - 48,
-    borderRadius: 16,
-    borderCurve: 'continuous',
-    overflow: 'hidden',
-    marginTop: 8,
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    transform: [{ translateY: -0.5 }],
   },
   actions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-    width: '100%',
+    flexDirection: 'column',
+    gap: VISUAL_GAP + ACTION_SIZE - TOUCH_SIZE,
+    alignItems: 'center',
   },
-  retakeButton: {
-    flex: 1,
-    flexDirection: 'row',
+  iconButton: {
+    width: TOUCH_SIZE,
+    height: TOUCH_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    height: 52,
-    borderRadius: 26,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: colors.border,
+    shadowColor: '#000000',
+    shadowOpacity: 0.7,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
-  retakeText: { color: colors.textPrimary, fontWeight: '600' },
-  sendButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 52,
-    borderRadius: 26,
-    borderCurve: 'continuous',
-    backgroundColor: colors.primary,
-  },
-  sendButtonDisabled: {
-    opacity: 0.82,
-  },
-  sendText: { color: '#FFFFFF', fontWeight: '600' },
-  discardButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  discardText: { color: colors.textSecondary, fontWeight: '500' },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-  },
-  saveText: { color: colors.textSecondary, fontWeight: '500' },
-  secondaryActions: {
-    alignItems: 'center',
-    gap: 4,
-    width: '100%',
-  },
+  sendButtonDisabled: { opacity: 0.82 },
+  secondaryActions: { marginTop: VISUAL_GAP + ACTION_SIZE - TOUCH_SIZE, alignItems: 'center' },
 });

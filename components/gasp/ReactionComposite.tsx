@@ -1,8 +1,10 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { InlineVideo } from '@/components/ui/InlineVideo';
 import { Text } from '@/components/ui/Text';
+
+export const REACTION_WATERMARK = { right: 0.03333, bottom: 0.01875, width: 0.08889 } as const;
 
 const WATERMARK_SOURCE = require('@/assets/images/gasp-watermark-white.png');
 
@@ -14,6 +16,7 @@ export interface ReactionCompositeProps {
   originalLabel?: string;
   showLabels?: boolean;
   showDivider?: boolean;
+  dividerStyle?: StyleProp<ViewStyle>;
   watermarkMode?: 'hidden' | 'subtle';
   reactionPaused?: boolean;
   reactionMuted?: boolean;
@@ -58,28 +61,16 @@ export function ReactionComposite({
   originalLabel,
   showLabels = false,
   showDivider = true,
+  dividerStyle,
   watermarkMode = 'hidden',
   reactionPaused = false,
   reactionMuted = false,
-  reactionFlex = 45,
-  originalFlex = 55,
+  reactionFlex = 50,
+  originalFlex = 50,
 }: ReactionCompositeProps) {
   return (
-    <View style={styles.container}>
-      {/* Reaction video — left 45% */}
-      <View testID="reaction-composite-reaction-panel" style={[styles.reactionPanel, { flex: reactionFlex }]}>
-        <InlineVideo
-          uri={reactionVideoUri}
-          style={StyleSheet.absoluteFill}
-          paused={reactionPaused}
-          muted={reactionMuted}
-        />
-        {showLabels && reactionLabel && <PanelLabel label={reactionLabel} />}
-      </View>
-
-      {showDivider && <View testID="reaction-composite-divider" style={styles.divider} />}
-
-      {/* Original gasp — right 55% */}
+    <View testID="reaction-composite" style={styles.container}>
+      {/* Original gasp — top half */}
       <View testID="reaction-composite-gasp-panel" style={[styles.gaspPanel, { flex: originalFlex }]}>
         <OriginalMedia
           uri={originalUri}
@@ -108,6 +99,19 @@ export function ReactionComposite({
           </View>
         )}
       </View>
+
+      {showDivider && <View pointerEvents="none" testID="reaction-composite-divider" style={[styles.divider, dividerStyle]} />}
+
+      {/* Reaction video — bottom half */}
+      <View testID="reaction-composite-reaction-panel" style={[styles.reactionPanel, { flex: reactionFlex }]}>
+        <InlineVideo
+          uri={reactionVideoUri}
+          style={StyleSheet.absoluteFill}
+          paused={reactionPaused}
+          muted={reactionMuted}
+        />
+        {showLabels && reactionLabel && <PanelLabel label={reactionLabel} />}
+      </View>
     </View>
   );
 }
@@ -123,7 +127,7 @@ function PanelLabel({ label }: { label: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     backgroundColor: '#000',
     overflow: 'hidden',
   },
@@ -131,7 +135,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   divider: {
-    width: StyleSheet.hairlineWidth,
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(255,255,255,0.28)',
     zIndex: 2,
   },
@@ -156,9 +164,9 @@ const styles = StyleSheet.create({
   },
   watermark: {
     position: 'absolute',
-    right: '3.333%',
-    bottom: '1.875%',
-    width: '8.889%',
+    right: `${REACTION_WATERMARK.right * 100}%`,
+    bottom: `${REACTION_WATERMARK.bottom * 100}%`,
+    width: `${REACTION_WATERMARK.width * 100}%`,
     aspectRatio: 1,
     zIndex: 3,
   },

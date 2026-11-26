@@ -1,13 +1,16 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
-import { ActivityIndicator } from 'react-native';
+import { render, fireEvent } from '@testing-library/react-native';
+import { ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import type { ComponentType } from 'react';
 import { ReactionPreview } from '@/components/gasp/ReactionPreview';
 
 const MockReactionComposite = 'ReactionComposite' as unknown as ComponentType<Record<string, unknown>>;
 
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 59, bottom: 34, left: 0, right: 0 }) }));
+
 jest.mock('@/components/gasp/ReactionComposite', () => ({
   ReactionComposite: 'ReactionComposite',
+  REACTION_WATERMARK: { right: 0.03333, bottom: 0.01875, width: 0.08889 },
 }));
 
 jest.mock('react-i18next', () => ({
@@ -44,6 +47,27 @@ const DEFAULT_PROPS = {
 };
 
 describe('ReactionPreview', () => {
+  it('fills the preview with media rather than a fixed-height card', () => {
+    const { getByTestId } = render(<ReactionPreview {...DEFAULT_PROPS} />);
+    expect(StyleSheet.flatten(getByTestId('reaction-preview-frame').props.style)).toMatchObject({
+      position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    });
+  });
+  it('keeps the recording until discard is explicitly confirmed', () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const onDiscard = jest.fn();
+    const { getByRole } = render(<ReactionPreview {...DEFAULT_PROPS} onDiscard={onDiscard} />);
+    fireEvent.press(getByRole('button', { name: 'Discard' }));
+    expect(onDiscard).not.toHaveBeenCalled();
+    const buttons = alert.mock.calls[0][2]!;
+    expect(buttons[0].style).toBe('cancel');
+    buttons[0].onPress?.();
+    expect(onDiscard).not.toHaveBeenCalled();
+    buttons[1].onPress?.();
+    expect(onDiscard).toHaveBeenCalledTimes(1);
+    alert.mockRestore();
+  });
+
   describe('Send button states', () => {
     it('shows Send icon and enables button when isSending is false (default)', () => {
       const { getByRole, UNSAFE_queryByType } = render(
@@ -122,11 +146,11 @@ describe('ReactionPreview', () => {
       const composite = UNSAFE_getByType(MockReactionComposite);
       expect(composite.props.reactionLabel).toBe('You');
       expect(composite.props.originalLabel).toBe("Alice's gasp");
-      expect(composite.props.showLabels).toBe(true);
+      expect(composite.props.showLabels).toBeUndefined();
       expect(composite.props.showDivider).toBe(true);
       expect(composite.props.watermarkMode).toBe('subtle');
-      expect(composite.props.reactionFlex).toBe(45);
-      expect(composite.props.originalFlex).toBe(55);
+      expect(composite.props.reactionFlex).toBe(50);
+      expect(composite.props.originalFlex).toBe(50);
     });
   });
 });

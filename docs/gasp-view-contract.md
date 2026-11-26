@@ -73,7 +73,7 @@ segura ──► contagem 3-2-1 ──► revelação ──► gasp tocando ─
 ### C6. O composite fica sincronizado com a revelação
 - O backend recebe `revealOffsetMs = revelação − início da gravação`
   (cerca de 3000ms quando a gravação começou na contagem; 0 no fallback),
-  para alinhar o gasp com o rosto no vídeo lado a lado.
+  para alinhar o gasp com o rosto no vídeo composto. O formato novo coloca o gasp em cima e a reação embaixo (50/50); composições anteriores continuam lado a lado.
 
 ### C7. O status final no servidor é coerente
 - Reação entregue: o gasp termina `reacted`, também quando aberto pelo chat.

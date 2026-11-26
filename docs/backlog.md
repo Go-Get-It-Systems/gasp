@@ -89,3 +89,22 @@ Status: `aberto`, `decisão pendente`, `em andamento`, `feito (PR)`.
 - **Contexto:** a build para o 15 Pro Max falha com "PLA Update … Account
   Holder must agree" e o perfil não inclui o aparelho. Quem resolve é o
   titular da conta Apple Developer.
+
+
+## B-008 · Upload de mídia sofre falhas TLS intermitentes
+- **Prioridade:** P2 · **Área:** infra/app · **Status:** aberto
+- **Contexto:** no E2E de 23/10/2026, o envio do vídeo de teste de 9s de Iaco para Bi falhou com “No connection”, inclusive após Try Again. A foto passou na mesma sessão. Impacto em aparelhos reais ainda não confirmado.
+- **Evidência:** `docs/e2e/2026-10-23/report.md` e `upload-errors.log`: `/api/v1/uploads`, conexão resetada pelo peer, `NSURLErrorDomain -1200`, erro SSL -9816. `/health` respondeu 200. Não há evidência para atribuir a falha a um commit específico.
+- **Onde:** transporte iOS → domínio Railway; investigar logs de edge/backend e comparar aparelho físico. Fluxo chamador em `services/storage.ts` e `app/(modals)/send-gasp.tsx`. Validação completa de vídeo, composite, áudio e câmera pendente até resolver.
+
+- **Investigação em 23/10/2026:** nova tentativa autenticada falhou duas vezes no handshake TLS e passou na terceira, sem mudança de código: upload 200 (484.619 bytes), criação do gasp 201 e recebimento de vídeo de 9s confirmado na UI. Ver `docs/e2e/2026-10-23/upload-investigation.md`. Não é falha determinística de arquivo/compressão. Origem do reset ainda depende de logs de borda/rede; Railway CLI está sem autenticação. Mantido aberto, sem declarar correção.
+
+- B-008: correlação Railway concluída em 23/10: resets anteriores ao HTTP; upload recuperado confirmado por requestId LG_pYLmRToKM_3bRjUJq2g (200, 1430 ms). Causa de rede/borda ainda não identificada. Ver docs/e2e/2026-10-23/upload-investigation.md.
+- **Reteste 23/10/2026 11:02 (Melbourne):** foto sintética Bi → Iaco também falhou nas três tentativas automáticas, com `NSURLErrorDomain -1200 / SSL -9816`, conexões descritas como `quic-connection` e 0/0 bytes HTTP. UI: “No connection”. Nenhum upload nos logs HTTP Railway da janela; GETs de perfil retornaram 200. Backend `ea5bd05`, após desativar Serverless: job de expiração concluiu normalmente. Evidências em `docs/e2e/2026-10-23/retest-1100/`. A falha não é exclusiva de vídeo; origem exata permanece sem atribuição a código/autor.
+
+## B-009 · Saída de áudio durante reação com possível conexão AirPods
+- **Prioridade:** P2 · **Área:** app/iOS · **Status:** encerrado por validação do usuário em 26/11/2026, sem alteração de código
+- **Contexto:** primeira tentativa no iPhone 15 Pro sem som audível durante captura. Usuário depois informou possível conexão AirPods e elevou o volume; repetição passou sem mudança de código, com áudio original durante captura e voz própria na prévia confirmados. Defeito do app não estabelecido; cenário Bluetooth ainda não validado.
+- **Evidência:** E2E de 26/11/2026, `docs/e2e/2026-11-26/report.md`, `physical-trace.log` e `physical-audio-retest.log`. Ambas as reações entregues; primeira rota não instrumentada. Não atribuir causa a AirPods, commit ou autor sem reproduzir.
+- **Onde:** sessão/rota de áudio nativa, `components/gasp/HoldToView.tsx` e `patches/expo-video+3.0.16.patch`. Comparar saída do telefone e AirPods explicitamente antes de alterar código.
+- **Conclusão:** usuário confirmou depois que a validação com AirPods também estava correta. Pendência encerrada com base nessa confirmação; causa da primeira tentativa inaudível não isolada e nenhum conserto de código foi alegado.

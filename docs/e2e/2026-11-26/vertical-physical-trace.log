@@ -1,0 +1,12 @@
+ LOG  [gasp-flow] video-status at=1795654824260 status=readyToPlay
+ LOG  [gasp-flow] hold-start at=1795654827287
+ LOG  [gasp-flow] camera-ready at=1795654827337 released=false
+ LOG  [gasp-flow] recording-started at=1795654827600 duringCountdown=true maxDuration=14 attempt=1
+ LOG  [gasp-flow] reveal at=1795654830334 recording=true
+ LOG  [gasp-flow] server-open at=1795654830376 gaspId=zkcim52m5onds1kgi2o0aum8
+ LOG  [gasp-flow] video-play at=1795654830397 muted=false volume=1
+ LOG  [gasp-flow] release at=1795654839777 revealed=true
+ LOG  [gasp-flow] preview at=1795654839936
+ LOG  [gasp-flow] upload-done at=1795654851877
+ LOG  [gasp-flow] composite at=1795654855986 revealOffsetMs=2734 isComposite=true
+ LOG  [gasp-flow] reaction-delivered at=1795654856691 via=reactions

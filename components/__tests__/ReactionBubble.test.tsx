@@ -4,6 +4,7 @@ import { StyleSheet, type ViewStyle } from 'react-native';
 import type { ComponentType } from 'react';
 import { ReactionBubble } from '@/components/chat/ReactionBubble';
 import type { Message } from '@/services/api/schemas/chat.schema';
+import { getCachedUri } from '@/services/mediaCache';
 
 const MockReactionComposite = 'ReactionComposite' as unknown as ComponentType<Record<string, unknown>>;
 const MockInlineVideo = 'InlineVideo' as unknown as ComponentType<Record<string, unknown>>;
@@ -78,6 +79,32 @@ const gaspMessage: Message = {
 };
 
 describe('ReactionBubble', () => {
+  afterEach(() => jest.mocked(getCachedUri).mockReset());
+
+  it('plays a cached vertical export full screen without composing it a second time', () => {
+    jest.mocked(getCachedUri).mockReturnValue('file:///cache/reaction.mp4');
+    const { getByRole, UNSAFE_getByType, UNSAFE_queryByType } = render(
+      <ReactionBubble message={{ ...reactionMessage, mediaUrl: 'https://storage.googleapis.com/app/composites/user/vertical-v1/out.mp4' }}
+        isOwnMessage={false} replyToMessage={gaspMessage} otherParticipantName="Iaco" />,
+    );
+    fireEvent.press(getByRole('button', { name: 'Reaction video, tap to view composite' }));
+    expect(UNSAFE_queryByType(MockReactionComposite)).toBeNull();
+    expect(UNSAFE_getByType(MockInlineVideo).props).toMatchObject({
+      uri: 'file:///cache/reaction.mp4', contentFit: 'cover', muted: false,
+    });
+  });
+
+  it('keeps a cached legacy composite fully visible', () => {
+    jest.mocked(getCachedUri).mockReturnValue('file:///cache/legacy.mp4');
+    const { getByRole, UNSAFE_getByType, UNSAFE_queryByType } = render(
+      <ReactionBubble message={{ ...reactionMessage, mediaUrl: 'https://storage.googleapis.com/app/composites/user/out.mp4' }}
+        isOwnMessage={false} replyToMessage={gaspMessage} />,
+    );
+    fireEvent.press(getByRole('button', { name: 'Reaction video, tap to view composite' }));
+    expect(UNSAFE_queryByType(MockReactionComposite)).toBeNull();
+    expect(UNSAFE_getByType(MockInlineVideo).props.contentFit).toBe('contain');
+  });
+
   it('renders a composite thumbnail when original media exists', () => {
     const { getByTestId, queryByLabelText, UNSAFE_getAllByType } = render(
       <ReactionBubble
@@ -94,8 +121,8 @@ describe('ReactionBubble', () => {
     expect(composites[0].props.showDivider).toBe(true);
     expect(composites[0].props.reactionPaused).toBe(true);
     expect(composites[0].props.reactionMuted).toBe(true);
-    expect(composites[0].props.reactionFlex).toBe(45);
-    expect(composites[0].props.originalFlex).toBe(55);
+    expect(composites[0].props.reactionFlex).toBe(50);
+    expect(composites[0].props.originalFlex).toBe(50);
     expect(getByTestId('reaction-thumbnail-frame')).toBeTruthy();
     expect(queryByLabelText('Close reaction view')).toBeNull();
   });
@@ -173,8 +200,8 @@ describe('ReactionBubble', () => {
     expect(composites[1].props.showDivider).toBe(true);
     expect(composites[1].props.watermarkMode).toBe('subtle');
     expect(composites[1].props.showLabels).toBeUndefined();
-    expect(composites[1].props.reactionFlex).toBe(45);
-    expect(composites[1].props.originalFlex).toBe(55);
+    expect(composites[1].props.reactionFlex).toBe(50);
+    expect(composites[1].props.originalFlex).toBe(50);
     expect(getByText('You')).toBeTruthy();
     expect(getByText('You reacted')).toBeTruthy();
     expect(getAllByText("Alice's gasp")).toHaveLength(2);
@@ -188,12 +215,10 @@ describe('ReactionBubble', () => {
       backgroundColor: '#000',
     });
     expect(topContextStyle).toMatchObject({
-      width: '94%',
+      position: 'absolute',
     });
     expect(frameStyle).toMatchObject({
-      width: '94%',
-      maxHeight: '82%',
-      borderRadius: 22,
+      position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
     });
     fireEvent.press(getByLabelText('Close reaction view'));
     expect(queryByLabelText('Close reaction view')).toBeNull();
@@ -215,8 +240,8 @@ describe('ReactionBubble', () => {
     expect(composites.length).toBeGreaterThanOrEqual(2);
     expect(composites[1].props.reactionVideoUri).toBe('https://cdn.example.com/reaction.mp4');
     expect(composites[1].props.originalUri).toBe('https://cdn.example.com/gasp.jpg');
-    expect(composites[1].props.reactionFlex).toBe(45);
-    expect(composites[1].props.originalFlex).toBe(55);
+    expect(composites[1].props.reactionFlex).toBe(50);
+    expect(composites[1].props.originalFlex).toBe(50);
     expect(getByText('Bi')).toBeTruthy();
     expect(getByText('Bi reacted')).toBeTruthy();
     expect(getAllByText('Your gasp')).toHaveLength(2);
