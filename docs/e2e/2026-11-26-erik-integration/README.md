@@ -152,12 +152,37 @@ Feature reaction desabilitado e Not approved for featuring. Delivered,
 opened, viewed e reacted permaneceram 1; failed 0. Esse ciclo passou,
 sem implicar aprovação integral da integração ou autorização de merge.
 
+## Studio e troca de conta no simulador — 27 de novembro
+
+Na branch de integração com a correção dos contadores, o iPhone 17 Pro Max
+abriu a nova aba Studio do Iaco: Overview, Reactions e Metrics, com os
+estados vazios da Nike · Demo. New Campaign abriu o formulário com título,
+seletor de mídia e publicação desabilitada sem conteúdo; voltar restaurou
+o Studio. Não foi publicada campanha pelo novo formulário nesta rodada.
+
+No mesmo simulador, logout do Iaco retornou ao login. Após a verificação
+Firebase concluída pelo usuário e uso do código de teste, a Bi entrou:
+perfil Bi/@bialencar, Chat no lugar de Studio e conversa com Iaco.
+Novo logout e login do Iaco restauraram Business Studio, Nike · Demo e
+identidade Iaco/@iacoalencar nas configurações. Nenhuma tela de proprietário
+foi observada na navegação da Bi. Isso valida o ciclo visual de sessão;
+não substitui os testes de autorização ou prova de limpeza de todo cache.
+
+O banner “You're offline” permaneceu visível na captura final do Studio,
+apesar dos logins concluídos e da consulta de saúde da API retornar 200.
+A causa não foi determinada; não declarar a conexão resolvida. O novo
+Studio selecionou Nike, primeira empresa; a troca para Adidas e as métricas
+com campanhas existentes ainda precisam de validação nesse caminho.
+Nenhum merge, deploy de produção ou envio ao TestFlight foi realizado.
+
 ## Próximos passos
 
 1. Complementar evidência temporal de início da captura e sincronização;
    investigar recorrência do aviso de reconexão. Fluxo de vídeo, som, rosto,
    voz, REC, entrega vertical e status reacted passaram nesta rodada.
-2. Troca de conta e reprodução legada com os leitores privados.
+2. Ciclo visual Iaco/Bi/Iaco aprovado acima; complementar cenários de mídia
+   privada em andamento. Compatibilidade com vídeos antigos deixou de ser
+   bloqueio por decisão do usuário em 27 de novembro, sem apagar arquivos.
 3. Business: papel de conta, campanhas foto/vídeo, métricas, câmera,
    consentimento, destaque e revogação, limite de dez. Duas empresas foram
    preparadas; Iaco business/proprietário, Bi personal e única seguidora.
