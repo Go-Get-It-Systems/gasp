@@ -175,6 +175,46 @@ Studio selecionou Nike, primeira empresa; a troca para Adidas e as métricas
 com campanhas existentes ainda precisam de validação nesse caminho.
 Nenhum merge, deploy de produção ou envio ao TestFlight foi realizado.
 
+## Publicação pelo Studio novo — 27 de novembro
+
+Iaco/iPhone 17 Pro Max: Overview → New Campaign → vídeo sintético de 9s
+da biblioteca → título `Nike Demo - Studio E2E` → Publish Campaign.
+O app confirmou Campaign submitted e, ao voltar, exibiu Active campaign.
+Não foi usada API para criar ou publicar esta campanha.
+Campanha `aprduvu56vrc9o1t9pvpe7s4`, Nike · Demo, estado live.
+
+Bi/iPhone 17 Pro: Gasps → Business campaigns → Nike · Demo abriu o vídeo;
+o player iniciou a reprodução. Finish viewing → Choose reaction video
+selecionou outro arquivo sintético, com consentimento desligado. Send
+reaction retornou Reaction sent. API de conferência: delivered/opened/
+viewed/reacted 1, failed/selected 0; reação `b5hhh6bavcske1w3zgqzwr26`,
+consentToFeature false e isPinned false.
+
+No Studio novo do Iaco, Reactions mostrou View reaction by Bi. O player
+abriu em tela inteira, original em cima e reação embaixo; capturas em
+instantes distintos confirmaram avanço dos dois vídeos. Não foi validada
+sincronia precisa ou saída sonora nesta rodada (controle da campanha
+indicava volume 0%); câmera física não foi repetida.
+
+**Falha de retorno:** ao tocar Close reaction view, o iPhone 17 Pro Max
+ficou numa tela preta, sem controles na árvore de acessibilidade, em
+observações sucessivas. Não houve erro explícito nos registros Metro
+consultados. Reabrir o app recuperou a navegação e manteve o login.
+Investigar o fechamento do Modal nativo dentro da rota fullScreenModal;
+essa é uma hipótese, não causa confirmada. Não aprovar retorno do player.
+
+**Seleção de empresa:** Profile → Business Studio permite selecionar
+Adidas · Demo e exibiu as duas campanhas existentes. Voltar à aba Studio
+nova abre Nike · Demo novamente. StudioScreen resolve sempre a primeira
+empresa ativa e não apresenta seletor. A seleção do fluxo antigo não é
+compartilhada. Registrar como pendência de navegação multiempresa.
+
+Também foi observado o texto sobre links públicos na tela de consentimento,
+apesar da integração usar leitores privados; revisar a mensagem antes da
+liberação. O experimento de atualização da conexão permanece local e fora
+deste registro versionado de implementação, conforme pausa solicitada pelo
+usuário. Nenhuma main, produção ou TestFlight foi alterada.
+
 ## Próximos passos
 
 1. Complementar evidência temporal de início da captura e sincronização;
