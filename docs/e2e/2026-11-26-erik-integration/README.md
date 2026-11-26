@@ -91,8 +91,10 @@ socket, registrado em B-010. Corrigido na branch de integração: suspensão
 preserva ouvintes, conexão pendente é reutilizada, a faixa acompanha o
 estado atual, e logout mantém descarte completo da sessão. Dois testes
 reproduziram as falhas antes do ajuste; depois passaram sete direcionados,
-598 testes completos, tipos e lint (51 avisos existentes). Isso ainda exige
-reteste de segundo plano no iPhone e não encerra B-008 nem C3/C6.
+598 testes completos, tipos e lint (51 avisos existentes). Após reabrir o
+iPhone na versão ajustada, o usuário confirmou retorno do segundo plano,
+reconexão e desaparecimento do aviso. Recebimento de eventos após retorno
+será exercitado no Business. Isso não encerra B-008 nem C3/C6.
 
 ## Segurança implantada — verificação pela API
 
