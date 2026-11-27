@@ -111,7 +111,7 @@ Esta atualização substitui o estado anterior de API ainda não publicada e de 
 - Capas dos vídeos integradas à branch de preparação após aprovação. Main intacta; experimento de conexão continua fora.
 - Suíte completa: 608 testes aprovados, tipos e lint aprovados, capa real conferida no simulador e apresentação confirmada pelo usuário.
 - Novo pacote solicitado: iOS 1.1.0 (7), canal beta, commit `9f9a85ce599b3fa1eaee4d94b30ea7bcd67f9680`.
-- EAS: `4c8ddf82-12b4-4bf1-b02b-cd43116fba71`. Compilação solicitada; resultado ainda pendente.
+- EAS: `4c8ddf82-12b4-4bf1-b02b-cd43116fba71`. Compilação concluída com status FINISHED; artefato iOS disponível.
 - O build 6 não inclui as capas; não usá-lo para distribuir esta atualização.
 - Nenhum envio à Apple ou convite. O aceite do Account Holder não foi reconfirmado nesta rodada.
-- Antes de enviar, conferir o status final do build 7 e os grupos manuais. Não usar `--latest`.
+- Antes de enviar, reconfirmar os grupos manuais e selecionar o build 7 validado. Não usar `--latest`.
