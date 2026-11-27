@@ -9,6 +9,13 @@ Project decision approved on 27 November 2026. This is the shared release policy
 3. Review the final diff and verify the required checks on the exact current PR commit. Recheck after any new commit. Do not bypass failing checks or merge conflicts.
 4. Merge the reviewed, authorized change to main. Preserve recovery branches or tags when requested; do not reorganize or delete branches as an incidental release step.
 
+## Device and end-to-end test alignment
+
+- Before every coordinated test, verify that all participating simulators and physical devices run the same intended app version and source revision. For development clients, also verify the loaded JavaScript bundle and development server; the installed binary alone does not identify the running code.
+- Confirm that every participant uses the same API environment and backing data services, with a compatible deployed backend revision. Shared Firebase authentication does not mean two API environments share users, friend requests, campaigns or likes.
+- Record the app revision/build, API environment/backend revision, device and signed-in test account before comparing results. Do not infer the environment from a familiar account name or screen.
+- If versions or environments differ, align them before testing. Do not treat a cross-environment mismatch as an application failure or a passing end-to-end test. Mixed-version testing is a separate, explicitly identified compatibility scenario.
+
 ## Beta compilation
 
 1. A distributable beta MUST be compiled from a commit already integrated into main, after its checks pass. Do not distribute a feature-branch or preparation-branch build as the official beta.
