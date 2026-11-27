@@ -19,7 +19,7 @@
   "noPublicCampaigns": "This business hasn't published any campaigns yet.",
   "noPublicReactions": "No public reactions yet.", "followForCampaigns": "Follow this business to receive its campaigns.",
   "emptyCampaigns": "No campaigns yet", "emptyReactions": "No reactions yet", "emptyDirectory": "No pilot businesses available",
-  "emptyInbox": "No business campaigns waiting", "emptyReceipts": "Your campaign reactions will appear here",
+  "emptyInbox": "No campaigns here yet.", "emptyReceipts": "Your campaign reactions will appear here",
   "follow": "Follow", "unfollow": "Unfollow", "followHint": "Receive broadcasts from this business. You can opt out at any time.",
   "unfollowTitle": "Stop following?", "unfollowBody": "Pending broadcasts will expire and your reactions will no longer be featured.",
   "verified": "Verified business", "unverified": "Awaiting verification", "viewProfile": "View business profile",
@@ -36,7 +36,7 @@
   "rateHint": "Delivery rate uses the audience snapshot; other rates use delivered recipients.",
   "feature": "Feature reaction", "unfeature": "Remove featured reaction", "privateReaction": "Not approved for featuring", "featured": "Featured reactions",
   "selectedOnly": "Featured only", "allReactions": "All reactions", "pinHint": "Up to six reactions per business, only with explicit consent.",
-  "previewOnly": "This is a campaign preview. Only delivered recipients can record a reaction or contribute delivery metrics.",
+  "previewOnly": "You can watch this post. To record a reaction, open a campaign received in your Gasps tab.",
   "finishViewing": "Finish viewing", "react": "Record a reaction", "recordVideo": "Record reaction video", "chooseVideo": "Choose reaction video",
   "consent": "Allow this business to feature my reaction on its profile and gallery for other signed-in users to see.",
   "consentHint": "Optional. Leave unchecked to keep this reaction out of the public gallery.",
@@ -49,5 +49,11 @@
   "invalidCampaign": "Choose media and enter a title (1–120 characters).", "unavailable": "This campaign is no longer available.",
   "back": "Back", "loading": "Loading business content", "loadMore": "Load more reactions", "mediaPreview": "Media preview", "viewReaction": "Watch reaction from {{name}}",
   "personalAccount": "Personal", "businessAccount": "Business", "accountType": "Account type",
-  "accountHint": "Business Studio is available only to approved pilot owners; this selection does not grant access."
+  "accountHint": "Business Studio is available only to approved pilot owners; this selection does not grant access.",
+  "followSuccess": "You’re following {{name}}.",
+  "followNextGasps": "The brand’s next gasps will appear in your Gasps tab.",
+  "goToGasps": "Go to Gasps",
+  "emptyInboxFollowing": "New gasps from the brands you follow will appear here.",
+  "emptyInboxFollowBrands": "Follow your favorite brands to receive their next gasps.",
+  "exploreBrands": "Explore brands"
 }

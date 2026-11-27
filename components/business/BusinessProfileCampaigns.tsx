@@ -1,6 +1,7 @@
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { PrivateImage as Image } from '@/components/ui/PrivateImage';
 import { Megaphone } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
@@ -10,6 +11,7 @@ import { usePublicCampaigns } from '@/hooks/queries/useBusiness';
 import { openCampaignViewer } from '@/services/navigation';
 import { BusinessQuery } from './BusinessUI';
 import { BusinessProfileFeatured } from './BusinessProfileFeatured';
+import { CampaignVideoCover } from './CampaignVideoCover';
 import { businessProfileStyles as styles, publicCampaignStyles as tile } from './businessProfileStyles';
 
 function PublicCampaignTile({ campaign, handle }: { campaign: PublicCampaign; handle: string }) {
@@ -20,8 +22,9 @@ function PublicCampaignTile({ campaign, handle }: { campaign: PublicCampaign; ha
     <View style={tile.media}>
       {campaign.mediaType === 'image' ? <Image source={{ uri: campaign.mediaUrl }} style={StyleSheet.absoluteFill}
         contentFit="cover" transition={200} accessibilityRole="image" accessibilityLabel={campaign.title} />
-        : <View style={[StyleSheet.absoluteFill, tile.mediaFallback]}><Megaphone size={24} color={colors.textTertiary} /></View>}
-      <View style={tile.mediaOverlay} />
+        : <CampaignVideoCover uri={campaign.mediaUrl} />}
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} locations={[0.2, 1]}
+        style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View style={[tile.stateBadge, { borderColor: color + '60' }]}><Text style={[tile.stateText, { color }]}>{t(`business.${campaign.state}`).toUpperCase()}</Text></View>
       <View style={tile.titleBlock}><Text style={tile.campaignTitle} numberOfLines={2}>{campaign.title}</Text></View>
     </View>

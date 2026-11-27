@@ -19,7 +19,7 @@
   "noPublicCampaigns": "Esta empresa ainda não publicou nenhuma campanha.",
   "noPublicReactions": "Nenhuma reação pública ainda.", "followForCampaigns": "Siga esta empresa para receber suas campanhas.",
   "emptyCampaigns": "Nenhuma campanha ainda", "emptyReactions": "Nenhuma reação ainda", "emptyDirectory": "Nenhuma empresa do piloto disponível",
-  "emptyInbox": "Nenhuma campanha de empresa aguardando", "emptyReceipts": "Suas reações a campanhas aparecerão aqui",
+  "emptyInbox": "Nenhuma campanha por aqui ainda.", "emptyReceipts": "Suas reações a campanhas aparecerão aqui",
   "follow": "Seguir", "unfollow": "Deixar de seguir", "followHint": "Receba campanhas desta empresa. Você pode deixar de seguir a qualquer momento.",
   "unfollowTitle": "Deixar de seguir?", "unfollowBody": "Campanhas pendentes expirarão e suas reações deixarão de ser destacadas.",
   "verified": "Empresa verificada", "unverified": "Aguardando verificação", "viewProfile": "Ver perfil da empresa",
@@ -36,7 +36,7 @@
   "rateHint": "A taxa de entrega usa o público registrado; as demais taxas usam os destinatários que receberam.",
   "feature": "Destacar reação", "unfeature": "Remover destaque", "privateReaction": "Sem autorização para destaque", "featured": "Reações em destaque",
   "selectedOnly": "Somente destacadas", "allReactions": "Todas as reações", "pinHint": "Até seis reações por empresa, somente com consentimento explícito.",
-  "previewOnly": "Esta é uma prévia da campanha. Somente destinatários que receberam podem gravar reações ou registrar métricas de entrega.",
+  "previewOnly": "Você pode assistir a esta publicação. Para gravar uma reação, abra uma campanha recebida na aba Gasps.",
   "finishViewing": "Concluir visualização", "react": "Gravar reação", "recordVideo": "Gravar vídeo de reação", "chooseVideo": "Escolher vídeo de reação",
   "consent": "Permitir que esta empresa destaque minha reação no perfil e na galeria para outros usuários conectados verem.",
   "consentHint": "Opcional. Deixe desmarcado para manter esta reação fora da galeria pública.",
@@ -49,5 +49,11 @@
   "invalidCampaign": "Escolha uma mídia e informe um título (1–120 caracteres).", "unavailable": "Esta campanha não está mais disponível.",
   "back": "Voltar", "loading": "Carregando conteúdo de empresas", "loadMore": "Carregar mais reações", "mediaPreview": "Prévia da mídia", "viewReaction": "Assistir à reação de {{name}}",
   "personalAccount": "Pessoal", "businessAccount": "Empresarial", "accountType": "Tipo de conta",
-  "accountHint": "O Business Studio está disponível somente para proprietários aprovados no piloto; esta escolha não concede acesso."
+  "accountHint": "O Business Studio está disponível somente para proprietários aprovados no piloto; esta escolha não concede acesso.",
+  "followSuccess": "Você está seguindo a {{name}}.",
+  "followNextGasps": "Os próximos gasps da marca aparecerão na aba Gasps.",
+  "goToGasps": "Ir para Gasps",
+  "emptyInboxFollowing": "Os próximos gasps das marcas que você segue aparecerão aqui.",
+  "emptyInboxFollowBrands": "Siga suas marcas favoritas para receber os próximos gasps.",
+  "exploreBrands": "Explorar marcas"
 }

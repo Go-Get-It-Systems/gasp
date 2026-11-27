@@ -222,3 +222,7 @@ export function openReactionContinuation({
   });
   return 'none';
 }
+
+/** Leave any Business modal before selecting the destination tab. */
+export function openBusinessGasps() { router.dismissTo('/(tabs)/inbox'); }
+export function openBusinessDiscovery() { router.dismissTo('/(tabs)/discover'); }
