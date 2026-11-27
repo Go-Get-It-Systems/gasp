@@ -27,6 +27,10 @@ This record supersedes the earlier next-beta manifest's pending-merge status. Di
 
 ## API and distribution boundary
 
-Production deployment triggers were read before merging and returned no automatic triggers. The production API remains on deployment `1fd424ef-d7fc-4e7f-b522-4bff456f70a3`, code `8e80f1f`, with the reveal correction the owner validated on the physical iPhone. The main merges did not deploy the combined API. In particular, Business likes support and its additive migration are not yet published to the beta-content production API.
+Production deployment triggers were read before merging and returned no automatic triggers. After the build finished, the owner explicitly authorized publishing the compatible API, separately from TestFlight. Main `e19b3cc028f1da2dfaa273aff7e694b8b235a22a` was deployed from a clean checkout as `c197ba89-2d9e-4646-99a2-6fd5a55fe936`, reaching SUCCESS. The health endpoint returned status ok. The prior reveal-only deployment `1fd424ef-d7fc-4e7f-b522-4bff456f70a3` remains the rollback reference.
 
-Before tester distribution, separately publish and verify the compatible API, validate the final app/API pairing on matching devices/accounts, verify Apple's agreement status and manual test groups, then assign only the approved testers. Existing owner-reported device checks are recorded in the component release notes and next-beta manifest. Compilation is not Apple submission or TestFlight availability.
+The release includes the additive campaign-likes migration. A code rollback does not remove that table or its data; no destructive rollback was performed.
+
+Post-deploy checks with the existing Bi and Iaco test accounts passed: ten brands visible, campaign listing, unauthorized likes blocked, like/unlike, duplicate-write idempotency, independent per-account liked state, anonymous media blocked and authorized media readable. Original like states were restored and temporary test-session tokens were deleted. These direct API checks do not replace final native validation of the combined package.
+
+Before tester distribution, validate the final app/API pairing on matching devices/accounts, verify Apple's agreement status and manual test groups, then assign only the approved testers. Existing owner-reported device checks are recorded in the component release notes and next-beta manifest. No Apple submission, tester invitation or TestFlight assignment was performed.
