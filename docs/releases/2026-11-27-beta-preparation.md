@@ -115,3 +115,25 @@ Esta atualização substitui o estado anterior de API ainda não publicada e de 
 - O build 6 não inclui as capas; não usá-lo para distribuir esta atualização.
 - Nenhum envio à Apple ou convite. O aceite do Account Holder não foi reconfirmado nesta rodada.
 - Antes de enviar, reconfirmar os grupos manuais e selecionar o build 7 validado. Não usar `--latest`.
+
+## Fluxo definitivo de beta — decisão de 27/11/2026
+
+Esta decisão substitui as instruções anteriores de distribuição do build 7.
+O usuário definiu que o beta deve sempre ser compilado da main revisada:
+
+1. Implementar em branch separada e abrir proposta para main.
+2. Aprovar revisão e checagens do commit final da proposta.
+3. Integrar à main e confirmar as checagens do commit integrado.
+4. Compilar o perfil beta a partir desse commit da main, com diretório limpo.
+   Registrar commit, versão, número do build e resultado do EAS.
+5. Conferir o artefato e, em etapa separada, enviar à Apple e liberar somente
+   aos participantes autorizados, com grupos manuais reconferidos.
+
+Os builds 6 e 7 foram preparados antes dessa decisão, fora da main, e não
+serão usados para esta liberação. O próximo pacote deve conter as capas e a
+orientação de Business em português e inglês. A autorização desta rodada é
+para integrar à main e compilar; ela não inicia envio à Apple, convites ou
+uma nova publicação da API. Preservar as branches de implementação.
+
+Validação local do conteúdo final: 618 testes em 97 suítes, tipos e lint
+aprovados. Conferência visual da nova orientação no aparelho segue pendente.
