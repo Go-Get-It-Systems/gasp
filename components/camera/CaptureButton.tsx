@@ -7,9 +7,9 @@ import Animated, {
   withTiming,
   interpolate,
   Easing,
+  runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { lightHaptic, mediumHaptic } from '@/utils/haptics';
 
@@ -61,12 +61,16 @@ export function CaptureButton({
     .onFinalize(() => {
       pressed.set(withTiming(0, { duration: 150 }));
     })
-    .onEnd(() => {
-      runOnJS(onCapture)();
+    .onEnd((_event, success) => {
+      // A cancelled tap must not take a photo after a failed/interrupted hold.
+      if (success) runOnJS(onCapture)();
     });
 
   const longPress = Gesture.LongPress()
     .minDuration(300)
+    // Allow travel across the entire visible ring, not the native 10pt default.
+    .maxDistance(ringSize)
+    .shouldCancelWhenOutside(false)
     .onStart(() => {
       recording.set(withTiming(1, { duration: 200 }));
       runOnJS(mediumHaptic)();
@@ -75,6 +79,7 @@ export function CaptureButton({
       }
     })
     .onEnd(() => {
+      // Both release and system cancellation must stop an active recording.
       recording.set(withTiming(0, { duration: 200 }));
       if (onLongPressEnd) {
         runOnJS(onLongPressEnd)();
@@ -114,30 +119,33 @@ export function CaptureButton({
   }));
 
   return (
-    <View style={[styles.wrapper, { width: ringSize, height: ringSize }]}>
-      {/* Progress ring */}
-      <Animated.View style={[styles.ringContainer, ringStyle]}>
-        <Svg width={ringSize} height={ringSize}>
-          <AnimatedCircle
-            cx={ringSize / 2}
-            cy={ringSize / 2}
-            r={radius}
-            stroke="#EF4444"
-            strokeWidth={strokeWidth}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            animatedProps={animatedCircleProps}
-          />
-        </Svg>
-      </Animated.View>
-
-      {/* Capture button */}
-      <GestureDetector gesture={gesture}>
+    <GestureDetector gesture={gesture}>
+      <View
+        collapsable={false}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="Take photo"
+        accessibilityHint="Long press to record video"
+        style={[styles.wrapper, { width: ringSize, height: ringSize }]}
+      >
+        {/* The fixed wrapper owns touch input; animated visuals never shrink it. */}
+        <Animated.View pointerEvents="none" style={[styles.ringContainer, ringStyle]}>
+          <Svg width={ringSize} height={ringSize}>
+            <AnimatedCircle
+              cx={ringSize / 2}
+              cy={ringSize / 2}
+              r={radius}
+              stroke="#EF4444"
+              strokeWidth={strokeWidth}
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              animatedProps={animatedCircleProps}
+            />
+          </Svg>
+        </Animated.View>
         <Animated.View
-          accessibilityRole="button"
-          accessibilityLabel="Take photo"
-          accessibilityHint="Long press to record video"
+          pointerEvents="none"
           style={[
             styles.outer,
             { width: size, height: size, borderRadius: size / 2 },
@@ -152,8 +160,8 @@ export function CaptureButton({
             ]}
           />
         </Animated.View>
-      </GestureDetector>
-    </View>
+      </View>
+    </GestureDetector>
   );
 }
 
