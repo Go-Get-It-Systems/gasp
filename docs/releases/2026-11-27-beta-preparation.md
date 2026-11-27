@@ -102,3 +102,16 @@ Referências: [runtime e atualizações](https://docs.expo.dev/eas-update/runtim
 [configuração EAS](https://docs.expo.dev/eas/json/).
 Referências Apple: [testadores internos](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers),
 [testadores externos](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/).
+
+## Atualização após conteúdo e capas — 27/11/2026
+
+Esta atualização substitui o estado anterior de API ainda não publicada e de pacote sem mudanças funcionais.
+
+- API revisada publicada com autorização em produção; saúde verificada. Dez marcas e vinte campanhas Live cadastradas; arquivos recebidos pela Bi com hashes iguais aos cortes preparados e acesso anônimo bloqueado.
+- Capas dos vídeos integradas à branch de preparação após aprovação. Main intacta; experimento de conexão continua fora.
+- Suíte completa: 608 testes aprovados, tipos e lint aprovados, capa real conferida no simulador e apresentação confirmada pelo usuário.
+- Novo pacote solicitado: iOS 1.1.0 (7), canal beta, commit `9f9a85ce599b3fa1eaee4d94b30ea7bcd67f9680`.
+- EAS: `4c8ddf82-12b4-4bf1-b02b-cd43116fba71`. Compilação solicitada; resultado ainda pendente.
+- O build 6 não inclui as capas; não usá-lo para distribuir esta atualização.
+- Nenhum envio à Apple ou convite. O aceite do Account Holder não foi reconfirmado nesta rodada.
+- Antes de enviar, conferir o status final do build 7 e os grupos manuais. Não usar `--latest`.
