@@ -10,6 +10,7 @@ Status: source changes saved on review branches; not a compiled or distributed b
 | App | [Fix Business guidance navigation between tabs](https://github.com/Go-Get-It-Systems/gasp/pull/45) | implementation `e143b64`; evidence updates on the same review branch | Go to Gasps, Explore brands and mandatory test-environment alignment |
 | App | [Fix camera recording hold sensitivity](https://github.com/Go-Get-It-Systems/gasp/pull/46) | implementation `f01e8e6`; physical evidence `233e0db` | Stable capture target, movement tolerance and no photo on cancelled tap |
 | API | [Add protected Business campaign likes](https://github.com/Go-Get-It-Systems/gasp-backend/pull/18) | `d10c19ff8da5a5a7e664313ec33bd63eb9959ad3` | Authenticated access, unique per-user likes, idempotent writes and counts |
+| API | [Start reaction playback at the reveal](https://github.com/Go-Get-It-Systems/gasp-backend/pull/19) | implementation `8e80f1f`; device evidence on the same review branch | Trim countdown from reaction image and audio together; show the original immediately |
 
 The first three reviews were open and mergeable when checked. The camera correction was added afterward; its current CI and mergeability must also be checked before integration. App likes and API checks passed on the listed revisions. Navigation CI was still running; verify its final result on the latest revision before integration.
 
@@ -21,11 +22,14 @@ The first three reviews were open and mergeable when checked. The camera correct
 - Go to Gasps opened the inbox from the Discover card and Business profile in the simulator. The owner also confirmed the fix on the physical iPhone.
 - Explore brands has automated coverage; its native empty state has not been exercised in this round because the account already follows brands.
 - The owner confirmed that the camera hold now works on the physical iPhone after testing the instructed hold with slight movement. The camera branch passed 623 tests, TypeScript and targeted ESLint. Other hardware edge cases are distinguished in its release record.
+- The owner confirmed the new-reaction playback test on the physical iPhone after the reveal-trim deployment. Local verification covered 354 automated tests and 19 real FFmpeg montages. Existing composites were not regenerated.
 - General native media-orientation/failure-path checks remain as noted in the likes report; these are not implicitly completed by navigation testing.
 
 ## Environment boundaries
 
 Likes E2E used the isolated integration API. The later ten-brand content review and navigation fix used the beta-content API at `https://gasp-backend-production.up.railway.app`. The two simulators and physical iPhone were aligned to the same development preview for that later review. The beta-content API has not received the new likes API through this work.
+
+The reveal-trim correction was deployed separately to that beta-content production API and passed its health check; the owner then confirmed the new-reaction test on the iPhone. Main remains unchanged. This deployment does not include the pending likes API.
 
 Before final beta validation, combine the reviewed app changes and use one compatible backend/environment for every participating device. Check app source revision and loaded development bundle, API destination/backend revision and test account. A common Firebase project does not imply shared API data.
 
