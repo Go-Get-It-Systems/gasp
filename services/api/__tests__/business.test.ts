@@ -7,6 +7,15 @@ jest.mock('@/services/api', () => ({ api: { request: jest.fn() } }));
 const request = api.request as jest.Mock;
 describe('Business adapters', () => {
   beforeEach(() => { jest.clearAllMocks(); request.mockReset(); });
+  it('uses explicit idempotent like and unlike methods and validates the returned state', async () => {
+    request.mockResolvedValue({ data: { count: 2, liked: true } });
+    expect(await business.setCampaignLike('w', 'c', true)).toEqual({ count: 2, liked: true });
+    expect(request).toHaveBeenLastCalledWith(expect.objectContaining({ url: '/businesses/w/campaigns/c/likes/mine', method: 'put' }));
+    await business.setCampaignLike('w', 'c', false);
+    expect(request).toHaveBeenLastCalledWith(expect.objectContaining({ method: 'delete' }));
+    request.mockResolvedValue({ data: { count: -1, liked: 'yes' } });
+    await expect(business.getCampaignLikes('w', 'c')).rejects.toThrow();
+  });
   it('sends false consent explicitly', async () => {
     request.mockResolvedValue({ data: campaignReaction });
     await business.submitCampaignReaction('w', 'c', { videoUrl: campaignReaction.videoUrl, consentToFeature: false });

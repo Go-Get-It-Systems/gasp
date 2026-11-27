@@ -8,6 +8,7 @@ export const colors = {
   // Primary
   primary: '#7C3AED',
   primaryLight: '#8B5CF6',
+  likeSelected: '#A78BFA',
   primaryDark: '#6D28D9',
 
   // Accent / Gradient stops
