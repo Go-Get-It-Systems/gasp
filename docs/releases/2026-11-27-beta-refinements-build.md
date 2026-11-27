@@ -46,4 +46,10 @@ The team's App Store Connect API-key access is not enabled. With the owner's aut
 
 EAS accepted upload-only submission `291ed8f3-2938-4d98-a690-b9bbed5801c5` for the exact build above. [Submission on Expo](https://expo.dev/accounts/go-get-it-systems/projects/gasp/submissions/291ed8f3-2938-4d98-a690-b9bbed5801c5). The app-specific-password route does not support assigning TestFlight groups or changelog automatically; those steps must be completed manually in App Store Connect. The initial request with group/changelog arguments was rejected before scheduling; the upload-only request is the scheduled submission.
 
-EAS submission finished successfully. App Store Connect lists version `1.1.0`, build `9` as `Processing` in Build Uploads. The temporary local submission-password file was deleted after upload completion. Manual assignment to the exclusive group remains pending until Apple processing finishes; no tester distribution is claimed yet.
+EAS submission finished successfully, and Apple processing completed. App Store Connect build `15ebc593-6381-461d-a808-a2a9727c8f7d` is version `1.1.0`, build `9`. The temporary local submission-password file was deleted after upload completion.
+
+The build was manually assigned only to `GASP Beta - Core Team`. Verified final state: `Internal Group ∙ 2 Testers ∙ 1 Build`; the build row shows `Testing`, expiring in 90 days. The two members remain Gabriel Gimenes and Laura Iacono. Build details show exactly one group and zero individual testers; no other internal or external group was assigned, and no public testing link was created. What-to-test notes were saved in English (Australia), covering sign-in, gasp sending/receiving, camera hold, synchronized playback, ten-brand discovery, video/audio, likes/undo/persistence/account updates and Go to Gasps navigation.
+
+[Authorized TestFlight group](https://appstoreconnect.apple.com/teams/1bdcb104-2ff7-4749-95b6-01ea326ca92c/apps/6763954977/testflight/groups/9cfe5250-9bf7-4527-abaf-9731b7476657).
+
+Final state: compiled from verified main, submitted to Apple, processed, and distributed through the exclusive internal TestFlight group. No public App Store release was performed. Tester installation and further feedback remain separate from this distribution confirmation.
