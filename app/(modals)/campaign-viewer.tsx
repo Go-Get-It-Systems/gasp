@@ -6,6 +6,7 @@ import { useCampaignInbox, usePublicCampaigns } from '@/hooks/queries/useBusines
 import { useCampaignDelivery } from '@/hooks/queries/useBusinessMutations';
 import { BusinessButton, BusinessError, BusinessQuery, BusinessScreen, businessStyles } from '@/components/business/BusinessUI';
 import { CampaignMedia } from '@/components/business/CampaignMedia';
+import { CampaignLikeButton } from '@/components/business/CampaignLikeButton';
 import { Text } from '@/components/ui/Text';
 import { openCampaignReactionComposer } from '@/services/navigation';
 
@@ -28,7 +29,8 @@ export default function CampaignViewer() {
   }, [focused, campaign, recipient, campaigns.isError, inbox.isError, workspaceId, campaignId, delivery]);
   return <BusinessScreen title={campaign?.title ?? t('business.campaigns')}>
     <BusinessQuery query={campaigns} empty={t('business.unavailable')}>{() => campaign ? <>
-      <CampaignMedia uri={campaign.mediaUrl} mediaType={campaign.mediaType} />
+      <CampaignMedia uri={campaign.mediaUrl} mediaType={campaign.mediaType} naturalSize />
+      <CampaignLikeButton workspaceId={workspaceId} campaignId={campaignId} />
       {!!campaign.textOverlay && <Text>{campaign.textOverlay}</Text>}
       {recipient ? <>
         <BusinessButton label={t('business.finishViewing')} disabled={delivery.isPending} onPress={() => delivery.mutate('viewed', {

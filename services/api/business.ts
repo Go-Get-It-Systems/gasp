@@ -125,3 +125,7 @@ export async function getCampaignsByHandle(handle: string) {
   const workspace = await getBusinessProfile(handle);
   return getPublicCampaigns(workspace.id);
 }
+
+export const getCampaignLikes = (w: string, c: string) => request(s.CampaignLikesSchema, `${campaign(w, c)}/likes`);
+export const setCampaignLike = (w: string, c: string, liked: boolean) =>
+  request(s.CampaignLikesSchema, `${campaign(w, c)}/likes/mine`, liked ? 'put' : 'delete');
