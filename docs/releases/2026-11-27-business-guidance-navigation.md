@@ -11,7 +11,9 @@ Tab links now navigate to the destination tab. A follow confirmation inside a Bu
 - 16 focused tests passed, covering follow completion, session changes, tab navigation, modal dispatch and private-viewer session isolation.
 - TypeScript and targeted ESLint passed.
 - Regression exercises the actual React Navigation tab reducer: POP_TO is unhandled, while the destination selected through NAVIGATE changes correctly.
-- Native app/device confirmation remains pending. The fix has not been copied into the running development preview while the owner is testing it.
+- Native simulator validation passed on iPhone 17 Pro using Bi: follow Adidas, open Go to Gasps from the Business profile, and repeat from the Discover card. Both select the Gasps tab; the profile modal is dismissed. Adidas was restored to its original followed state.
+- The two changed source files were copied to the shared development preview after the owner authorized continuing. Both simulators and the physical iPhone remain attached to that development server against the beta-content API. Physical-device validation of this specific fix is still pending.
+- Explore brands is covered by the automated tab-navigation and empty-inbox tests; its native empty state was not exercised because the test account follows brands.
 - The two simulators and physical iPhone were confirmed attached to the same development server for the existing beta-content preview. No backend or production deployment was made for this fix.
 
 ## Test protocol
