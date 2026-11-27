@@ -1,5 +1,6 @@
 import React, { type PropsWithChildren } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useCampaignLikes } from '../useCampaignLikes';
 import { advanceSession } from '@/services/session';
@@ -7,6 +8,8 @@ import { getCampaignLikes, setCampaignLike } from '@/services/api/business';
 
 jest.unmock('@tanstack/react-query');
 let mockActor = 'bi';
+let mockFocused = true;
+jest.mock('@react-navigation/native', () => ({ useIsFocused: () => mockFocused }));
 jest.mock('@/hooks/queries/useBusiness', () => ({ useBusinessActor: () => mockActor }));
 jest.mock('@/stores/authStore', () => ({ useAuthStore: { getState: () => ({ user: mockActor ? { id: mockActor } : null }) } }));
 jest.mock('@/services/api/business', () => ({ getCampaignLikes: jest.fn(), setCampaignLike: jest.fn() }));
@@ -16,12 +19,69 @@ let client: QueryClient;
 function wrapper({ children }: PropsWithChildren) { return <QueryClientProvider client={client}>{children}</QueryClientProvider>; }
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (reason: unknown) => void; const promise = new Promise<T>((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; }
 beforeEach(() => {
-  jest.clearAllMocks(); mockActor = 'bi'; advanceSession();
+  jest.clearAllMocks(); mockActor = 'bi'; mockFocused = true; advanceSession();
+  AppState.currentState = 'active';
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
   getLikes.mockResolvedValue({ count: 3, liked: false });
   setLike.mockResolvedValue({ count: 4, liked: true });
 });
-afterEach(() => client.clear());
+afterEach(() => { client.clear(); jest.restoreAllMocks(); jest.useRealTimers(); });
+
+it('refreshes other accounts likes while visible, pauses offscreen/background and refreshes on return', async () => {
+  jest.useFakeTimers();
+  let onState!: (state: AppStateStatus) => void;
+  const remove = jest.fn();
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, handler) => {
+    onState = handler; return { remove };
+  });
+  const screen = renderHook(() => useCampaignLikes('w', 'c'), { wrapper });
+  await waitFor(() => expect(screen.result.current.count).toBe(3));
+  getLikes.mockResolvedValue({ count: 4, liked: false });
+  await act(async () => { await jest.advanceTimersByTimeAsync(5_000); });
+  expect(screen.result.current.count).toBe(4);
+  expect(screen.result.current.liked).toBe(false);
+  act(() => onState('background'));
+  const calls = getLikes.mock.calls.length;
+  await act(async () => { await jest.advanceTimersByTimeAsync(10_000); });
+  expect(getLikes).toHaveBeenCalledTimes(calls);
+  getLikes.mockResolvedValue({ count: 5, liked: false });
+  act(() => onState('active'));
+  await waitFor(() => expect(screen.result.current.count).toBe(5));
+  mockFocused = false; screen.rerender({});
+  const hiddenCalls = getLikes.mock.calls.length;
+  await act(async () => { await jest.advanceTimersByTimeAsync(10_000); });
+  expect(getLikes).toHaveBeenCalledTimes(hiddenCalls);
+  expect(remove).toHaveBeenCalledTimes(1);
+  getLikes.mockResolvedValue({ count: 6, liked: false });
+  mockFocused = true; screen.rerender({});
+  await waitFor(() => expect(screen.result.current.count).toBe(6));
+  screen.unmount();
+  const unmountedCalls = getLikes.mock.calls.length;
+  await act(async () => { await jest.advanceTimersByTimeAsync(10_000); });
+  expect(getLikes).toHaveBeenCalledTimes(unmountedCalls);
+});
+
+it('pauses refresh during a write and stops polling when access is denied', async () => {
+  jest.useFakeTimers();
+  const request = deferred<{ count: number; liked: boolean }>();
+  setLike.mockReturnValueOnce(request.promise);
+  const { result } = renderHook(() => useCampaignLikes('w', 'c'), { wrapper });
+  await waitFor(() => expect(result.current.count).toBe(3));
+  act(() => result.current.toggle());
+  await waitFor(() => expect(setLike).toHaveBeenCalledTimes(1));
+  const calls = getLikes.mock.calls.length;
+  await act(async () => { await jest.advanceTimersByTimeAsync(10_000); });
+  expect(getLikes).toHaveBeenCalledTimes(calls);
+  expect(result.current.count).toBe(4);
+  await act(async () => request.resolve({ count: 4, liked: true }));
+  await waitFor(() => expect(result.current.isPending).toBe(false));
+  getLikes.mockRejectedValue({ response: { status: 403 } });
+  await act(async () => { await jest.advanceTimersByTimeAsync(5_000); });
+  await waitFor(() => expect(result.current.hasData).toBe(false));
+  const deniedCalls = getLikes.mock.calls.length;
+  await act(async () => { await jest.advanceTimersByTimeAsync(10_000); });
+  expect(getLikes).toHaveBeenCalledTimes(deniedCalls);
+});
 
 it('optimistically likes once despite rapid taps, restores on failure, retries and unlikes', async () => {
   const request = deferred<{ count: number; liked: boolean }>(); setLike.mockReturnValueOnce(request.promise);
