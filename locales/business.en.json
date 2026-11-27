@@ -55,5 +55,12 @@
   "goToGasps": "Go to Gasps",
   "emptyInboxFollowing": "New gasps from the brands you follow will appear here.",
   "emptyInboxFollowBrands": "Follow your favorite brands to receive their next gasps.",
-  "exploreBrands": "Explore brands"
+  "exploreBrands": "Explore brands",
+  "like": "Like",
+  "liked": "Liked",
+  "unlike": "Unlike post",
+  "likeCount_one": "{{count}} like",
+  "likeCount_other": "{{count}} likes",
+  "likeError": "Could not update your like. Try again.",
+  "likeRetry": "Try again"
 }

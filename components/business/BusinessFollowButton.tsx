@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { UserCheck, UserPlus } from 'lucide-react-native';
+import { useSegments } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
 import { openBusinessGasps } from '@/services/navigation';
@@ -14,6 +15,7 @@ export function BusinessFollowButton({ handle, workspace, variant = 'card' }: {
   handle: string; workspace?: BusinessWorkspace; variant?: 'card' | 'search' | 'profile';
 }) {
   const { t } = useTranslation();
+  const segments = useSegments();
   const follow = useBusinessFollowing(handle, workspace);
   const following = follow.workspace?.isFollowing ?? false;
   if (follow.isOwner) return variant === 'profile' ? null : <Text variant="caption">{t('business.yourBusiness')}</Text>;
@@ -38,7 +40,7 @@ export function BusinessFollowButton({ handle, workspace, variant = 'card' }: {
       <Text variant="caption" weight="600">{t('business.followSuccess', { name: follow.followedName })}</Text>
       <Text variant="caption" color={colors.textSecondary}>{t('business.followNextGasps')}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={t('business.goToGasps')} style={{ minHeight: 44, justifyContent: 'center' }}
-        onPress={(event) => { event.stopPropagation(); openBusinessGasps(); }}>
+        onPress={(event) => { event.stopPropagation(); openBusinessGasps(segments[0] === '(modals)'); }}>
         <Text variant="caption" weight="600" color={colors.primaryLight}>{t('business.goToGasps')}</Text>
       </Pressable>
     </View>}
