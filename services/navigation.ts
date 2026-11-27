@@ -223,6 +223,9 @@ export function openReactionContinuation({
   return 'none';
 }
 
-/** Leave any Business modal before selecting the destination tab. */
-export function openBusinessGasps() { router.dismissTo('/(tabs)/inbox'); }
-export function openBusinessDiscovery() { router.dismissTo('/(tabs)/discover'); }
+// POP_TO is a stack action; tab-to-tab links must use NAVIGATE.
+export function openBusinessGasps(fromModal = false) {
+  if (fromModal) router.dismissTo('/(tabs)/inbox');
+  else router.navigate('/(tabs)/inbox');
+}
+export function openBusinessDiscovery() { router.navigate('/(tabs)/discover'); }
