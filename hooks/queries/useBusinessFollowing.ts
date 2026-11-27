@@ -1,11 +1,15 @@
+import { useState } from 'react';
+import { getSessionGeneration } from '@/services/session';
 import { Alert, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { BusinessWorkspace } from '@/services/api/schemas/business.schema';
-import { useBusinessProfile, useBusinessWorkspaces } from './useBusiness';
+import { useBusinessActor, useBusinessProfile, useBusinessWorkspaces } from './useBusiness';
 import { useBusinessFollow } from './useBusinessMutations';
 
 export function useBusinessFollowing(handle: string, initialWorkspace?: BusinessWorkspace) {
   const { t } = useTranslation();
+  const actor = useBusinessActor();
+  const [confirmation, setConfirmation] = useState<{ actor: string; generation: number; workspaceId: string; name: string } | null>(null);
   const profile = useBusinessProfile(handle, !initialWorkspace);
   const own = useBusinessWorkspaces();
   const workspace = initialWorkspace ?? profile.data;
@@ -17,7 +21,17 @@ export function useBusinessFollowing(handle: string, initialWorkspace?: Business
     || (!initialWorkspace && profile.isError) || mutation.isPending;
   function toggle(confirmUnfollow = false) {
     if (disabled || !workspace) return;
-    if (!workspace.isFollowing || !confirmUnfollow) { mutation.mutate(!workspace.isFollowing); return; }
+    setConfirmation(null);
+    if (!workspace.isFollowing) {
+      const generation = getSessionGeneration();
+      mutation.mutate(true, { onSuccess: () => {
+        if (generation === getSessionGeneration()) {
+          setConfirmation({ actor, generation, workspaceId: workspace.id, name: workspace.displayName });
+        }
+      } });
+      return;
+    }
+    if (!confirmUnfollow) { mutation.mutate(false); return; }
     if (Platform.OS === 'web') {
       if (window.confirm(`${t('business.unfollowTitle')}\n\n${t('business.unfollowBody')}`)) mutation.mutate(false);
     } else {
@@ -27,5 +41,8 @@ export function useBusinessFollowing(handle: string, initialWorkspace?: Business
       ]);
     }
   }
-  return { workspace, isOwner, isError, isLoading, disabled, isPending: mutation.isPending, toggle };
+  const followedName = confirmation?.actor === actor
+    && confirmation.generation === getSessionGeneration()
+    && confirmation.workspaceId === workspace?.id ? confirmation.name : null;
+  return { followedName, workspace, isOwner, isError, isLoading, disabled, isPending: mutation.isPending, toggle };
 }

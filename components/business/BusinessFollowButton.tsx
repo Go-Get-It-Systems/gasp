@@ -2,6 +2,7 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import { UserCheck, UserPlus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/ui/Text';
+import { openBusinessGasps } from '@/services/navigation';
 import { colors } from '@/constants/colors';
 import type { BusinessWorkspace } from '@/services/api/schemas/business.schema';
 import { useBusinessFollowing } from '@/hooks/queries/useBusinessFollowing';
@@ -23,7 +24,7 @@ export function BusinessFollowButton({ handle, workspace, variant = 'card' }: {
     : variant === 'search' ? (following ? search.followingText : search.addText)
       : (following ? card.followingText : card.addText);
   return <View style={variant === 'profile' ? [profile.followRow, { gap: 6 }]
-    : variant === 'card' ? { width: '100%', gap: 6 } : { gap: 6 }}>
+    : variant === 'card' ? { width: '100%', gap: 6 } : { gap: 6, maxWidth: 180 }}>
     <Pressable style={buttonStyle} disabled={follow.disabled}
       onPress={(event) => { event.stopPropagation(); follow.toggle(variant === 'profile'); }}
       accessibilityRole="button" accessibilityLabel={`${t(following ? 'business.unfollow' : 'business.follow')} @${handle}`}
@@ -33,6 +34,14 @@ export function BusinessFollowButton({ handle, workspace, variant = 'card' }: {
         <Text style={textStyle}>{t(following ? 'business.following' : 'business.follow')}</Text>
       </>}
     </Pressable>
+    {!!follow.followedName && <View style={{ gap: 6 }} accessibilityLiveRegion="polite">
+      <Text variant="caption" weight="600">{t('business.followSuccess', { name: follow.followedName })}</Text>
+      <Text variant="caption" color={colors.textSecondary}>{t('business.followNextGasps')}</Text>
+      <Pressable accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center' }}
+        onPress={(event) => { event.stopPropagation(); openBusinessGasps(); }}>
+        <Text variant="caption" weight="600" color={colors.primaryLight}>{t('business.goToGasps')}</Text>
+      </Pressable>
+    </View>}
     {follow.isError && <Text variant="caption" accessibilityRole="alert" style={{ color: colors.error }}>{t('business.error')}</Text>}
   </View>;
 }

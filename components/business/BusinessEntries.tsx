@@ -2,7 +2,7 @@ import { FlatList, View } from 'react-native';
 import { Building2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useBusinessDirectory, useBusinessWorkspaces, useCampaignInbox } from '@/hooks/queries/useBusiness';
-import { openBusinessStudio, openCampaignViewer, openMyCampaignReactions } from '@/services/navigation';
+import { openBusinessDiscovery, openBusinessStudio, openCampaignViewer, openMyCampaignReactions } from '@/services/navigation';
 import { BusinessButton, BusinessQuery, businessStyles } from './BusinessUI';
 import { Text } from '@/components/ui/Text';
 import { BusinessDiscoverCard } from '@/components/discover/BusinessDiscoverCard';
@@ -34,8 +34,19 @@ export function BusinessDirectorySection() {
 }
 export function CampaignInboxSection() {
   const query = useCampaignInbox();
+  const directory = useBusinessDirectory();
   const { t } = useTranslation();
-  if (query.data?.length === 0) return null;
+  if (!query.isError && !query.isLoading && query.data?.length === 0) {
+    // Unknown availability must not look like a first-use empty inbox.
+    if (directory.isError || directory.isLoading || !directory.data?.length) return null;
+    const following = directory.data.some((workspace) => workspace.isFollowing);
+    return <View style={{ ...businessStyles.section, paddingHorizontal: 20 }}>
+      <Text variant="subtitle">{t('business.inbox')}</Text>
+      <Text weight="600">{t('business.emptyInbox')}</Text>
+      <Text style={businessStyles.muted}>{t(following ? 'business.emptyInboxFollowing' : 'business.emptyInboxFollowBrands')}</Text>
+      {!following && <BusinessButton label={t('business.exploreBrands')} onPress={openBusinessDiscovery} />}
+    </View>;
+  }
   return <View style={{ ...businessStyles.section, paddingHorizontal: 20 }}><Text variant="subtitle">{t('business.inbox')}</Text>
     <BusinessQuery query={query} empty={t('business.emptyInbox')}>{(rows) => rows.map((row) =>
       <BusinessButton key={row.id} label={`${row.senderName} · @${row.handle}`} onPress={() => openCampaignViewer({ workspaceId: row.workspaceId, campaignId: row.campaignId, handle: row.handle })} />
