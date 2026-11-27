@@ -15,7 +15,7 @@ The owner reported ignored recording holds and clips ending while the finger rem
 - TypeScript, targeted ESLint and diff checks passed.
 - New tests use actual gesture builders with a mocked native host: stable target bounds through recording, movement configuration, successful versus cancelled taps, and release/cancellation callbacks. They do not simulate the physical iOS finger recognizer or prove camera capture on hardware.
 - Updated the shared development preview with this component, preserving the already-tested Business navigation correction. All three clients (two simulators and physical iPhone) were confirmed attached to that server against the beta-content API. The phone was relaunched successfully. Camera screen and capture control were visible in the simulator.
-- Physical validation requested: hold around five seconds, move the finger slightly within the visible circle, confirm recording continues, release and confirm preview. Also check an ordinary photo tap, a quick release before recording starts, and the existing ten-second cap. Physical result is still pending.
+- Physical validation: after being asked to hold around five seconds, move the finger slightly inside the circle and release, the owner reported that the test worked on the connected iPhone. The reported hold sensitivity scenario is approved. An ordinary photo tap, quick release before recording starts and the ten-second cap were not separately confirmed on hardware in this round; automated camera flow coverage remains recorded above.
 
 ## Release
 
