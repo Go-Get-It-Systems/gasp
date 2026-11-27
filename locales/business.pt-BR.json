@@ -55,5 +55,12 @@
   "goToGasps": "Ir para Gasps",
   "emptyInboxFollowing": "Os próximos gasps das marcas que você segue aparecerão aqui.",
   "emptyInboxFollowBrands": "Siga suas marcas favoritas para receber os próximos gasps.",
-  "exploreBrands": "Explorar marcas"
+  "exploreBrands": "Explorar marcas",
+  "like": "Curtir",
+  "liked": "Curtido",
+  "unlike": "Remover curtida",
+  "likeCount_one": "{{count}} curtida",
+  "likeCount_other": "{{count}} curtidas",
+  "likeError": "Não foi possível atualizar sua curtida. Tente novamente.",
+  "likeRetry": "Tentar novamente"
 }

@@ -67,3 +67,6 @@ export type PublicCampaignReaction = z.infer<typeof PublicCampaignReactionSchema
 export type CampaignReference = z.infer<typeof CampaignReferenceSchema>;
 export type CampaignInboxItem = z.infer<typeof CampaignInboxSchema>;
 export type MyCampaignReaction = z.infer<typeof MyCampaignReactionSchema>;
+
+export const CampaignLikesSchema = z.object({ count: z.number().int().nonnegative(), liked: z.boolean() });
+export type CampaignLikes = z.infer<typeof CampaignLikesSchema>;
