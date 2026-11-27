@@ -23,7 +23,7 @@ This record supersedes the earlier next-beta manifest's pending-merge status. Di
 - Compilation finished successfully. EAS metadata matches the exact main commit, beta profile/channel and iOS 1.1.0 build 9. No auto-submit was used.
 - Downloaded IPA verification: bundle `com.gasp.app`, version `1.1.0`, build `9`, minimum iOS `15.1`, 22125079 bytes.
 - Artifact SHA-256: `eb6e5fca19e64b65ad91e7597c21fa45d41c9b30177372e561001481f350b945`.
-- No Apple submission, tester invitation or TestFlight assignment was performed.
+- The build initially completed without automatic Apple submission; the authorized submission is recorded below.
 
 ## API and distribution boundary
 
@@ -33,4 +33,17 @@ The release includes the additive campaign-likes migration. A code rollback does
 
 Post-deploy checks with the existing Bi and Iaco test accounts passed: ten brands visible, campaign listing, unauthorized likes blocked, like/unlike, duplicate-write idempotency, independent per-account liked state, anonymous media blocked and authorized media readable. Original like states were restored and temporary test-session tokens were deleted. These direct API checks do not replace final native validation of the combined package.
 
-Before tester distribution, validate the final app/API pairing on matching devices/accounts, verify Apple's agreement status and manual test groups, then assign only the approved testers. Existing owner-reported device checks are recorded in the component release notes and next-beta manifest. No Apple submission, tester invitation or TestFlight assignment was performed.
+Final native validation and authorized Apple submission are recorded below. Existing component checks remain in the component release notes and next-beta manifest.
+
+
+## Final native validation and Apple submission
+
+The owner confirmed the final development app/API pairing on the physical iPhone: likes on both Adidas publications remained after reopening, undo persisted, account-specific liked state was independent, and protected video playback loaded with audio. The physical iPhone and both simulators used the exact app main above and the production API deployment recorded here. This is development-client validation of the approved source/API combination, not a claim that the Store binary has already been installed.
+
+After those checks, the owner explicitly authorized TestFlight release only to Gabriel Gimenes and Laura Iacono. App Store Connect was rechecked: the updated Developer Program agreement was accepted on 27 November 2026. The internal `GASP Beta - Core Team` group contained exactly the two authorized testers and zero builds; `Family - Manual` and `Internal - Manual` were also manual and had zero builds.
+
+The team's App Store Connect API-key access is not enabled. With the owner's authorization to complete submission authentication, an app-specific password named `GASP Expo TestFlight` was created after the owner personally completed Apple login/password confirmation. No primary password or submission credential is recorded in Git. No new signing certificate or provisioning profile was created.
+
+EAS accepted upload-only submission `291ed8f3-2938-4d98-a690-b9bbed5801c5` for the exact build above. [Submission on Expo](https://expo.dev/accounts/go-get-it-systems/projects/gasp/submissions/291ed8f3-2938-4d98-a690-b9bbed5801c5). The app-specific-password route does not support assigning TestFlight groups or changelog automatically; those steps must be completed manually in App Store Connect. The initial request with group/changelog arguments was rejected before scheduling; the upload-only request is the scheduled submission.
+
+EAS submission finished successfully. App Store Connect lists version `1.1.0`, build `9` as `Processing` in Build Uploads. The temporary local submission-password file was deleted after upload completion. Manual assignment to the exclusive group remains pending until Apple processing finishes; no tester distribution is claimed yet.
