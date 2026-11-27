@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GASP is a React Native mobile app (Expo 54) — an ephemeral media platform (Snapchat-style) with real-time chat, disappearing photos ("gasps"), and video reactions. This is the frontend; the backend lives in `../gasp-backend/`.
 
+## Development and release workflow
+
+Follow [docs/release-workflow.md](docs/release-workflow.md), the shared release policy for developers and agents. Official beta builds must come from a clean main commit after review, passing checks and integration. Compiling, submitting to Apple, distributing through TestFlight and deploying the backend are separate steps; report their actual status and honor the user's existing authorization.
+
 ## Commands
 
 ```bash
